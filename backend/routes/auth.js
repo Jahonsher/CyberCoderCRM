@@ -6,6 +6,7 @@ const Business = require('../models/Business');
 const createSuperAdmin = require('../utils/createSuperAdmin');
 const SuperAdmin = createSuperAdmin.SuperAdmin;
 const { verifyToken } = require('../middleware/auth');
+const { MODULES } = require('../config/modules');
 
 /**
  * JWT token yaratish
@@ -19,13 +20,6 @@ const generateToken = (payload) => {
 /**
  * POST /api/auth/login
  * Login (superadmin yoki admin)
- *
- * Body: { username/login, password }
- *
- * Jarayoni:
- * 1. Avval SuperAdmin jadvalidan qidiradi
- * 2. Topilmasa - Business (admin) jadvalidan qidiradi
- * 3. Topilgan bo'lsa - JWT token qaytaradi
  */
 router.post('/login', async (req, res) => {
   try {
@@ -33,12 +27,10 @@ router.post('/login', async (req, res) => {
     const loginValue = (username || login || '').toLowerCase().trim();
 
     if (!loginValue || !password) {
-      return res.status(400).json({
-        error: 'Login va parol kerak',
-      });
+      return res.status(400).json({ error: 'Login va parol kerak' });
     }
 
-    // ========== 1. SUPERADMIN TEKSHIRUV ==========
+    // ========== 1. SUPERADMIN ==========
     const superAdmin = await SuperAdmin.findOne({ username: loginValue }).select('+password');
 
     if (superAdmin) {
@@ -48,7 +40,6 @@ router.post('/login', async (req, res) => {
         return res.status(401).json({ error: 'Login yoki parol noto\'g\'ri' });
       }
 
-      // Oxirgi login vaqtini yangilash
       superAdmin.lastLogin = new Date();
       await superAdmin.save();
 
@@ -68,14 +59,13 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // ========== 2. BUSINESS ADMIN TEKSHIRUV ==========
+    // ========== 2. BUSINESS ADMIN ==========
     const business = await Business.findOne({ login: loginValue }).select('+password');
 
     if (!business) {
       return res.status(401).json({ error: 'Login yoki parol noto\'g\'ri' });
     }
 
-    // Suspend qilingan biznes
     if (business.status === 'suspended') {
       return res.status(403).json({
         error: 'Biznes vaqtincha to\'xtatilgan. SuperAdmin bilan bog\'laning.',
@@ -105,6 +95,7 @@ router.post('/login', async (req, res) => {
         role: 'admin',
         businessId: business._id,
         defaultLanguage: business.defaultLanguage,
+        enabledModules: business.enabledModules || [],
       },
     });
   } catch (err) {
@@ -115,11 +106,7 @@ router.post('/login', async (req, res) => {
 
 /**
  * GET /api/auth/me
- * Joriy foydalanuvchi ma'lumotlari
- *
- * White-label uchun muhim:
- * - Admin kirsa - biznes nomi, logosi qaytadi
- * - Frontend shu ma'lumotlarni ishlatib sidebar va title ni sozlaydi
+ * Joriy foydalanuvchi + modullar
  */
 router.get('/me', verifyToken, async (req, res) => {
   try {
@@ -133,6 +120,8 @@ router.get('/me', verifyToken, async (req, res) => {
         id: superAdmin._id,
         username: superAdmin.username,
         role: 'superadmin',
+        // SuperAdmin uchun barcha modullar
+        allModules: Object.values(MODULES),
       });
     }
 
@@ -141,6 +130,11 @@ router.get('/me', verifyToken, async (req, res) => {
     if (!business) {
       return res.status(404).json({ error: 'Biznes topilmadi' });
     }
+
+    // Yoqilgan modullar haqida to'liq ma'lumot
+    const enabledModulesInfo = (business.enabledModules || [])
+      .filter((key) => MODULES[key])
+      .map((key) => MODULES[key]);
 
     res.json({
       id: business._id,
@@ -152,6 +146,8 @@ router.get('/me', verifyToken, async (req, res) => {
       role: 'admin',
       businessId: business._id,
       defaultLanguage: business.defaultLanguage,
+      enabledModules: business.enabledModules || [],
+      modulesInfo: enabledModulesInfo,
     });
   } catch (err) {
     console.error('GET /me xato:', err);
@@ -161,7 +157,6 @@ router.get('/me', verifyToken, async (req, res) => {
 
 /**
  * POST /api/auth/logout
- * Logout (frontend tokenni o'chiradi, serverda state yo'q)
  */
 router.post('/logout', (req, res) => {
   res.json({ success: true, message: 'Chiqildi' });

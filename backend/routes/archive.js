@@ -4,14 +4,12 @@ const router = express.Router();
 const Archive = require('../models/Archive');
 const { verifyToken, requireAdmin } = require('../middleware/auth');
 const businessScope = require('../middleware/businessScope');
+const requireModule = require('../middleware/requireModule');
 
-router.use(verifyToken, requireAdmin, businessScope);
+router.use(verifyToken, requireAdmin, businessScope, requireModule('archive'));
 
 /**
  * GET /api/archive
- * Arxivlar ro'yxati
- *
- * Query: ?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD (ixtiyoriy filter)
  */
 router.get('/', async (req, res) => {
   try {
@@ -36,21 +34,18 @@ router.get('/', async (req, res) => {
       ];
     }
 
-    // Ro'yxat (batafsil ma'lumotsiz - tez)
     const archives = await Archive.find(filter)
       .select('periodStart periodEnd periodLabel archivedAt stats archivedBy')
       .sort({ archivedAt: -1 });
 
     res.json(archives);
   } catch (err) {
-    console.error('GET /archive xato:', err);
     res.status(500).json({ error: 'Server xatosi' });
   }
 });
 
 /**
  * GET /api/archive/:id
- * Bitta arxiv to'liq ma'lumoti
  */
 router.get('/:id', async (req, res) => {
   try {
@@ -65,14 +60,12 @@ router.get('/:id', async (req, res) => {
 
     res.json(archive);
   } catch (err) {
-    console.error('GET /archive/:id xato:', err);
     res.status(500).json({ error: 'Server xatosi' });
   }
 });
 
 /**
  * DELETE /api/archive/:id
- * Arxivni o'chirish (faqat xato tuzatish uchun)
  */
 router.delete('/:id', async (req, res) => {
   try {
@@ -85,12 +78,8 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Arxiv topilmadi' });
     }
 
-    res.json({
-      success: true,
-      message: 'Arxiv o\'chirildi',
-    });
+    res.json({ success: true, message: 'Arxiv o\'chirildi' });
   } catch (err) {
-    console.error('DELETE /archive xato:', err);
     res.status(500).json({ error: 'Server xatosi' });
   }
 });

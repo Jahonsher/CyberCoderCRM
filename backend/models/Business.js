@@ -1,10 +1,12 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const { getDefaultModules } = require('../config/modules');
 
 /**
  * Business Model
  * SuperAdmin tomonidan yaratilgan bizneslar
  * Har bir biznes o'z admin login/parolga ega
+ * Har bir biznes o'zining yoqilgan modullariga ega (enabledModules)
  */
 const businessSchema = new mongoose.Schema(
   {
@@ -22,7 +24,7 @@ const businessSchema = new mongoose.Schema(
       maxlength: 20,
     },
 
-    // Login ma'lumotlari (admin uchun)
+    // Login ma'lumotlari
     login: {
       type: String,
       required: [true, 'Login kerak'],
@@ -36,13 +38,13 @@ const businessSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Parol kerak'],
       minlength: [6, 'Parol kamida 6 belgi bo\'lishi kerak'],
-      select: false, // default query da qaytmaydi
+      select: false,
     },
 
-    // Logo (fayl nomi, /uploads/ ichida)
+    // Logo
     logo: {
       type: String,
-      default: null, // yo'q bo'lsa - biznes nomining birinchi harfi
+      default: null,
     },
 
     // Status
@@ -52,32 +54,37 @@ const businessSchema = new mongoose.Schema(
       default: 'active',
     },
 
-    // SuperAdmin eslatmasi (ixtiyoriy)
+    // Eslatma
     note: {
       type: String,
       maxlength: 500,
       default: '',
     },
 
-    // Til (default admin interface uchun)
+    // Default til
     defaultLanguage: {
       type: String,
       enum: ['uz-lat', 'uz-cyr', 'ru'],
       default: 'uz-lat',
     },
+
+    // ⭐ YOQILGAN MODULLAR (SuperAdmin boshqaradi)
+    enabledModules: {
+      type: [String],
+      default: () => getDefaultModules(),
+    },
   },
   {
-    timestamps: true, // createdAt, updatedAt
+    timestamps: true,
   }
 );
 
 // ========== INDEXLAR ==========
-businessSchema.index({ login: 1 });
 businessSchema.index({ status: 1 });
+// Note: login index allaqachon unique: true tufayli avtomatik yaratilgan
 
 // ========== PAROLNI HASH QILISH ==========
 businessSchema.pre('save', async function (next) {
-  // Faqat parol o'zgartirilgan bo'lsa hash qiladi
   if (!this.isModified('password')) return next();
 
   try {
@@ -94,11 +101,16 @@ businessSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-// ========== JSON ga o'zgartirishda parolni olib tashlash ==========
+// ========== JSON da parolni olib tashlash ==========
 businessSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;
   return obj;
+};
+
+// ========== MODUL YOQILGANMI TEKSHIRISH ==========
+businessSchema.methods.hasModule = function (moduleKey) {
+  return this.enabledModules && this.enabledModules.includes(moduleKey);
 };
 
 module.exports = mongoose.model('Business', businessSchema);

@@ -11,19 +11,26 @@ const Archive = require('../models/Archive');
 
 const { verifyToken, requireSuperAdmin } = require('../middleware/auth');
 const { upload, deleteLogoFile } = require('../middleware/upload');
+const { MODULES, isValidModule, getDefaultModules } = require('../config/modules');
 
-// Barcha route'lar SuperAdmin uchun
 router.use(verifyToken, requireSuperAdmin);
 
 /**
+ * GET /api/superadmin/modules
+ * Barcha mavjud modullar ro'yxati
+ */
+router.get('/modules', (req, res) => {
+  res.json(Object.values(MODULES));
+});
+
+/**
  * GET /api/superadmin/businesses
- * Barcha bizneslar ro'yxati
+ * Barcha bizneslar + statistikasi
  */
 router.get('/businesses', async (req, res) => {
   try {
     const businesses = await Business.find().sort({ createdAt: -1 });
 
-    // Har birining statistikasi
     const businessesWithStats = await Promise.all(
       businesses.map(async (b) => {
         const [employeeCount, directionCount] = await Promise.all([
@@ -50,7 +57,7 @@ router.get('/businesses', async (req, res) => {
 
 /**
  * GET /api/superadmin/businesses/:id
- * Bitta biznes ma'lumotlari
+ * Bitta biznes
  */
 router.get('/businesses/:id', async (req, res) => {
   try {
@@ -65,17 +72,37 @@ router.get('/businesses/:id', async (req, res) => {
 });
 
 /**
+ * Parse enabledModules from request body
+ * Support both array and JSON string (FormData uchun)
+ */
+function parseEnabledModules(raw) {
+  if (!raw) return null;
+
+  let modules;
+  if (typeof raw === 'string') {
+    try {
+      modules = JSON.parse(raw);
+    } catch {
+      modules = raw.split(',').map((s) => s.trim());
+    }
+  } else if (Array.isArray(raw)) {
+    modules = raw;
+  } else {
+    return null;
+  }
+
+  // Faqat haqiqiy modul key'larni qoldir
+  return modules.filter(isValidModule);
+}
+
+/**
  * POST /api/superadmin/businesses
- * Yangi biznes yaratish (logo bilan)
- *
- * multipart/form-data:
- *   name, phone, login, password, logo (file), note, defaultLanguage
+ * Yangi biznes yaratish
  */
 router.post('/businesses', upload.single('logo'), async (req, res) => {
   try {
-    const { name, phone, login, password, note, defaultLanguage } = req.body;
+    const { name, phone, login, password, note, defaultLanguage, enabledModules } = req.body;
 
-    // Validatsiya
     if (!name || !phone || !login || !password) {
       if (req.file) deleteLogoFile(req.file.filename);
       return res.status(400).json({
@@ -85,29 +112,26 @@ router.post('/businesses', upload.single('logo'), async (req, res) => {
 
     if (password.length < 6) {
       if (req.file) deleteLogoFile(req.file.filename);
-      return res.status(400).json({
-        error: 'Parol kamida 6 belgi bo\'lishi kerak',
-      });
+      return res.status(400).json({ error: 'Parol kamida 6 belgi' });
     }
 
-    // Login unique tekshirish
     const existing = await Business.findOne({ login: login.toLowerCase().trim() });
     if (existing) {
       if (req.file) deleteLogoFile(req.file.filename);
-      return res.status(400).json({
-        error: 'Bu login band, boshqa tanlang',
-      });
+      return res.status(400).json({ error: 'Bu login band' });
     }
 
-    // Biznes yaratish
+    const modules = parseEnabledModules(enabledModules) || getDefaultModules();
+
     const business = await Business.create({
       name: name.trim(),
       phone: phone.trim(),
       login: login.toLowerCase().trim(),
-      password, // pre-save hash qiladi
+      password,
       logo: req.file ? req.file.filename : null,
       note: note || '',
       defaultLanguage: defaultLanguage || 'uz-lat',
+      enabledModules: modules,
     });
 
     res.status(201).json({
@@ -128,7 +152,7 @@ router.post('/businesses', upload.single('logo'), async (req, res) => {
 
 /**
  * PUT /api/superadmin/businesses/:id
- * Biznesni yangilash (logo bilan)
+ * Biznesni yangilash
  */
 router.put('/businesses/:id', upload.single('logo'), async (req, res) => {
   try {
@@ -138,9 +162,8 @@ router.put('/businesses/:id', upload.single('logo'), async (req, res) => {
       return res.status(404).json({ error: 'Biznes topilmadi' });
     }
 
-    const { name, phone, login, password, note, defaultLanguage } = req.body;
+    const { name, phone, login, password, note, defaultLanguage, enabledModules } = req.body;
 
-    // Login o'zgarsa - unique tekshirish
     if (login && login.toLowerCase().trim() !== business.login) {
       const existing = await Business.findOne({
         login: login.toLowerCase().trim(),
@@ -158,25 +181,26 @@ router.put('/businesses/:id', upload.single('logo'), async (req, res) => {
     if (note !== undefined) business.note = note;
     if (defaultLanguage) business.defaultLanguage = defaultLanguage;
 
-    // Parol o'zgartirilgan bo'lsa
     if (password && password.length >= 6) {
-      business.password = password; // pre-save hash qiladi
+      business.password = password;
     }
 
-    // Yangi logo yuklangan bo'lsa - eskisini o'chirish
-    if (req.file) {
-      if (business.logo) {
-        deleteLogoFile(business.logo);
+    // Modullarni yangilash
+    if (enabledModules !== undefined) {
+      const modules = parseEnabledModules(enabledModules);
+      if (modules !== null) {
+        business.enabledModules = modules;
       }
+    }
+
+    if (req.file) {
+      if (business.logo) deleteLogoFile(business.logo);
       business.logo = req.file.filename;
     }
 
     await business.save();
 
-    res.json({
-      success: true,
-      business: business.toJSON(),
-    });
+    res.json({ success: true, business: business.toJSON() });
   } catch (err) {
     if (req.file) deleteLogoFile(req.file.filename);
     console.error('PUT /businesses xato:', err);
@@ -185,8 +209,57 @@ router.put('/businesses/:id', upload.single('logo'), async (req, res) => {
 });
 
 /**
+ * PUT /api/superadmin/businesses/:id/modules
+ * Faqat modullarni yangilash (tez toggle uchun)
+ *
+ * Body: { enabledModules: [...] } yoki { moduleKey: 'employees', enabled: true }
+ */
+router.put('/businesses/:id/modules', async (req, res) => {
+  try {
+    const business = await Business.findById(req.params.id);
+    if (!business) {
+      return res.status(404).json({ error: 'Biznes topilmadi' });
+    }
+
+    const { enabledModules, moduleKey, enabled } = req.body;
+
+    // Variant 1: To'liq ro'yxat yuborilgan
+    if (Array.isArray(enabledModules)) {
+      const modules = enabledModules.filter(isValidModule);
+      business.enabledModules = modules;
+    }
+    // Variant 2: Bitta modulni toggle qilish
+    else if (moduleKey && typeof enabled === 'boolean') {
+      if (!isValidModule(moduleKey)) {
+        return res.status(400).json({ error: 'Noma\'lum modul' });
+      }
+
+      const current = new Set(business.enabledModules || []);
+      if (enabled) {
+        current.add(moduleKey);
+      } else {
+        current.delete(moduleKey);
+      }
+      business.enabledModules = Array.from(current);
+    } else {
+      return res.status(400).json({ error: 'Noto\'g\'ri so\'rov formati' });
+    }
+
+    await business.save();
+
+    res.json({
+      success: true,
+      enabledModules: business.enabledModules,
+    });
+  } catch (err) {
+    console.error('PUT /modules xato:', err);
+    res.status(500).json({ error: 'Server xatosi' });
+  }
+});
+
+/**
  * POST /api/superadmin/businesses/:id/suspend
- * Biznesni to'xtatish yoki qayta yoqish
+ * Suspend/activate
  */
 router.post('/businesses/:id/suspend', async (req, res) => {
   try {
@@ -206,15 +279,12 @@ router.post('/businesses/:id/suspend', async (req, res) => {
         : 'Biznes faollashtirildi',
     });
   } catch (err) {
-    console.error('Suspend xato:', err);
     res.status(500).json({ error: 'Server xatosi' });
   }
 });
 
 /**
  * DELETE /api/superadmin/businesses/:id
- * Biznesni to'liq o'chirish (barcha ma'lumotlari bilan)
- * DIQQAT: Bu amal qaytarilmaydi!
  */
 router.delete('/businesses/:id', async (req, res) => {
   try {
@@ -223,12 +293,8 @@ router.delete('/businesses/:id', async (req, res) => {
       return res.status(404).json({ error: 'Biznes topilmadi' });
     }
 
-    // Logo faylini o'chirish
-    if (business.logo) {
-      deleteLogoFile(business.logo);
-    }
+    if (business.logo) deleteLogoFile(business.logo);
 
-    // Barcha bog'liq ma'lumotlarni o'chirish
     const businessId = business._id;
     await Promise.all([
       Employee.deleteMany({ businessId }),
@@ -239,22 +305,16 @@ router.delete('/businesses/:id', async (req, res) => {
       Archive.deleteMany({ businessId }),
     ]);
 
-    // Biznesni o'chirish
     await business.deleteOne();
 
-    res.json({
-      success: true,
-      message: 'Biznes va barcha ma\'lumotlari o\'chirildi',
-    });
+    res.json({ success: true, message: 'Biznes o\'chirildi' });
   } catch (err) {
-    console.error('DELETE /businesses xato:', err);
     res.status(500).json({ error: 'Server xatosi' });
   }
 });
 
 /**
  * GET /api/superadmin/stats
- * Umumiy statistika
  */
 router.get('/stats', async (req, res) => {
   try {

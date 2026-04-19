@@ -7,31 +7,20 @@ const Archive = require('../models/Archive');
 
 const { verifyToken, requireAdmin } = require('../middleware/auth');
 const businessScope = require('../middleware/businessScope');
+const requireModule = require('../middleware/requireModule');
 const { toDateString } = require('../utils/helpers');
 
-router.use(verifyToken, requireAdmin, businessScope);
+router.use(verifyToken, requireAdmin, businessScope, requireModule('monthlyReport'));
 
 /**
  * GET /api/monthly-report
- * Sana oralig'i bo'yicha hisobot
- *
- * Query:
- *   - startDate: YYYY-MM-DD
- *   - endDate: YYYY-MM-DD
- *   - code: xodim kodi (ixtiyoriy, qidiruv uchun)
- *
- * Rasmdagi kabi:
- * - Bugun / Kecha / Hafta / Oy / boshqa sana filterlar
- * - Xodim kodi bilan qidiruv
  */
 router.get('/', async (req, res) => {
   try {
     const { startDate, endDate, code } = req.query;
 
     if (!startDate || !endDate) {
-      return res.status(400).json({
-        error: 'startDate va endDate kerak (YYYY-MM-DD)',
-      });
+      return res.status(400).json({ error: 'startDate va endDate kerak' });
     }
 
     const startStr = toDateString(startDate);
@@ -42,14 +31,12 @@ router.get('/', async (req, res) => {
       dateString: { $gte: startStr, $lte: endStr },
     };
 
-    // Kod bo'yicha qidiruv
     if (code && code.trim()) {
       filter['employeeSnapshot.code'] = code.trim();
     }
 
     const assignments = await DailyAssignment.find(filter).sort({ date: 1 });
 
-    // Xodim bo'yicha guruhlash
     const employeeMap = new Map();
 
     for (const a of assignments) {
@@ -87,16 +74,13 @@ router.get('/', async (req, res) => {
       (a, b) => b.totalEarning - a.totalEarning
     );
 
-    // Umumiy statistika
     const totalEarning = employees.reduce((sum, e) => sum + e.totalEarning, 0);
 
-    // Mahsulotlar (shu oraliqda)
     const products = await DailyProduct.find({
       ...req.businessScope,
       dateString: { $gte: startStr, $lte: endStr },
     }).sort({ date: 1 });
 
-    // Mahsulotlar statistikasi (guruhlangan)
     const productMap = new Map();
     for (const p of products) {
       if (!productMap.has(p.productName)) {
@@ -129,29 +113,18 @@ router.get('/', async (req, res) => {
 
 /**
  * POST /api/monthly-report/archive
- * Tanlangan davrni arxivlash
- *
- * Body: { startDate, endDate, label? }
- *
- * Jarayoni:
- * 1. Shu davrdagi barcha DailyAssignment va DailyProduct larni olish
- * 2. Archive record yaratish (snapshot)
- * 3. Original ma'lumotlar DB da qoladi (kerak bo'lsa tiklash mumkin)
  */
 router.post('/archive', async (req, res) => {
   try {
     const { startDate, endDate, label } = req.body;
 
     if (!startDate || !endDate) {
-      return res.status(400).json({
-        error: 'startDate va endDate kerak',
-      });
+      return res.status(400).json({ error: 'startDate va endDate kerak' });
     }
 
     const startStr = toDateString(startDate);
     const endStr = toDateString(endDate);
 
-    // Shu oraliqdagi barcha ma'lumotlar
     const [assignments, products] = await Promise.all([
       DailyAssignment.find({
         ...req.businessScope,
@@ -165,11 +138,10 @@ router.post('/archive', async (req, res) => {
 
     if (assignments.length === 0 && products.length === 0) {
       return res.status(400).json({
-        error: 'Bu sanalar oralig\'ida arxivlash uchun ma\'lumot yo\'q',
+        error: 'Bu sanalar oralig\'ida ma\'lumot yo\'q',
       });
     }
 
-    // Xodim bo'yicha summary
     const employeeMap = new Map();
     for (const a of assignments) {
       const empId = a.employeeId.toString();
@@ -192,7 +164,6 @@ router.post('/archive', async (req, res) => {
 
     const employeeSummary = Array.from(employeeMap.values());
 
-    // Arxiv yaratish
     const archive = await Archive.create({
       ...req.businessScope,
       periodStart: new Date(startStr),
