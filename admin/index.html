@@ -1,0 +1,952 @@
+
+# ADMIN PANEL - Premium UI with all sections (Xodimlar, Yo'nalishlar, Kunlik/Oylik Hisobot, Arxiv)
+admin_html = '''<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - CyberCoderCRM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        },
+                        dark: {
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+        .dark .glass-effect {
+            background: rgba(30, 41, 59, 0.95);
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .sidebar-item {
+            transition: all 0.2s ease;
+        }
+        .sidebar-item:hover {
+            background: rgba(59, 130, 246, 0.1);
+            border-right: 3px solid #3b82f6;
+        }
+        .sidebar-item.active {
+            background: rgba(59, 130, 246, 0.15);
+            border-right: 3px solid #3b82f6;
+            color: #2563eb;
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .modal {
+            display: none;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-dark-900 font-sans antialiased">
+
+    <!-- Language Switcher -->
+    <div class="fixed top-4 right-4 z-50 flex items-center space-x-2 bg-white dark:bg-dark-800 rounded-full shadow-lg px-4 py-2">
+        <i class="fas fa-globe text-primary-600"></i>
+        <select id="languageSelect" onchange="changeLanguage(this.value)" class="bg-transparent border-none outline-none text-sm font-medium text-gray-700 dark:text-gray-200 cursor-pointer">
+            <option value="uz">O'zbekcha</option>
+            <option value="uz_kril">Ўзбекча (Кирил)</option>
+            <option value="ru">Русский</option>
+        </select>
+    </div>
+
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-72 bg-white dark:bg-dark-800 shadow-2xl flex flex-col">
+            <!-- Logo -->
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 gradient-bg rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                        L
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold text-gray-800 dark:text-white leading-tight">AvtoServis Pro</h1>
+                        <p class="text-xs text-gray-500 dark:text-gray-400" data-key="admin_panel">Admin Panel</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="flex-1 py-6">
+                <div class="px-4 mb-2">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider" data-key="menu">Menyu</p>
+                </div>
+                
+                <a href="#" onclick="showTab('xodimlar')" id="nav-xodimlar" class="sidebar-item active flex items-center space-x-3 px-6 py-4 text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400">
+                    <i class="fas fa-users text-lg w-6"></i>
+                    <span class="font-medium" data-key="employees">Xodimlar</span>
+                </a>
+
+                <a href="#" onclick="showTab('yonalishlar')" id="nav-yonalishlar" class="sidebar-item flex items-center space-x-3 px-6 py-4 text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400">
+                    <i class="fas fa-route text-lg w-6"></i>
+                    <span class="font-medium" data-key="directions">Yo'nalishlar</span>
+                </a>
+
+                <a href="#" onclick="showTab('kunlik')" id="nav-kunlik" class="sidebar-item flex items-center space-x-3 px-6 py-4 text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400">
+                    <i class="fas fa-calendar-day text-lg w-6"></i>
+                    <span class="font-medium" data-key="daily_report">Kunlik Hisobot</span>
+                </a>
+
+                <a href="#" onclick="showTab('oylik')" id="nav-oylik" class="sidebar-item flex items-center space-x-3 px-6 py-4 text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400">
+                    <i class="fas fa-calendar-alt text-lg w-6"></i>
+                    <span class="font-medium" data-key="monthly_report">Oylik Hisobot</span>
+                </a>
+
+                <a href="#" onclick="showTab('arxiv')" id="nav-arxiv" class="sidebar-item flex items-center space-x-3 px-6 py-4 text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400">
+                    <i class="fas fa-archive text-lg w-6"></i>
+                    <span class="font-medium" data-key="archive">Arxiv</span>
+                </a>
+            </nav>
+
+            <!-- Logout -->
+            <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                <button class="w-full flex items-center justify-center space-x-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 py-3 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/30 transition-all duration-300">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span class="font-medium" data-key="logout">Chiqish</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto bg-gray-50 dark:bg-dark-900">
+            
+            <!-- XODIMLAR TAB -->
+            <div id="tab-xodimlar" class="tab-content active">
+                <header class="bg-white dark:bg-dark-800 shadow-sm sticky top-0 z-30">
+                    <div class="px-8 py-5 flex items-center justify-between">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800 dark:text-white" data-key="employees_title">Xodimlar</h2>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1" data-key="employees_subtitle">Biznes xodimlarini boshqaring</p>
+                        </div>
+                        <button onclick="openModal('xodimModal')" class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-2 transform hover:scale-105">
+                            <i class="fas fa-plus"></i>
+                            <span data-key="add_employee">Xodim qo'shish</span>
+                        </button>
+                    </div>
+                </header>
+
+                <div class="p-8">
+                    <!-- Stats -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-white dark:bg-dark-800 rounded-2xl p-6 shadow-lg">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400" data-key="total_employees">Jami xodimlar</p>
+                                    <h3 class="text-3xl font-bold text-gray-800 dark:text-white mt-2">24</h3>
+                                </div>
+                                <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                                    <i class="fas fa-users text-xl text-blue-600"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white dark:bg-dark-800 rounded-2xl p-6 shadow-lg">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400" data-key="active_today">Bugun faol</p>
+                                    <h3 class="text-3xl font-bold text-gray-800 dark:text-white mt-2">18</h3>
+                                </div>
+                                <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
+                                    <i class="fas fa-user-check text-xl text-green-600"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white dark:bg-dark-800 rounded-2xl p-6 shadow-lg">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400" data-key="on_leave">Dam olishda</p>
+                                    <h3 class="text-3xl font-bold text-gray-800 dark:text-white mt-2">3</h3>
+                                </div>
+                                <div class="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl flex items-center justify-center">
+                                    <i class="fas fa-user-clock text-xl text-yellow-600"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white dark:bg-dark-800 rounded-2xl p-6 shadow-lg">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400" data-key="inactive">Faol emas</p>
+                                    <h3 class="text-3xl font-bold text-gray-800 dark:text-white mt-2">3</h3>
+                                </div>
+                                <div class="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
+                                    <i class="fas fa-user-slash text-xl text-red-600"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-lg overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-50 dark:bg-dark-700">
+                                    <tr>
+                                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" data-key="code">Kod</th>
+                                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" data-key="name">Ism</th>
+                                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" data-key="surname">Familiya</th>
+                                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" data-key="phone">Telefon</th>
+                                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" data-key="status">Status</th>
+                                        <th class="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider" data-key="actions">Amallar</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                    <tr class="hover:bg-gray-50 dark:hover:bg-dark-700/50 transition-colors">
+                                        <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900 dark:text-white">#001</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">Ali</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">Valiyev</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">+998 90 123 45 67</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-xs font-medium">Faol</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right space-x-2">
+                                            <button class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"><i class="fas fa-edit"></i></button>
+                                            <button class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"><i class="fas fa-trash"></i></button>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50 dark:hover:bg-dark-700/50 transition-colors">
+                                        <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900 dark:text-white">#002</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">Vali</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">Aliyev</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">+998 90 234 56 78</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-3 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded-full text-xs font-medium">Dam olishda</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right space-x-2">
+                                            <button class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"><i class="fas fa-edit"></i></button>
+                                            <button class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"><i class="fas fa-trash"></i></button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- YO'NALISHLAR TAB -->
+            <div id="tab-yonalishlar" class="tab-content">
+                <header class="bg-white dark:bg-dark-800 shadow-sm sticky top-0 z-30">
+                    <div class="px-8 py-5 flex items-center justify-between">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800 dark:text-white" data-key="directions_title">Yo'nalishlar</h2>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1" data-key="directions_subtitle">Xizmat turlarini boshqaring</p>
+                        </div>
+                        <button onclick="openModal('yonalishModal')" class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-2 transform hover:scale-105">
+                            <i class="fas fa-plus"></i>
+                            <span data-key="add_direction">Yo'nalish qo'shish</span>
+                        </button>
+                    </div>
+                </header>
+
+                <div class="p-8">
+                    <!-- Daily Goal Section -->
+                    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-lg p-6 mb-8">
+                        <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-4" data-key="daily_goal">Kunlik reja</h3>
+                        <div class="flex items-end space-x-4">
+                            <div class="flex-1">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" data-key="product_name">Mahsulot nomi</label>
+                                <input type="text" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-700 text-gray-800 dark:text-white" placeholder="Masalan: Oyoqkiyim">
+                            </div>
+                            <div class="w-32">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" data-key="quantity">Soni</label>
+                                <input type="number" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-700 text-gray-800 dark:text-white" value="50">
+                            </div>
+                            <button class="px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl shadow-lg transition-all">
+                                <i class="fas fa-check"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Goal List -->
+                        <div class="mt-6">
+                            <div class="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 flex items-center justify-between">
+                                <div class="flex items-center space-x-4">
+                                    <span class="font-medium text-gray-800 dark:text-white">Oyoqkiyim</span>
+                                    <span class="text-sm text-gray-500 dark:text-gray-400">Reja:</span>
+                                    <span class="font-bold text-primary-600">50 ta</span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <button class="text-blue-600 hover:text-blue-800 dark:text-blue-400"><i class="fas fa-edit"></i></button>
+                                    <button class="text-red-600 hover:text-red-800 dark:text-red-400"><i class="fas fa-trash"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Directions Table -->
+                    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-lg overflow-hidden">
+                        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                            <h3 class="font-bold text-gray-800 dark:text-white" data-key="directions_list">Yo'nalishlar ro'yxati</h3>
+                        </div>
+                        <table class="w-full">
+                            <thead class="bg-gray-50 dark:bg-dark-700">
+                                <tr>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">#</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase" data-key="direction_name">Yo'nalish nomi</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase" data-key="daily_price">Kunlik narx</th>
+                                    <th class="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase" data-key="actions">Amallar</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                <tr class="hover:bg-gray-50 dark:hover:bg-dark-700/50">
+                                    <td class="px-6 py-4 text-gray-700 dark:text-gray-300">1</td>
+                                    <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">Oyoqkiyim tozalash</td>
+                                    <td class="px-6 py-4 text-gray-700 dark:text-gray-300">15,000 so'm</td>
+                                    <td class="px-6 py-4 text-right space-x-2">
+                                        <button class="text-blue-600 hover:text-blue-800 dark:text-blue-400"><i class="fas fa-edit"></i></button>
+                                        <button class="text-red-600 hover:text-red-800 dark:text-red-400"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-gray-50 dark:hover:bg-dark-700/50">
+                                    <td class="px-6 py-4 text-gray-700 dark:text-gray-300">2</td>
+                                    <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">Kimyoviy tozalash</td>
+                                    <td class="px-6 py-4 text-gray-700 dark:text-gray-300">25,000 so'm</td>
+                                    <td class="px-6 py-4 text-right space-x-2">
+                                        <button class="text-blue-600 hover:text-blue-800 dark:text-blue-400"><i class="fas fa-edit"></i></button>
+                                        <button class="text-red-600 hover:text-red-800 dark:text-red-400"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KUNLIK HISOBOT TAB -->
+            <div id="tab-kunlik" class="tab-content">
+                <header class="bg-white dark:bg-dark-800 shadow-sm sticky top-0 z-30">
+                    <div class="px-8 py-5 flex items-center justify-between">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800 dark:text-white" data-key="daily_report_title">Kunlik Hisobotlar</h2>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1" data-key="daily_report_subtitle">Bugungi ish hisoboti</p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <input type="date" class="px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-700 text-gray-800 dark:text-white">
+                            <button onclick="openModal('kunlikModal')" class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center space-x-2">
+                                <i class="fas fa-plus"></i>
+                                <span data-key="add_report">Hisobot qo'shish</span>
+                            </button>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="p-8 space-y-6">
+                    <!-- Attached Employees -->
+                    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-lg p-6">
+                        <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-4 flex items-center">
+                            <i class="fas fa-link text-green-500 mr-2"></i>
+                            <span data-key="attached_employees">Kunlik biriktirilgan xodimlar</span>
+                        </h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-50 dark:bg-dark-700">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400">Ism Familiya</th>
+                                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400">Kod</th>
+                                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400">Yo'nalish</th>
+                                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400">Smena</th>
+                                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400">Daromadi</th>
+                                        <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400">Amallar</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                    <tr>
+                                        <td class="px-4 py-3 text-gray-800 dark:text-white font-medium">Ali Valiyev</td>
+                                        <td class="px-4 py-3 text-gray-600 dark:text-gray-400">#001</td>
+                                        <td class="px-4 py-3 text-gray-600 dark:text-gray-400">Oyoqkiyim</td>
+                                        <td class="px-4 py-3"><span class="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-1 rounded text-xs">1-smena</span></td>
+                                        <td class="px-4 py-3 text-green-600 font-semibold">150,000 so'm</td>
+                                        <td class="px-4 py-3 text-right">
+                                            <button class="text-blue-600 hover:text-blue-800 dark:text-blue-400 mr-2"><i class="fas fa-edit"></i></button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Unattached Employees -->
+                    <div class="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/30 rounded-2xl p-6">
+                        <h3 class="text-lg font-bold text-yellow-800 dark:text-yellow-400 mb-4 flex items-center">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                            <span data-key="unattached_employees">Kunlik biriktirilmagan xodimlar</span>
+                        </h3>
+                        <div class="flex flex-wrap gap-3">
+                            <div class="bg-white dark:bg-dark-800 rounded-lg px-4 py-2 shadow-sm flex items-center space-x-2">
+                                <span class="text-gray-400">#003</span>
+                                <span class="font-medium text-gray-800 dark:text-white">Gani Rahimov</span>
+                                <button onclick="openModal('kunlikModal')" class="text-primary-600 hover:text-primary-800 text-sm font-medium">+ Biriktirish</button>
+                            </div>
+                            <div class="bg-white dark:bg-dark-800 rounded-lg px-4 py-2 shadow-sm flex items-center space-x-2">
+                                <span class="text-gray-400">#004</span>
+                                <span class="font-medium text-gray-800 dark:text-white">Sami Karimov</span>
+                                <button onclick="openModal('kunlikModal')" class="text-primary-600 hover:text-primary-800 text-sm font-medium">+ Biriktirish</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Daily Summary -->
+                    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-lg p-6">
+                        <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-4" data-key="daily_summary">Kunlik hisobot</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4">
+                                <p class="text-sm text-gray-600 dark:text-gray-400">Jami daromad</p>
+                                <p class="text-2xl font-bold text-blue-600">1,250,000 so'm</p>
+                            </div>
+                            <div class="bg-green-50 dark:bg-green-900/20 rounded-xl p-4">
+                                <p class="text-sm text-gray-600 dark:text-gray-400">Ishlangan smenalar</p>
+                                <p class="text-2xl font-bold text-green-600">8 ta</p>
+                            </div>
+                            <div class="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-4">
+                                <p class="text-sm text-gray-600 dark:text-gray-400">Reja bajarilishi</p>
+                                <p class="text-2xl font-bold text-purple-600">85%</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- OYLIK HISOBOT TAB -->
+            <div id="tab-oylik" class="tab-content">
+                <header class="bg-white dark:bg-dark-800 shadow-sm sticky top-0 z-30">
+                    <div class="px-8 py-5 flex items-center justify-between">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800 dark:text-white" data-key="monthly_report_title">Oylik Hisobotlar</h2>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1" data-key="monthly_report_subtitle">Oy davomidagi ish statistikasi</p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <select class="px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-700 text-gray-800 dark:text-white">
+                                <option>Yanvar 2026</option>
+                                <option>Fevral 2026</option>
+                                <option>Mart 2026</option>
+                            </select>
+                            <button class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-xl shadow-lg">
+                                <i class="fas fa-filter"></i>
+                            </button>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="p-8">
+                    <!-- Search -->
+                    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-lg p-4 mb-6">
+                        <div class="flex items-center space-x-4">
+                            <div class="flex-1 relative">
+                                <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                <input type="text" id="searchEmployee" onkeyup="searchEmployee()" class="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-700 text-gray-800 dark:text-white" placeholder="Xodim qidirish: Kod bilan...">
+                            </div>
+                            <button class="px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors" data-key="search">Qidirish</button>
+                        </div>
+                    </div>
+
+                    <!-- Monthly Table -->
+                    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-lg overflow-hidden">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 dark:bg-dark-700">
+                                <tr>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Ism</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Kod</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Ishlangan kun</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Jami smena</th>
+                                    <th class="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Daromadi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700" id="employeeTable">
+                                <tr class="hover:bg-gray-50 dark:hover:bg-dark-700/50">
+                                    <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">Ali Valiyev</td>
+                                    <td class="px-6 py-4 text-gray-600 dark:text-gray-400">#001</td>
+                                    <td class="px-6 py-4 text-gray-700 dark:text-gray-300">22 kun</td>
+                                    <td class="px-6 py-4 text-gray-700 dark:text-gray-300">44 smena</td>
+                                    <td class="px-6 py-4 text-right font-bold text-green-600">3,200,000 so'm</td>
+                                </tr>
+                                <tr class="hover:bg-gray-50 dark:hover:bg-dark-700/50">
+                                    <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">Vali Aliyev</td>
+                                    <td class="px-6 py-4 text-gray-600 dark:text-gray-400">#002</td>
+                                    <td class="px-6 py-4 text-gray-700 dark:text-gray-300">20 kun</td>
+                                    <td class="px-6 py-4 text-gray-700 dark:text-gray-300">40 smena</td>
+                                    <td class="px-6 py-4 text-right font-bold text-green-600">2,800,000 so'm</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Archive Button -->
+                    <div class="mt-6 flex justify-center">
+                        <button onclick="archiveData()" class="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-105 flex items-center space-x-3">
+                            <i class="fas fa-archive text-xl"></i>
+                            <span class="font-semibold text-lg" data-key="save_to_archive">Arxivga saqlang</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ARXIV TAB -->
+            <div id="tab-arxiv" class="tab-content">
+                <header class="bg-white dark:bg-dark-800 shadow-sm sticky top-0 z-30">
+                    <div class="px-8 py-5 flex items-center justify-between">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800 dark:text-white" data-key="archive_title">Arxivlangan ma'lumotlar</h2>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1" data-key="archive_subtitle">Saqlangan hisobotlar</p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <input type="date" class="px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-700 text-gray-800 dark:text-white">
+                            <span class="text-gray-500">-</span>
+                            <input type="date" class="px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-700 text-gray-800 dark:text-white">
+                            <button class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-xl shadow-lg">
+                                <i class="fas fa-filter"></i>
+                            </button>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="p-8 space-y-6">
+                    <!-- Archive Item 1 -->
+                    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-lg overflow-hidden">
+                        <div class="bg-gray-100 dark:bg-dark-700 px-6 py-3 flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-calendar text-primary-600"></i>
+                                <span class="font-bold text-gray-800 dark:text-white">05.02.2026</span>
+                                <span class="text-sm text-gray-500 dark:text-gray-400">- Fevral oyining 5-kuni</span>
+                            </div>
+                            <button class="text-primary-600 hover:text-primary-800 dark:text-primary-400 font-medium text-sm">
+                                <i class="fas fa-download mr-1"></i> Yuklash
+                            </button>
+                        </div>
+                        <table class="w-full">
+                            <thead class="bg-gray-50 dark:bg-dark-700/50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400">Ism</th>
+                                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400">Kod</th>
+                                    <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400">Daromadi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                <tr class="hover:bg-gray-50 dark:hover:bg-dark-700/30">
+                                    <td class="px-6 py-3 text-gray-800 dark:text-white">Ali Valiyev</td>
+                                    <td class="px-6 py-3 text-gray-600 dark:text-gray-400">#001</td>
+                                    <td class="px-6 py-3 text-right text-green-600 font-medium">150,000 so'm</td>
+                                </tr>
+                                <tr class="hover:bg-gray-50 dark:hover:bg-dark-700/30">
+                                    <td class="px-6 py-3 text-gray-800 dark:text-white">Vali Aliyev</td>
+                                    <td class="px-6 py-3 text-gray-600 dark:text-gray-400">#002</td>
+                                    <td class="px-6 py-3 text-right text-green-600 font-medium">120,000 so'm</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Archive Item 2 -->
+                    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-lg overflow-hidden">
+                        <div class="bg-gray-100 dark:bg-dark-700 px-6 py-3 flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-calendar text-primary-600"></i>
+                                <span class="font-bold text-gray-800 dark:text-white">04.02.2026</span>
+                                <span class="text-sm text-gray-500 dark:text-gray-400">- Fevral oyining 4-kuni</span>
+                            </div>
+                            <button class="text-primary-600 hover:text-primary-800 dark:text-primary-400 font-medium text-sm">
+                                <i class="fas fa-download mr-1"></i> Yuklash
+                            </button>
+                        </div>
+                        <table class="w-full">
+                            <thead class="bg-gray-50 dark:bg-dark-700/50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400">Ism</th>
+                                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400">Kod</th>
+                                    <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400">Daromadi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                <tr class="hover:bg-gray-50 dark:hover:bg-dark-700/30">
+                                    <td class="px-6 py-3 text-gray-800 dark:text-white">Ali Valiyev</td>
+                                    <td class="px-6 py-3 text-gray-600 dark:text-gray-400">#001</td>
+                                    <td class="px-6 py-3 text-right text-green-600 font-medium">140,000 so'm</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODALS -->
+    
+    <!-- Add Employee Modal -->
+    <div id="xodimModal" class="modal fixed inset-0 bg-black/50 backdrop-blur-sm z-50 items-center justify-center p-4">
+        <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-md animate-fade-in">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <h3 class="text-xl font-bold text-gray-800 dark:text-white" data-key="add_employee_title">Yangi xodim qo'shish</h3>
+                <button onclick="closeModal('xodimModal')" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" data-key="code">Kod</label>
+                    <input type="text" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-700 text-gray-800 dark:text-white" placeholder="Masalan: #005">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" data-key="name">Ism</label>
+                        <input type="text" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-700 text-gray-800 dark:text-white" placeholder="Ism">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" data-key="surname">Familiya</label>
+                        <input type="text" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-700 text-gray-800 dark:text-white" placeholder="Familiya">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" data-key="phone">Telefon</label>
+                    <input type="tel" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-700 text-gray-800 dark:text-white" placeholder="+998 90 123 45 67">
+                </div>
+            </div>
+            <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex space-x-3">
+                <button onclick="closeModal('xodimModal')" class="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors font-medium" data-key="cancel">Bekor qilish</button>
+                <button class="flex-1 px-4 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors font-medium shadow-lg" data-key="save">Saqlash</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Direction Modal -->
+    <div id="yonalishModal" class="modal fixed inset-0 bg-black/50 backdrop-blur-sm z-50 items-center justify-center p-4">
+        <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-md animate-fade-in">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <h3 class="text-xl font-bold text-gray-800 dark:text-white" data-key="add_direction_title">Yangi yo'nalish</h3>
+                <button onclick="closeModal('yonalishModal')" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" data-key="direction_name">Yo'nalish nomi</label>
+                    <input type="text" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-700 text-gray-800 dark:text-white" placeholder="Masalan: Oyoqkiyim tozalash">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" data-key="daily_price">Kunlik narx (so'm)</label>
+                    <input type="number" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-700 text-gray-800 dark:text-white" placeholder="15000">
+                </div>
+            </div>
+            <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex space-x-3">
+                <button onclick="closeModal('yonalishModal')" class="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors font-medium" data-key="cancel">Bekor qilish</button>
+                <button class="flex-1 px-4 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors font-medium shadow-lg" data-key="save">Saqlash</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Daily Report Modal -->
+    <div id="kunlikModal" class="modal fixed inset-0 bg-black/50 backdrop-blur-sm z-50 items-center justify-center p-4">
+        <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-md animate-fade-in">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <h3 class="text-xl font-bold text-gray-800 dark:text-white" data-key="add_report_title">Kunlik hisobot qo'shish</h3>
+                <button onclick="closeModal('kunlikModal')" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" data-key="select_employee">Xodim tanlang</label>
+                    <select class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-700 text-gray-800 dark:text-white">
+                        <option>Ali Valiyev (#001)</option>
+                        <option>Vali Aliyev (#002)</option>
+                        <option>Gani Rahimov (#003)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" data-key="select_direction">Yo'nalish tanlang</label>
+                    <select class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-700 text-gray-800 dark:text-white">
+                        <option>Oyoqkiyim tozalash</option>
+                        <option>Kimyoviy tozalash</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" data-key="smena">Smena</label>
+                    <select class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-700 text-gray-800 dark:text-white">
+                        <option>0.5 smena (yarim kun)</option>
+                        <option>1 smena (to'liq kun)</option>
+                        <option>1.5 smena</option>
+                        <option>2 smena</option>
+                    </select>
+                </div>
+            </div>
+            <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex space-x-3">
+                <button onclick="closeModal('kunlikModal')" class="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors font-medium" data-key="cancel">Bekor qilish</button>
+                <button class="flex-1 px-4 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors font-medium shadow-lg" data-key="save">Saqlash</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Translations
+        const translations = {
+            uz: {
+                admin_panel: "Admin Panel",
+                menu: "Menyu",
+                employees: "Xodimlar",
+                directions: "Yo'nalishlar",
+                daily_report: "Kunlik Hisobot",
+                monthly_report: "Oylik Hisobot",
+                archive: "Arxiv",
+                logout: "Chiqish",
+                employees_title: "Xodimlar",
+                employees_subtitle: "Biznes xodimlarini boshqaring",
+                add_employee: "Xodim qo'shish",
+                total_employees: "Jami xodimlar",
+                active_today: "Bugun faol",
+                on_leave: "Dam olishda",
+                inactive: "Faol emas",
+                code: "Kod",
+                name: "Ism",
+                surname: "Familiya",
+                phone: "Telefon",
+                status: "Status",
+                actions: "Amallar",
+                directions_title: "Yo'nalishlar",
+                directions_subtitle: "Xizmat turlarini boshqaring",
+                add_direction: "Yo'nalish qo'shish",
+                daily_goal: "Kunlik reja",
+                product_name: "Mahsulot nomi",
+                quantity: "Soni",
+                directions_list: "Yo'nalishlar ro'yxati",
+                direction_name: "Yo'nalish nomi",
+                daily_price: "Kunlik narx",
+                daily_report_title: "Kunlik Hisobotlar",
+                daily_report_subtitle: "Bugungi ish hisoboti",
+                add_report: "Hisobot qo'shish",
+                attached_employees: "Kunlik biriktirilgan xodimlar",
+                unattached_employees: "Kunlik biriktirilmagan xodimlar",
+                daily_summary: "Kunlik hisobot",
+                monthly_report_title: "Oylik Hisobotlar",
+                monthly_report_subtitle: "Oy davomidagi ish statistikasi",
+                save_to_archive: "Arxivga saqlang",
+                archive_title: "Arxivlangan ma'lumotlar",
+                archive_subtitle: "Saqlangan hisobotlar",
+                add_employee_title: "Yangi xodim qo'shish",
+                add_direction_title: "Yangi yo'nalish",
+                add_report_title: "Kunlik hisobot qo'shish",
+                select_employee: "Xodim tanlang",
+                select_direction: "Yo'nalish tanlang",
+                smena: "Smena",
+                search: "Qidirish",
+                cancel: "Bekor qilish",
+                save: "Saqlash"
+            },
+            uz_kril: {
+                admin_panel: "Админ Панель",
+                menu: "Меню",
+                employees: "Ходимлар",
+                directions: "Йўналишлар",
+                daily_report: "Кунлик Ҳисобот",
+                monthly_report: "Ойлик Ҳисобот",
+                archive: "Архив",
+                logout: "Чиқиш",
+                employees_title: "Ходимлар",
+                employees_subtitle: "Бизнес ходимларини бошқаринг",
+                add_employee: "Ходим қўшиш",
+                total_employees: "Жами ходимлар",
+                active_today: "Бугун фаол",
+                on_leave: "Дам олишда",
+                inactive: "Фаол эмас",
+                code: "Код",
+                name: "Исм",
+                surname: "Фамилия",
+                phone: "Телефон",
+                status: "Статус",
+                actions: "Амаллар",
+                directions_title: "Йўналишлар",
+                directions_subtitle: "Хизмат турларини бошқаринг",
+                add_direction: "Йўналиш қўшиш",
+                daily_goal: "Кунлик режа",
+                product_name: "Маҳсулот номи",
+                quantity: "Сони",
+                directions_list: "Йўналишлар рўйхати",
+                direction_name: "Йўналиш номи",
+                daily_price: "Кунлик нарх",
+                daily_report_title: "Кунлик Ҳисоботлар",
+                daily_report_subtitle: "Бугунги иш ҳисоботи",
+                add_report: "Ҳисобот қўшиш",
+                attached_employees: "Кунлик бириктирилган ходимлар",
+                unattached_employees: "Кунлик бириктирилмаган ходимлар",
+                daily_summary: "Кунлик ҳисобот",
+                monthly_report_title: "Ойлик Ҳисоботлар",
+                monthly_report_subtitle: "Ой давомидаги иш статистикаси",
+                save_to_archive: "Архивга сақланг",
+                archive_title: "Архивланган маълумотлар",
+                archive_subtitle: "Сақланган ҳисоботлар",
+                add_employee_title: "Янги ходим қўшиш",
+                add_direction_title: "Янги йўналиш",
+                add_report_title: "Кунлик ҳисобот қўшиш",
+                select_employee: "Ходим танланг",
+                select_direction: "Йўналиш танланг",
+                smena: "Смена",
+                search: "Қидириш",
+                cancel: "Бекор қилиш",
+                save: "Сақлаш"
+            },
+            ru: {
+                admin_panel: "Админ Панель",
+                menu: "Меню",
+                employees: "Сотрудники",
+                directions: "Направления",
+                daily_report: "Ежедневный отчет",
+                monthly_report: "Ежемесячный отчет",
+                archive: "Архив",
+                logout: "Выход",
+                employees_title: "Сотрудники",
+                employees_subtitle: "Управление сотрудниками",
+                add_employee: "Добавить сотрудника",
+                total_employees: "Всего сотрудников",
+                active_today: "Активны сегодня",
+                on_leave: "В отпуске",
+                inactive: "Неактивны",
+                code: "Код",
+                name: "Имя",
+                surname: "Фамилия",
+                phone: "Телефон",
+                status: "Статус",
+                actions: "Действия",
+                directions_title: "Направления",
+                directions_subtitle: "Управление услугами",
+                add_direction: "Добавить направление",
+                daily_goal: "Дневная цель",
+                product_name: "Название продукта",
+                quantity: "Количество",
+                directions_list: "Список направлений",
+                direction_name: "Название направления",
+                daily_price: "Дневная цена",
+                daily_report_title: "Ежедневные отчеты",
+                daily_report_subtitle: "Отчет о работе на сегодня",
+                add_report: "Добавить отчет",
+                attached_employees: "Прикрепленные сотрудники",
+                unattached_employees: "Неприкрепленные сотрудники",
+                daily_summary: "Дневной отчет",
+                monthly_report_title: "Ежемесячные отчеты",
+                monthly_report_subtitle: "Статистика работы за месяц",
+                save_to_archive: "Сохранить в архив",
+                archive_title: "Архивированные данные",
+                archive_subtitle: "Сохраненные отчеты",
+                add_employee_title: "Добавить нового сотрудника",
+                add_direction_title: "Новое направление",
+                add_report_title: "Добавить ежедневный отчет",
+                select_employee: "Выберите сотрудника",
+                select_direction: "Выберите направление",
+                smena: "Смена",
+                search: "Поиск",
+                cancel: "Отмена",
+                save: "Сохранить"
+            }
+        };
+
+        function changeLanguage(lang) {
+            const elements = document.querySelectorAll('[data-key]');
+            elements.forEach(el => {
+                const key = el.getAttribute('data-key');
+                if (translations[lang] && translations[lang][key]) {
+                    el.textContent = translations[lang][key];
+                }
+            });
+            document.documentElement.lang = lang;
+        }
+
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            // Show selected tab
+            document.getElementById('tab-' + tabName).classList.add('active');
+            
+            // Update sidebar active state
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.getElementById('nav-' + tabName).classList.add('active');
+        }
+
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function searchEmployee() {
+            const input = document.getElementById('searchEmployee').value.toLowerCase();
+            const table = document.getElementById('employeeTable');
+            const rows = table.getElementsByTagName('tr');
+            
+            for (let i = 0; i < rows.length; i++) {
+                const cells = rows[i].getElementsByTagName('td');
+                if (cells.length > 0) {
+                    const name = cells[0].textContent.toLowerCase();
+                    const code = cells[1].textContent.toLowerCase();
+                    if (name.includes(input) || code.includes(input)) {
+                        rows[i].style.display = '';
+                    } else {
+                        rows[i].style.display = 'none';
+                    }
+                }
+            }
+        }
+
+        function archiveData() {
+            alert('Malumotlar arxivga saqlandi!');
+        }
+
+        // Close modals on outside click
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>'''
+
+# Save Admin HTML
+with open('/mnt/agents/output/cybercoder-crm/admin/index.html', 'w', encoding='utf-8') as f:
+    f.write(admin_html)
+
+print("✅ Admin panel created successfully!")
+print("📁 Location: /mnt/agents/output/cybercoder-crm/admin/index.html")
