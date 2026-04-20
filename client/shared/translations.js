@@ -1,0 +1,467 @@
+/**
+ * CyberCoderCRM - Translations
+ * 3 ta til: O'zbek (Lotin), Ўзбек (Кирилл), Русский
+ */
+
+const TRANSLATIONS = {
+  'uz-lat': {
+    // Common
+    'common.loading': 'Yuklanmoqda...',
+    'common.save': 'Saqlash',
+    'common.cancel': 'Bekor qilish',
+    'common.delete': "O'chirish",
+    'common.edit': 'Tahrirlash',
+    'common.add': "Qo'shish",
+    'common.create': 'Yaratish',
+    'common.search': 'Qidirish...',
+    'common.yes': 'Ha',
+    'common.no': "Yo'q",
+    'common.confirm': 'Tasdiqlash',
+    'common.back': 'Orqaga',
+    'common.next': 'Keyingisi',
+    'common.close': 'Yopish',
+    'common.logout': 'Chiqish',
+    'common.total': 'Jami',
+    'common.active': 'Aktiv',
+    'common.inactive': 'Nofaol',
+    'common.today': 'Bugun',
+    'common.yesterday': 'Kecha',
+    'common.week': 'Hafta',
+    'common.month': 'Oy',
+    'common.date': 'Sana',
+    'common.actions': 'Amallar',
+    'common.name': 'Nomi',
+    'common.phone': 'Telefon',
+    'common.status': 'Holati',
+    'common.note': 'Izoh',
+    'common.language': 'Til',
+    'common.emptyData': "Ma'lumot yo'q",
+    'common.notFound': 'Topilmadi',
+    'common.error': 'Xato',
+    'common.success': 'Muvaffaqiyatli',
+
+    // Login
+    'login.username': 'Username',
+    'login.password': 'Parol',
+    'login.signIn': 'Kirish',
+    'login.signingIn': 'Kirilmoqda...',
+    'login.welcome': 'Xush kelibsiz!',
+
+    // Sidebar
+    'nav.management': 'Boshqaruv',
+    'nav.modules': 'Bo\'limlar',
+    'nav.businesses': 'Bizneslar',
+    'nav.employees': 'Xodimlar',
+    'nav.directions': "Yo'nalishlar",
+    'nav.dailyReport': 'Kunlik Hisobot',
+    'nav.monthlyReport': 'Oylik Hisobot',
+    'nav.archive': 'Arxiv',
+
+    // Employees
+    'emp.title': 'Xodimlar',
+    'emp.add': "Xodim qo'shish",
+    'emp.edit': 'Xodimni tahrirlash',
+    'emp.firstName': 'Ism',
+    'emp.lastName': 'Familiya',
+    'emp.code': 'Kod',
+    'emp.codeHint': 'Harflar, raqamlar yoki belgilar',
+    'emp.empty': "Hech qanday xodim yo'q",
+    'emp.emptyHint': "Birinchi xodimni qo'shing",
+    'emp.deleteConfirm': "Xodimni o'chirish?",
+    'emp.deleteWarn': "Xodim o'chiriladi va uning kodi oy oxirigacha band qilinadi.",
+    'emp.table.name': 'Ism',
+    'emp.table.lastName': 'Familiya',
+    'emp.table.code': 'Kod',
+    'emp.table.phone': 'Raqam',
+
+    // Directions
+    'dir.title': "Yo'nalishlar",
+    'dir.add': "Yo'nalish qo'shish",
+    'dir.edit': "Yo'nalishni tahrirlash",
+    'dir.name': "Yo'nalish nomi",
+    'dir.price': 'Kunlik narx',
+    'dir.priceHint': 'So\'m',
+    'dir.empty': "Hech qanday yo'nalish yo'q",
+    'dir.emptyHint': "Birinchi yo'nalishni qo'shing",
+    'dir.deleteConfirm': "Yo'nalishni arxivlash?",
+    'dir.deleteWarn': "Yo'nalish faqat ro'yxatdan olib tashlanadi. Eski hisobotlar saqlanadi.",
+    'dir.priceChanged': 'Narx o\'zgartirildi - eski kunlar eski narxda qoladi',
+    'dir.table.type': 'Turi',
+    'dir.table.price': 'Kunlik Narxi',
+
+    // Daily Report
+    'daily.title': 'Kunlik Hisobot',
+    'daily.assigned': 'Biriktirilgan xodimlar',
+    'daily.unassigned': 'Biriktirilmagan xodimlar',
+    'daily.assign': 'Biriktirish',
+    'daily.shift.full': 'To\'liq smena (1)',
+    'daily.shift.half': 'Yarim smena (0.5)',
+    'daily.employee': 'Xodim',
+    'daily.direction': "Yo'nalish",
+    'daily.shift': 'Smena',
+    'daily.earning': 'Daromad',
+    'daily.products': 'Kunlik mahsulotlar',
+    'daily.productName': 'Mahsulot nomi',
+    'daily.quantity': 'Soni',
+    'daily.addProduct': "Mahsulot qo'shish",
+    'daily.totalEarning': 'Jami daromad',
+    'daily.totalProducts': 'Jami mahsulot',
+    'daily.emptyAssigned': 'Hali hech kim biriktirilmagan',
+    'daily.emptyUnassigned': 'Biriktirilmagan xodim yo\'q',
+    'daily.unassign': 'Bekor qilish',
+
+    // Monthly Report
+    'month.title': 'Oylik Hisobot',
+    'month.startDate': 'Boshlanish sanasi',
+    'month.endDate': 'Tugash sanasi',
+    'month.codeSearch': 'Kod bilan qidirish',
+    'month.codePlaceholder': 'Xodim kodi...',
+    'month.archive': 'Arxivlash',
+    'month.archiveConfirm': 'Tanlangan davrni arxivlashni tasdiqlaysizmi?',
+    'month.archived': 'Arxivlandi',
+    'month.totalEarning': 'Jami daromad',
+    'month.totalDays': 'Jami kunlar',
+    'month.totalShifts': 'Jami smenalar',
+    'month.empty': "Bu davrda ma'lumot yo'q",
+
+    // Archive
+    'archive.title': 'Arxiv',
+    'archive.empty': "Arxivda hech narsa yo'q",
+    'archive.period': 'Davr',
+    'archive.archivedAt': 'Arxivlangan vaqt',
+    'archive.view': "Ko'rish",
+
+    // Messages
+    'msg.saved': 'Saqlandi',
+    'msg.deleted': "O'chirildi",
+    'msg.suspended': "Biznes to'xtatildi",
+    'msg.activated': 'Biznes faollashtirildi',
+    'msg.loginWrong': "Login yoki parol noto'g'ri",
+    'msg.tooMany': "Juda ko'p urinish, kuting",
+    'msg.error': "Xato yuz berdi",
+  },
+
+  'uz-cyr': {
+    // Common
+    'common.loading': 'Юкланмоқда...',
+    'common.save': 'Сақлаш',
+    'common.cancel': 'Бекор қилиш',
+    'common.delete': 'Ўчириш',
+    'common.edit': 'Таҳрирлаш',
+    'common.add': 'Қўшиш',
+    'common.create': 'Яратиш',
+    'common.search': 'Қидириш...',
+    'common.yes': 'Ҳа',
+    'common.no': 'Йўқ',
+    'common.confirm': 'Тасдиқлаш',
+    'common.back': 'Орқага',
+    'common.next': 'Кейингиси',
+    'common.close': 'Ёпиш',
+    'common.logout': 'Чиқиш',
+    'common.total': 'Жами',
+    'common.active': 'Актив',
+    'common.inactive': 'Нофаол',
+    'common.today': 'Бугун',
+    'common.yesterday': 'Кеча',
+    'common.week': 'Ҳафта',
+    'common.month': 'Ой',
+    'common.date': 'Сана',
+    'common.actions': 'Амаллар',
+    'common.name': 'Номи',
+    'common.phone': 'Телефон',
+    'common.status': 'Ҳолати',
+    'common.note': 'Изоҳ',
+    'common.language': 'Тил',
+    'common.emptyData': 'Маълумот йўқ',
+    'common.notFound': 'Топилмади',
+    'common.error': 'Хато',
+    'common.success': 'Муваффақиятли',
+
+    // Login
+    'login.username': 'Username',
+    'login.password': 'Парол',
+    'login.signIn': 'Кириш',
+    'login.signingIn': 'Кирилмоқда...',
+    'login.welcome': 'Хуш келибсиз!',
+
+    // Sidebar
+    'nav.management': 'Бошқарув',
+    'nav.modules': 'Бўлимлар',
+    'nav.businesses': 'Бизнеслар',
+    'nav.employees': 'Ходимлар',
+    'nav.directions': 'Йўналишлар',
+    'nav.dailyReport': 'Кунлик Ҳисобот',
+    'nav.monthlyReport': 'Ойлик Ҳисобот',
+    'nav.archive': 'Архив',
+
+    // Employees
+    'emp.title': 'Ходимлар',
+    'emp.add': 'Ходим қўшиш',
+    'emp.edit': 'Ходимни таҳрирлаш',
+    'emp.firstName': 'Исм',
+    'emp.lastName': 'Фамилия',
+    'emp.code': 'Код',
+    'emp.codeHint': 'Ҳарфлар, рақамлар ёки белгилар',
+    'emp.empty': 'Ҳеч қандай ходим йўқ',
+    'emp.emptyHint': 'Биринчи ходимни қўшинг',
+    'emp.deleteConfirm': 'Ходимни ўчириш?',
+    'emp.deleteWarn': 'Ходим ўчирилади ва унинг коди ой охиригача банд қилинади.',
+    'emp.table.name': 'Исм',
+    'emp.table.lastName': 'Фамилия',
+    'emp.table.code': 'Код',
+    'emp.table.phone': 'Рақам',
+
+    // Directions
+    'dir.title': 'Йўналишлар',
+    'dir.add': 'Йўналиш қўшиш',
+    'dir.edit': 'Йўналишни таҳрирлаш',
+    'dir.name': 'Йўналиш номи',
+    'dir.price': 'Кунлик нарх',
+    'dir.priceHint': 'Сўм',
+    'dir.empty': 'Ҳеч қандай йўналиш йўқ',
+    'dir.emptyHint': 'Биринчи йўналишни қўшинг',
+    'dir.deleteConfirm': 'Йўналишни архивлаш?',
+    'dir.deleteWarn': 'Йўналиш фақат рўйхатдан олиб ташланади. Эски ҳисоботлар сақланади.',
+    'dir.priceChanged': 'Нарх ўзгартирилди - эски кунлар эски нархда қолади',
+    'dir.table.type': 'Тури',
+    'dir.table.price': 'Кунлик Нархи',
+
+    // Daily Report
+    'daily.title': 'Кунлик Ҳисобот',
+    'daily.assigned': 'Бириктирилган ходимлар',
+    'daily.unassigned': 'Бириктирилмаган ходимлар',
+    'daily.assign': 'Бириктириш',
+    'daily.shift.full': "Тўлиқ смена (1)",
+    'daily.shift.half': 'Ярим смена (0.5)',
+    'daily.employee': 'Ходим',
+    'daily.direction': 'Йўналиш',
+    'daily.shift': 'Смена',
+    'daily.earning': 'Даромад',
+    'daily.products': 'Кунлик маҳсулотлар',
+    'daily.productName': 'Маҳсулот номи',
+    'daily.quantity': 'Сони',
+    'daily.addProduct': 'Маҳсулот қўшиш',
+    'daily.totalEarning': 'Жами даромад',
+    'daily.totalProducts': 'Жами маҳсулот',
+    'daily.emptyAssigned': 'Ҳали ҳеч ким бириктирилмаган',
+    'daily.emptyUnassigned': 'Бириктирилмаган ходим йўқ',
+    'daily.unassign': 'Бекор қилиш',
+
+    // Monthly Report
+    'month.title': 'Ойлик Ҳисобот',
+    'month.startDate': 'Бошланиш санаси',
+    'month.endDate': 'Тугаш санаси',
+    'month.codeSearch': 'Код билан қидириш',
+    'month.codePlaceholder': 'Ходим коди...',
+    'month.archive': 'Архивлаш',
+    'month.archiveConfirm': 'Танланган даврни архивлашни тасдиқлайсизми?',
+    'month.archived': 'Архивланди',
+    'month.totalEarning': 'Жами даромад',
+    'month.totalDays': 'Жами кунлар',
+    'month.totalShifts': 'Жами сменалар',
+    'month.empty': 'Бу даврда маълумот йўқ',
+
+    // Archive
+    'archive.title': 'Архив',
+    'archive.empty': 'Архивда ҳеч нарса йўқ',
+    'archive.period': 'Давр',
+    'archive.archivedAt': 'Архивланган вақт',
+    'archive.view': 'Кўриш',
+
+    // Messages
+    'msg.saved': 'Сақланди',
+    'msg.deleted': 'Ўчирилди',
+    'msg.suspended': 'Бизнес тўхтатилди',
+    'msg.activated': 'Бизнес фаоллаштирилди',
+    'msg.loginWrong': "Логин ёки парол нотўғри",
+    'msg.tooMany': 'Жуда кўп уриниш, кутинг',
+    'msg.error': 'Хато юз берди',
+  },
+
+  'ru': {
+    // Common
+    'common.loading': 'Загрузка...',
+    'common.save': 'Сохранить',
+    'common.cancel': 'Отмена',
+    'common.delete': 'Удалить',
+    'common.edit': 'Редактировать',
+    'common.add': 'Добавить',
+    'common.create': 'Создать',
+    'common.search': 'Поиск...',
+    'common.yes': 'Да',
+    'common.no': 'Нет',
+    'common.confirm': 'Подтвердить',
+    'common.back': 'Назад',
+    'common.next': 'Далее',
+    'common.close': 'Закрыть',
+    'common.logout': 'Выйти',
+    'common.total': 'Всего',
+    'common.active': 'Активен',
+    'common.inactive': 'Неактивен',
+    'common.today': 'Сегодня',
+    'common.yesterday': 'Вчера',
+    'common.week': 'Неделя',
+    'common.month': 'Месяц',
+    'common.date': 'Дата',
+    'common.actions': 'Действия',
+    'common.name': 'Название',
+    'common.phone': 'Телефон',
+    'common.status': 'Статус',
+    'common.note': 'Примечание',
+    'common.language': 'Язык',
+    'common.emptyData': 'Нет данных',
+    'common.notFound': 'Не найдено',
+    'common.error': 'Ошибка',
+    'common.success': 'Успешно',
+
+    // Login
+    'login.username': 'Username',
+    'login.password': 'Пароль',
+    'login.signIn': 'Войти',
+    'login.signingIn': 'Вход...',
+    'login.welcome': 'Добро пожаловать!',
+
+    // Sidebar
+    'nav.management': 'Управление',
+    'nav.modules': 'Разделы',
+    'nav.businesses': 'Бизнесы',
+    'nav.employees': 'Сотрудники',
+    'nav.directions': 'Направления',
+    'nav.dailyReport': 'Ежедневный отчёт',
+    'nav.monthlyReport': 'Месячный отчёт',
+    'nav.archive': 'Архив',
+
+    // Employees
+    'emp.title': 'Сотрудники',
+    'emp.add': 'Добавить сотрудника',
+    'emp.edit': 'Редактировать сотрудника',
+    'emp.firstName': 'Имя',
+    'emp.lastName': 'Фамилия',
+    'emp.code': 'Код',
+    'emp.codeHint': 'Буквы, цифры или символы',
+    'emp.empty': 'Нет сотрудников',
+    'emp.emptyHint': 'Добавьте первого сотрудника',
+    'emp.deleteConfirm': 'Удалить сотрудника?',
+    'emp.deleteWarn': 'Сотрудник будет удалён, код забронирован до конца месяца.',
+    'emp.table.name': 'Имя',
+    'emp.table.lastName': 'Фамилия',
+    'emp.table.code': 'Код',
+    'emp.table.phone': 'Телефон',
+
+    // Directions
+    'dir.title': 'Направления',
+    'dir.add': 'Добавить направление',
+    'dir.edit': 'Редактировать направление',
+    'dir.name': 'Название направления',
+    'dir.price': 'Ежедневная цена',
+    'dir.priceHint': 'Сум',
+    'dir.empty': 'Нет направлений',
+    'dir.emptyHint': 'Добавьте первое направление',
+    'dir.deleteConfirm': 'Архивировать направление?',
+    'dir.deleteWarn': 'Направление удалится из списка. Старые отчёты сохранятся.',
+    'dir.priceChanged': 'Цена изменена - старые дни останутся по старой цене',
+    'dir.table.type': 'Тип',
+    'dir.table.price': 'Ежедневная цена',
+
+    // Daily Report
+    'daily.title': 'Ежедневный отчёт',
+    'daily.assigned': 'Закреплённые сотрудники',
+    'daily.unassigned': 'Незакреплённые сотрудники',
+    'daily.assign': 'Закрепить',
+    'daily.shift.full': 'Полная смена (1)',
+    'daily.shift.half': 'Половина смены (0.5)',
+    'daily.employee': 'Сотрудник',
+    'daily.direction': 'Направление',
+    'daily.shift': 'Смена',
+    'daily.earning': 'Доход',
+    'daily.products': 'Ежедневная продукция',
+    'daily.productName': 'Название продукта',
+    'daily.quantity': 'Количество',
+    'daily.addProduct': 'Добавить продукт',
+    'daily.totalEarning': 'Всего дохода',
+    'daily.totalProducts': 'Всего продуктов',
+    'daily.emptyAssigned': 'Пока никого не закреплено',
+    'daily.emptyUnassigned': 'Нет незакреплённых сотрудников',
+    'daily.unassign': 'Отменить',
+
+    // Monthly Report
+    'month.title': 'Месячный отчёт',
+    'month.startDate': 'Дата начала',
+    'month.endDate': 'Дата окончания',
+    'month.codeSearch': 'Поиск по коду',
+    'month.codePlaceholder': 'Код сотрудника...',
+    'month.archive': 'Архивировать',
+    'month.archiveConfirm': 'Подтвердите архивацию выбранного периода?',
+    'month.archived': 'Архивировано',
+    'month.totalEarning': 'Всего дохода',
+    'month.totalDays': 'Всего дней',
+    'month.totalShifts': 'Всего смен',
+    'month.empty': 'Нет данных за этот период',
+
+    // Archive
+    'archive.title': 'Архив',
+    'archive.empty': 'В архиве ничего нет',
+    'archive.period': 'Период',
+    'archive.archivedAt': 'Время архивации',
+    'archive.view': 'Просмотр',
+
+    // Messages
+    'msg.saved': 'Сохранено',
+    'msg.deleted': 'Удалено',
+    'msg.suspended': 'Бизнес приостановлен',
+    'msg.activated': 'Бизнес активирован',
+    'msg.loginWrong': 'Неверный логин или пароль',
+    'msg.tooMany': 'Слишком много попыток, подождите',
+    'msg.error': 'Произошла ошибка',
+  },
+};
+
+// ============================================
+// LANGUAGE MANAGEMENT
+// ============================================
+
+const LANG_STORAGE_KEY = 'cc_lang';
+
+function getCurrentLang() {
+  return localStorage.getItem(LANG_STORAGE_KEY) || 'uz-lat';
+}
+
+function setLang(lang) {
+  if (!TRANSLATIONS[lang]) return;
+  localStorage.setItem(LANG_STORAGE_KEY, lang);
+  applyTranslations();
+  document.documentElement.lang = lang.startsWith('uz') ? 'uz' : 'ru';
+}
+
+function t(key) {
+  const lang = getCurrentLang();
+  const dict = TRANSLATIONS[lang] || TRANSLATIONS['uz-lat'];
+  return dict[key] || key;
+}
+
+function applyTranslations() {
+  // data-i18n (text content)
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    el.textContent = t(key);
+  });
+
+  // data-i18n-placeholder
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.dataset.i18nPlaceholder;
+    el.placeholder = t(key);
+  });
+
+  // data-i18n-title
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    const key = el.dataset.i18nTitle;
+    el.title = t(key);
+  });
+}
+
+// Expose to window
+window.t = t;
+window.setLang = setLang;
+window.getCurrentLang = getCurrentLang;
+window.applyTranslations = applyTranslations;
+window.TRANSLATIONS = TRANSLATIONS;

@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SuperAdmin · CyberCoderCRM</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Custom styles -->
+  <style>
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #12121a;
+      --accent: #8b5cf6;
+      --text-primary: #f4f4f6;
+      --text-secondary: #a1a1aa;
+    }
+
+    * { -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+    }
+
+    .mono { font-family: 'JetBrains Mono', monospace; }
+
+    /* Background layers */
+    .bg-mesh {
+      position: fixed; inset: 0; z-index: 0;
+      background:
+        radial-gradient(circle at 15% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(168, 85, 247, 0.08) 0%, transparent 40%);
+    }
+
+    .bg-grid {
+      position: fixed; inset: 0; z-index: 1;
+      background-image:
+        linear-gradient(rgba(139, 92, 246, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(139, 92, 246, 0.025) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
+    ::-webkit-scrollbar-thumb { background: rgba(139, 92, 246, 0.3); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.5); }
+
+    /* Glass */
+    .glass {
+      background: rgba(22, 22, 34, 0.5);
+      backdrop-filter: blur(20px) saturate(1.4);
+      -webkit-backdrop-filter: blur(20px) saturate(1.4);
+      border: 1px solid rgba(139, 92, 246, 0.12);
+    }
+
+    .sidebar {
+      background: rgba(18, 18, 26, 0.7);
+      backdrop-filter: blur(20px) saturate(1.4);
+      -webkit-backdrop-filter: blur(20px) saturate(1.4);
+      border-right: 1px solid rgba(139, 92, 246, 0.1);
+    }
+
+    /* Nav item */
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .nav-item:hover {
+      background: rgba(139, 92, 246, 0.08);
+      color: var(--text-primary);
+    }
+
+    .nav-item.active {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.05));
+      color: #a78bfa;
+      border: 1px solid rgba(139, 92, 246, 0.25);
+    }
+
+    /* Stat card */
+    .stat-card {
+      background: linear-gradient(135deg, rgba(22, 22, 34, 0.6), rgba(22, 22, 34, 0.4));
+      border: 1px solid rgba(139, 92, 246, 0.15);
+      border-radius: 16px;
+      padding: 20px;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.5), transparent);
+    }
+
+    .stat-card:hover {
+      border-color: rgba(139, 92, 246, 0.3);
+      transform: translateY(-2px);
+    }
+
+    /* Business card */
+    .biz-card {
+      background: rgba(22, 22, 34, 0.5);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(139, 92, 246, 0.12);
+      border-radius: 20px;
+      padding: 24px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .biz-card:hover {
+      border-color: rgba(139, 92, 246, 0.35);
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px -15px rgba(139, 92, 246, 0.25);
+    }
+
+    .biz-card.suspended { opacity: 0.6; }
+
+    /* Input */
+    .input-field {
+      background: rgba(10, 10, 15, 0.6);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      color: var(--text-primary);
+      font-family: 'Space Grotesk', sans-serif;
+      transition: all 0.2s;
+    }
+
+    .input-field:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: rgba(10, 10, 15, 0.8);
+      box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
+    }
+
+    .input-field::placeholder { color: #71717a; }
+
+    .field-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Buttons */
+    .btn-primary {
+      background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+      color: white;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.4);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .btn-ghost {
+      background: rgba(139, 92, 246, 0.08);
+      color: #a78bfa;
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      transition: all 0.2s;
+    }
+
+    .btn-ghost:hover {
+      background: rgba(139, 92, 246, 0.15);
+      border-color: rgba(139, 92, 246, 0.4);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.1);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      transition: all 0.2s;
+    }
+
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.4);
+    }
+
+    .btn-icon {
+      width: 36px; height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      background: rgba(139, 92, 246, 0.08);
+      color: var(--text-secondary);
+      border: 1px solid rgba(139, 92, 246, 0.15);
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .btn-icon:hover {
+      background: rgba(139, 92, 246, 0.15);
+      color: #a78bfa;
+      border-color: rgba(139, 92, 246, 0.3);
+    }
+
+    .btn-icon.danger:hover {
+      background: rgba(239, 68, 68, 0.15);
+      color: #fca5a5;
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      background: rgba(10, 10, 15, 0.8);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .modal-content {
+      background: linear-gradient(135deg, #12121a, #1a1a26);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(139, 92, 246, 0.15);
+    }
+
+    /* Spinner */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Animations */
+    .fade-in { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; opacity: 0; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .shake { animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); }
+      40%, 80% { transform: translateX(8px); }
+    }
+
+    /* Logo */
+    .logo-placeholder {
+      background: linear-gradient(135deg, #8b5cf6, #6366f1);
+      color: white;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .logo-pulse { animation: logoPulse 3s ease-in-out infinite; }
+    @keyframes logoPulse {
+      0%, 100% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.4); }
+      50% { box-shadow: 0 0 60px rgba(139, 92, 246, 0.6); }
+    }
+
+    /* Orbs */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(60px);
+      opacity: 0.4;
+      animation: orbFloat 15s ease-in-out infinite;
+    }
+    .orb-1 { width: 300px; height: 300px; background: #8b5cf6; top: -150px; left: -100px; }
+    .orb-2 { width: 400px; height: 400px; background: #6366f1; bottom: -200px; right: -150px; animation-delay: -5s; }
+    @keyframes orbFloat {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.95); }
+    }
+
+    /* Badge */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .badge-active { background: rgba(16, 185, 129, 0.12); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.25); }
+    .badge-suspended { background: rgba(245, 158, 11, 0.12); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.25); }
+    .badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      padding: 14px 20px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 9999;
+      backdrop-filter: blur(20px);
+      animation: toastIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      max-width: 400px;
+    }
+    .toast-success { background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #6ee7b7; }
+    .toast-error { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(100%); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    /* Mobile */
+    @media (max-width: 1023px) {
+      .sidebar {
+        position: fixed; left: 0; top: 0; bottom: 0;
+        width: 280px; z-index: 50;
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .sidebar.open { transform: translateX(0); }
+    }
+
+    /* Skeleton */
+    .skeleton {
+      background: linear-gradient(90deg,
+        rgba(139, 92, 246, 0.05) 0%,
+        rgba(139, 92, 246, 0.1) 50%,
+        rgba(139, 92, 246, 0.05) 100%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 12px;
+    }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    /* Logo box */
+    .logo-preview-box {
+      width: 96px; height: 96px;
+      border-radius: 16px;
+      background: rgba(139, 92, 246, 0.08);
+      border: 2px dashed rgba(139, 92, 246, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      overflow: hidden;
+    }
+    .logo-preview-box:hover {
+      border-color: rgba(139, 92, 246, 0.5);
+      background: rgba(139, 92, 246, 0.12);
+    }
+    .logo-preview-box img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* Module toggle */
+    .module-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-radius: 12px;
+      background: rgba(139, 92, 246, 0.05);
+      border: 1px solid rgba(139, 92, 246, 0.12);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .module-toggle:hover {
+      background: rgba(139, 92, 246, 0.1);
+      border-color: rgba(139, 92, 246, 0.25);
+    }
+    .module-toggle.enabled {
+      background: rgba(139, 92, 246, 0.12);
+      border-color: rgba(139, 92, 246, 0.35);
+    }
+
+    /* Switch */
+    .switch {
+      position: relative;
+      width: 40px; height: 22px;
+      background: rgba(139, 92, 246, 0.2);
+      border-radius: 999px;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .switch::after {
+      content: '';
+      position: absolute;
+      top: 2px; left: 2px;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: white;
+      transition: all 0.2s;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    .switch.on { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+    .switch.on::after { transform: translateX(18px); }
+  </style>
+</head>
+<body>
+  <div class="bg-mesh"></div>
+  <div class="bg-grid"></div>
+
+  <!-- ============================================== -->
+  <!-- LOGIN VIEW -->
+  <!-- ============================================== -->
+  <div id="loginView" class="relative z-10 min-h-screen flex items-center justify-center px-4 py-12">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <div class="relative w-full max-w-md">
+      <div class="text-center mb-8 fade-in">
+        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 mono text-xs text-purple-300">
+          <span class="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>
+          <span>SUPER ADMIN ACCESS</span>
+        </div>
+      </div>
+
+      <div class="glass rounded-3xl p-10 fade-in" id="loginCard">
+        <div class="flex flex-col items-center mb-10">
+          <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500 via-purple-600 to-indigo-600 flex items-center justify-center logo-pulse mb-5">
+            <span class="text-4xl font-bold text-white">L</span>
+          </div>
+          <h1 class="text-2xl font-bold">CyberCoderCRM</h1>
+          <p class="mono text-xs text-zinc-500 mt-2">v1.0 · Management Platform</p>
+        </div>
+
+        <div id="loginError" class="hidden mb-6 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm"></div>
+
+        <form id="loginForm" class="space-y-5">
+          <div>
+            <label class="field-label" for="loginUsername">Username</label>
+            <input type="text" id="loginUsername" class="input-field w-full px-4 py-3.5 rounded-xl" placeholder="superadmin" autocomplete="username" required />
+          </div>
+
+          <div>
+            <label class="field-label" for="loginPassword">Password</label>
+            <div class="relative">
+              <input type="password" id="loginPassword" class="input-field w-full px-4 py-3.5 pr-12 rounded-xl" placeholder="••••••••••" autocomplete="current-password" required />
+              <button type="button" id="togglePassword" class="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-zinc-500 hover:text-purple-400 transition" tabindex="-1">
+                <svg id="eyeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="pt-3">
+            <button type="submit" id="loginBtn" class="btn-primary w-full py-3.5 rounded-xl flex items-center justify-center gap-2">
+              <span id="loginBtnText">Sign In</span>
+              <span id="loginSpinner" class="spinner hidden"></span>
+            </button>
+          </div>
+        </form>
+
+        <div class="mt-8 pt-6 border-t border-purple-500/10 flex items-center justify-between">
+          <span class="mono text-xs text-zinc-600">© 2026 CyberCoderCRM</span>
+          <a href="/admin/" class="mono text-xs text-purple-400 hover:text-purple-300 transition">Admin Panel →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- APP VIEW -->
+  <!-- ============================================== -->
+  <div id="appView" class="hidden relative z-10 min-h-screen flex">
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar w-64 shrink-0 flex flex-col p-5">
+      <div class="flex items-center gap-3 px-2 mb-8">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white font-bold text-lg">L</div>
+        <div>
+          <div class="text-sm font-bold leading-tight">CyberCoderCRM</div>
+          <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider">Super Admin</div>
+        </div>
+      </div>
+
+      <nav class="flex flex-col gap-1 flex-1">
+        <div class="mono text-[10px] text-zinc-500 px-3 mb-2 uppercase tracking-widest">Management</div>
+        <a href="#" class="nav-item active">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/>
+          </svg>
+          <span>Bizneslar</span>
+        </a>
+      </nav>
+
+      <div class="mt-auto pt-4 border-t border-purple-500/10">
+        <div class="flex items-center gap-3 px-2 py-2">
+          <div class="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold">S</div>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-medium truncate" id="userName">superadmin</div>
+            <div class="mono text-[10px] text-zinc-500">SUPER ADMIN</div>
+          </div>
+        </div>
+        <button id="logoutBtn" class="w-full mt-2 px-3 py-2.5 rounded-lg text-sm text-zinc-400 hover:text-red-300 hover:bg-red-500/10 transition flex items-center gap-2 border border-transparent hover:border-red-500/20">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+          </svg>
+          <span>Chiqish</span>
+        </button>
+      </div>
+    </aside>
+
+    <div id="sidebarBackdrop" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden"></div>
+
+    <!-- Main -->
+    <main class="flex-1 min-w-0 overflow-x-hidden">
+      <header class="sticky top-0 z-30 glass border-b border-purple-500/10 px-6 lg:px-10 py-5">
+        <div class="flex items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <button id="menuToggle" class="lg:hidden btn-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
+            </button>
+            <div>
+              <h1 class="text-xl lg:text-2xl font-bold">Bizneslar</h1>
+              <p class="mono text-xs text-zinc-500 mt-0.5">Barcha tenants</p>
+            </div>
+          </div>
+
+          <button id="createBtn" class="btn-primary px-4 lg:px-6 py-2.5 rounded-xl flex items-center gap-2 text-sm">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            <span class="hidden sm:inline">Qo'shish</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="px-6 lg:px-10 py-6">
+        <!-- Stats -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div class="stat-card fade-in">
+            <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2">Jami Bizneslar</div>
+            <div class="text-3xl font-bold" id="statTotal">—</div>
+          </div>
+          <div class="stat-card fade-in" style="animation-delay: 0.05s;">
+            <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2">Aktiv</div>
+            <div class="text-3xl font-bold text-emerald-400" id="statActive">—</div>
+          </div>
+          <div class="stat-card fade-in" style="animation-delay: 0.1s;">
+            <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2">To'xtatilgan</div>
+            <div class="text-3xl font-bold text-amber-400" id="statSuspended">—</div>
+          </div>
+          <div class="stat-card fade-in" style="animation-delay: 0.15s;">
+            <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2">Jami Xodimlar</div>
+            <div class="text-3xl font-bold text-purple-400" id="statEmployees">—</div>
+          </div>
+        </div>
+
+        <!-- Search -->
+        <div class="mb-6">
+          <div class="relative max-w-md">
+            <svg class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="searchInput" placeholder="Qidirish..." class="input-field w-full pl-11 pr-4 py-3 rounded-xl text-sm" />
+          </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loadingState" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          <div class="skeleton h-48"></div>
+          <div class="skeleton h-48"></div>
+          <div class="skeleton h-48"></div>
+        </div>
+
+        <!-- Empty -->
+        <div id="emptyState" class="hidden text-center py-20">
+          <div class="inline-flex w-20 h-20 rounded-2xl bg-purple-500/10 border border-purple-500/20 items-center justify-center mb-5">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-purple-400">
+              <path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold mb-2">Hech qanday biznes yo'q</h3>
+          <p class="text-zinc-500 mb-6">Birinchi biznesni qo'shib boshlang</p>
+          <button id="emptyCreateBtn" class="btn-primary px-6 py-3 rounded-xl inline-flex items-center gap-2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            <span>Yangi biznes qo'shish</span>
+          </button>
+        </div>
+
+        <!-- Grid -->
+        <div id="businessesGrid" class="hidden grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: Create/Edit -->
+  <!-- ============================================== -->
+  <div id="businessModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
+    <div class="modal-content w-full max-w-xl rounded-2xl max-h-[90vh] overflow-y-auto">
+      <div class="sticky top-0 bg-inherit p-6 border-b border-purple-500/10 flex items-center justify-between z-10">
+        <div>
+          <h2 id="modalTitle" class="text-xl font-bold">Yangi biznes</h2>
+          <p class="mono text-xs text-zinc-500 mt-1">Create new tenant</p>
+        </div>
+        <button id="closeModalBtn" class="btn-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <form id="businessForm" class="p-6 space-y-5">
+        <input type="hidden" id="editingId" value="" />
+
+        <div>
+          <label class="field-label">Logo (ixtiyoriy, max 2MB)</label>
+          <div class="flex items-center gap-4">
+            <label for="logoInput" class="logo-preview-box shrink-0" id="logoPreview">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-purple-400">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+            </label>
+            <div class="flex-1 text-sm text-zinc-400">
+              <p class="font-medium text-zinc-300">PNG, JPG, WEBP</p>
+              <p class="mono text-xs text-zinc-500 mt-1">Logo bo'lmasa biznes nomining birinchi harfi</p>
+            </div>
+          </div>
+          <input type="file" id="logoInput" accept="image/png,image/jpeg,image/jpg,image/webp" class="hidden" />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="field-label" for="f_name">Biznes nomi *</label>
+            <input type="text" id="f_name" required maxlength="100" class="input-field w-full px-4 py-3 rounded-xl" placeholder="Gavali Shoes" />
+          </div>
+          <div>
+            <label class="field-label" for="f_phone">Telefon *</label>
+            <input type="text" id="f_phone" required maxlength="20" class="input-field w-full px-4 py-3 rounded-xl" placeholder="+998 90 123 45 67" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="field-label" for="f_login">Login *</label>
+            <input type="text" id="f_login" required minlength="3" maxlength="50" class="input-field w-full px-4 py-3 rounded-xl mono" placeholder="gavali_admin" />
+          </div>
+          <div>
+            <label class="field-label" for="f_password"><span id="passwordLabel">Parol *</span></label>
+            <input type="text" id="f_password" minlength="6" class="input-field w-full px-4 py-3 rounded-xl mono" placeholder="kuchli parol" />
+            <p id="passwordHint" class="mono text-xs text-zinc-500 mt-1.5 hidden">Bo'sh qoldiring o'zgartirmaslik uchun</p>
+          </div>
+        </div>
+
+        <div>
+          <label class="field-label" for="f_language">Default til</label>
+          <select id="f_language" class="input-field w-full px-4 py-3 rounded-xl">
+            <option value="uz-lat">O'zbek (Lotin)</option>
+            <option value="uz-cyr">Ўзбек (Кирилл)</option>
+            <option value="ru">Русский</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="field-label">Yoqilgan modullar</label>
+          <p class="mono text-xs text-zinc-500 mb-3">Bu biznes qaysi bo'limlarni ko'radi?</p>
+          <div class="space-y-2" id="modulesContainer"></div>
+        </div>
+
+        <div>
+          <label class="field-label" for="f_note">Eslatma (ixtiyoriy)</label>
+          <textarea id="f_note" maxlength="500" rows="2" class="input-field w-full px-4 py-3 rounded-xl resize-none" placeholder="Izoh..."></textarea>
+        </div>
+
+        <div class="flex gap-3 pt-2">
+          <button type="button" id="cancelModalBtn" class="flex-1 btn-ghost py-3 rounded-xl font-medium">Bekor qilish</button>
+          <button type="submit" id="submitModalBtn" class="flex-1 btn-primary py-3 rounded-xl flex items-center justify-center gap-2">
+            <span id="submitModalText">Yaratish</span>
+            <span id="submitModalSpinner" class="spinner hidden"></span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: Confirm Delete -->
+  <!-- ============================================== -->
+  <div id="confirmModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
+    <div class="modal-content w-full max-w-md rounded-2xl p-6">
+      <div class="flex items-start gap-4 mb-4">
+        <div class="w-12 h-12 rounded-full bg-red-500/15 border border-red-500/25 flex items-center justify-center shrink-0">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-red-400">
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </div>
+        <div class="flex-1">
+          <h3 class="text-lg font-bold">Biznesni o'chirish?</h3>
+          <p class="text-sm text-zinc-400 mt-1" id="confirmText"></p>
+        </div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button id="cancelConfirmBtn" class="flex-1 btn-ghost py-2.5 rounded-xl font-medium">Bekor qilish</button>
+        <button id="confirmDeleteBtn" class="flex-1 btn-danger py-2.5 rounded-xl font-medium flex items-center justify-center gap-2">
+          <span id="confirmDeleteText">O'chirish</span>
+          <span id="confirmDeleteSpinner" class="spinner hidden"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- App JS -->
+  <script src="/superadmin/app.js"></script>
+</body>
+</html>
