@@ -1,12 +1,20 @@
 /**
  * CyberCoderCRM - Admin Application (SPA)
- * Bitta fayl ichida 5 sahifa
- * Dinamik sidebar (faqat yoqilgan modullar)
- * White-label (har biznes o'z logo + nom)
+ * Bitta fayl ichida 5 sahifa + dinamik sidebar + white-label
  */
 
 // ============================================
-// STORAGE KEYS (admin alohida superadmin'dan)
+// CONFIG
+// ============================================
+const API_BASE = window.API_BASE || '';
+
+function apiUrl(path) {
+  if (!API_BASE) return path;
+  return API_BASE.replace(/\/$/, '') + path;
+}
+
+// ============================================
+// STORAGE KEYS
 // ============================================
 const STORAGE = {
   token: 'cc_admin_token',
@@ -14,7 +22,7 @@ const STORAGE = {
 };
 
 // ============================================
-// MODULE ICONS (Lucide SVGs)
+// MODULE ICONS
 // ============================================
 const MODULE_ICONS = {
   employees: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>`,
@@ -34,14 +42,12 @@ const state = {
   currentPage: null,
   confirmCallback: null,
 
-  // Page data caches
   employees: [],
   directions: [],
   dailyData: null,
   monthData: null,
   archives: [],
 
-  // Editing
   editingEmpId: null,
   editingDirId: null,
   editingProductId: null,
@@ -78,10 +84,6 @@ function formatDate(dateStr, opts = {}) {
   return `${day}.${month}.${year}`;
 }
 
-function getTodayString() {
-  return new Date().toISOString().split('T')[0];
-}
-
 function toast(message, type = 'success') {
   const existing = document.querySelector('.toast');
   if (existing) existing.remove();
@@ -100,6 +102,7 @@ function toast(message, type = 'success') {
 }
 
 async function api(endpoint, options = {}) {
+  const url = apiUrl(endpoint);
   const headers = {
     Authorization: `Bearer ${state.token}`,
     ...(options.headers || {}),
@@ -110,7 +113,7 @@ async function api(endpoint, options = {}) {
   }
 
   try {
-    const res = await fetch(endpoint, { ...options, headers });
+    const res = await fetch(url, { ...options, headers });
     const data = await res.json().catch(() => ({}));
 
     if (res.status === 401) {
@@ -129,6 +132,11 @@ async function api(endpoint, options = {}) {
   }
 }
 
+function t(key) {
+  if (typeof window.t === 'function') return window.t(key);
+  return key;
+}
+
 // ============================================
 // VIEW SWITCHER
 // ============================================
@@ -144,31 +152,46 @@ function showApp() {
 }
 
 // ============================================
-// LANG SWITCHER
+// LANGUAGE SWITCHER
 // ============================================
 
 function setupLangSwitchers() {
   document.querySelectorAll('[data-lang]').forEach(btn => {
     btn.addEventListener('click', () => {
       const lang = btn.dataset.lang;
-      window.setLang(lang);
+      if (typeof window.setLang === 'function') {
+        window.setLang(lang);
+      }
       updateLangButtonsActive();
-      // Refresh current page if active
-      if (state.currentPage) navigateTo(state.currentPage);
+      // Refresh current page content
+      if (state.currentPage) {
+        navigateTo(state.currentPage);
+      } else {
+        applyStaticTranslations();
+      }
     });
   });
   updateLangButtonsActive();
 }
 
 function updateLangButtonsActive() {
-  const currentLang = window.getCurrentLang();
+  const currentLang = (typeof window.getCurrentLang === 'function')
+    ? window.getCurrentLang()
+    : 'uz-lat';
+
   document.querySelectorAll('[data-lang]').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.lang === currentLang);
   });
 }
 
+function applyStaticTranslations() {
+  if (typeof window.applyTranslations === 'function') {
+    window.applyTranslations();
+  }
+}
+
 // ============================================
-// LOGIN FLOW
+// LOGIN
 // ============================================
 
 function setupLogin() {
@@ -200,19 +223,17 @@ function setupLogin() {
     errorEl.classList.add('hidden');
 
     if (!username || !password) {
-      errorEl.textContent = window.t('msg.error');
+      errorEl.textContent = t('msg.error');
       errorEl.classList.remove('hidden');
-      card.classList.add('shake');
-      setTimeout(() => card.classList.remove('shake'), 500);
       return;
     }
 
     btn.disabled = true;
-    btnText.textContent = window.t('login.signingIn');
+    btnText.textContent = t('login.signingIn');
     spinner.classList.remove('hidden');
 
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch(apiUrl('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -221,7 +242,7 @@ function setupLogin() {
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        throw new Error(data.error || window.t('msg.loginWrong'));
+        throw new Error(data.error || t('msg.loginWrong'));
       }
 
       if (data.user.role !== 'admin') {
@@ -233,22 +254,23 @@ function setupLogin() {
       localStorage.setItem(STORAGE.token, data.token);
       localStorage.setItem(STORAGE.user, JSON.stringify(data.user));
 
-      // Set default language from business
-      if (data.user.defaultLanguage) {
-        window.setLang(data.user.defaultLanguage);
-        updateLangButtonsActive();
+      if (data.user.defaultLanguage && typeof window.setLang === 'function') {
+        const savedLang = localStorage.getItem('cc_lang');
+        if (!savedLang) {
+          window.setLang(data.user.defaultLanguage);
+        }
       }
 
-      btnText.textContent = window.t('login.welcome');
+      btnText.textContent = t('login.welcome');
       spinner.classList.add('hidden');
       setTimeout(() => initApp(), 300);
     } catch (err) {
-      errorEl.textContent = err.message || window.t('msg.error');
+      errorEl.textContent = err.message || t('msg.error');
       errorEl.classList.remove('hidden');
       card.classList.add('shake');
       setTimeout(() => card.classList.remove('shake'), 500);
       btn.disabled = false;
-      btnText.textContent = window.t('login.signIn');
+      btnText.textContent = t('login.signIn');
       spinner.classList.add('hidden');
     }
   });
@@ -268,23 +290,23 @@ function logout() {
 }
 
 // ============================================
-// WHITE LABEL (business branding)
+// WHITE LABEL
 // ============================================
 
 function applyBranding(business) {
-  // Title
   document.title = `${business.name} · CyberCoderCRM`;
 
-  // Logo
   const logoEl = document.getElementById('businessLogo');
   const firstLetter = (business.name || '?').charAt(0).toUpperCase();
+
   if (business.logo) {
-    logoEl.innerHTML = `<img src="/uploads/${escapeHtml(business.logo)}" alt="${escapeHtml(business.name)}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<div class=\\'logo-placeholder w-full h-full\\'>${firstLetter}</div>'" />`;
+    // Logo Railway'dan yuklanadi
+    const logoUrl = apiUrl(`/uploads/${business.logo}`);
+    logoEl.innerHTML = `<img src="${logoUrl}" alt="${escapeHtml(business.name)}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<div class=\\'logo-placeholder w-full h-full\\'>${firstLetter}</div>'" />`;
   } else {
     logoEl.innerHTML = `<div class="logo-placeholder w-full h-full">${firstLetter}</div>`;
   }
 
-  // Name
   document.getElementById('businessName').textContent = business.name;
 }
 
@@ -295,16 +317,14 @@ function applyBranding(business) {
 function buildSidebar(enabledModules, modulesInfo) {
   const nav = document.getElementById('sidebarNav');
 
-  // Title
-  nav.innerHTML = `<div class="mono text-[10px] text-zinc-500 px-3 mb-2 uppercase tracking-widest">${window.t('nav.modules')}</div>`;
+  nav.innerHTML = `<div class="mono text-[10px] text-zinc-500 px-3 mb-2 uppercase tracking-widest">${t('nav.modules')}</div>`;
 
-  // Create nav items for enabled modules
   const items = enabledModules.map(key => {
     const info = modulesInfo.find(m => m.key === key);
     if (!info) return '';
 
     const icon = MODULE_ICONS[key] || MODULE_ICONS.employees;
-    const label = window.t(`nav.${key}`);
+    const label = t(`nav.${key}`);
 
     return `
       <a href="#" class="nav-item" data-page="${key}">
@@ -316,7 +336,6 @@ function buildSidebar(enabledModules, modulesInfo) {
 
   nav.insertAdjacentHTML('beforeend', items);
 
-  // Click handlers
   nav.querySelectorAll('[data-page]').forEach(el => {
     el.addEventListener('click', (e) => {
       e.preventDefault();
@@ -331,7 +350,6 @@ function buildSidebar(enabledModules, modulesInfo) {
 
 function navigateTo(pageKey) {
   if (!state.business || !state.business.enabledModules.includes(pageKey)) {
-    // If page is not enabled - go to first available
     const firstPage = state.business?.enabledModules?.[0];
     if (firstPage) {
       pageKey = firstPage;
@@ -342,16 +360,14 @@ function navigateTo(pageKey) {
 
   state.currentPage = pageKey;
 
-  // Update sidebar active
+  // Update active nav item
   document.querySelectorAll('[data-page]').forEach(el => {
     el.classList.toggle('active', el.dataset.page === pageKey);
   });
 
-  // Update header title
-  document.getElementById('pageTitle').textContent = window.t(`nav.${pageKey}`);
+  // Update header
+  document.getElementById('pageTitle').textContent = t(`nav.${pageKey}`);
   document.getElementById('pageSubtitle').textContent = '';
-
-  // Clear header actions
   document.getElementById('headerActions').innerHTML = '';
 
   // Show only active page
@@ -363,8 +379,8 @@ function navigateTo(pageKey) {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sidebarBackdrop').classList.add('hidden');
 
-  // Apply translations (in case they changed)
-  window.applyTranslations();
+  // Apply static translations
+  applyStaticTranslations();
 
   // Load page data
   switch (pageKey) {
@@ -389,7 +405,6 @@ async function loadEmployees() {
     const url = search ? `/api/employees?search=${encodeURIComponent(search)}` : '/api/employees';
     const employees = await api(url);
     if (!employees) return;
-
     state.employees = employees;
     renderEmployees(employees);
   } catch (err) {
@@ -409,23 +424,23 @@ function renderEmployees(employees) {
             <circle cx="9" cy="7" r="4"/>
           </svg>
         </div>
-        <h3 class="font-bold mb-1">${window.t('emp.empty')}</h3>
-        <p class="text-sm text-zinc-500">${window.t('emp.emptyHint')}</p>
+        <h3 class="font-bold mb-1">${t('emp.empty')}</h3>
+        <p class="text-sm text-zinc-500">${t('emp.emptyHint')}</p>
       </div>
     `;
     return;
   }
 
   container.innerHTML = `
-    <div class="overflow-x-auto">
+    <div class="table-wrap">
       <table class="data-table">
         <thead>
           <tr>
-            <th>${window.t('emp.table.name')}</th>
-            <th>${window.t('emp.table.lastName')}</th>
-            <th>${window.t('emp.table.code')}</th>
-            <th>${window.t('emp.table.phone')}</th>
-            <th class="text-right">${window.t('common.actions')}</th>
+            <th>${t('emp.table.name')}</th>
+            <th>${t('emp.table.lastName')}</th>
+            <th>${t('emp.table.code')}</th>
+            <th>${t('emp.table.phone')}</th>
+            <th class="text-right">${t('common.actions')}</th>
           </tr>
         </thead>
         <tbody>
@@ -435,14 +450,14 @@ function renderEmployees(employees) {
               <td>${escapeHtml(e.lastName)}</td>
               <td><span class="mono text-xs px-2 py-1 rounded bg-purple-500/10 border border-purple-500/20 text-purple-300">${escapeHtml(e.code)}</span></td>
               <td class="mono text-sm text-zinc-400">${escapeHtml(e.phone || '—')}</td>
-              <td class="text-right">
-                <button data-act="emp-edit" data-id="${e._id}" class="btn-icon" title="${window.t('common.edit')}">
+              <td class="text-right whitespace-nowrap">
+                <button type="button" data-act="emp-edit" data-id="${e._id}" class="btn-icon" title="${t('common.edit')}">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
                     <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
                   </svg>
                 </button>
-                <button data-act="emp-delete" data-id="${e._id}" data-name="${escapeHtml(e.firstName + ' ' + e.lastName)}" class="btn-icon danger ml-1" title="${window.t('common.delete')}">
+                <button type="button" data-act="emp-delete" data-id="${e._id}" data-name="${escapeHtml(e.firstName + ' ' + e.lastName)}" class="btn-icon danger ml-1" title="${t('common.delete')}">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="3 6 5 6 21 6"/>
                     <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/>
@@ -467,28 +482,24 @@ function renderEmployees(employees) {
 }
 
 function setupEmployeesPage() {
-  // Search
   let searchTimer;
   document.getElementById('empSearch').addEventListener('input', () => {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => loadEmployees(), 300);
   });
 
-  // Add
   document.getElementById('empAddBtn').addEventListener('click', () => {
     state.editingEmpId = null;
     document.getElementById('empForm').reset();
     document.getElementById('empEditingId').value = '';
-    document.getElementById('empModalTitle').textContent = window.t('emp.add');
+    document.getElementById('empModalTitle').textContent = t('emp.add');
     openModal('empModal');
   });
 
-  // Submit
   document.getElementById('empForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const btn = document.getElementById('empSubmitBtn');
-    const text = document.getElementById('empSubmitText');
     const spinner = document.getElementById('empSubmitSpinner');
 
     const body = {
@@ -503,22 +514,16 @@ function setupEmployeesPage() {
 
     try {
       if (state.editingEmpId) {
-        await api(`/api/employees/${state.editingEmpId}`, {
-          method: 'PUT',
-          body: JSON.stringify(body),
-        });
+        await api(`/api/employees/${state.editingEmpId}`, { method: 'PUT', body: JSON.stringify(body) });
       } else {
-        await api('/api/employees', {
-          method: 'POST',
-          body: JSON.stringify(body),
-        });
+        await api('/api/employees', { method: 'POST', body: JSON.stringify(body) });
       }
 
-      toast(window.t('msg.saved'), 'success');
+      toast(t('msg.saved'), 'success');
       closeModal('empModal');
       loadEmployees();
     } catch (err) {
-      toast(err.message || window.t('msg.error'), 'error');
+      toast(err.message || t('msg.error'), 'error');
     } finally {
       btn.disabled = false;
       spinner.classList.add('hidden');
@@ -532,7 +537,7 @@ function openEmpEdit(id) {
 
   state.editingEmpId = id;
   document.getElementById('empEditingId').value = id;
-  document.getElementById('empModalTitle').textContent = window.t('emp.edit');
+  document.getElementById('empModalTitle').textContent = t('emp.edit');
   document.getElementById('empFirstName').value = emp.firstName || '';
   document.getElementById('empLastName').value = emp.lastName || '';
   document.getElementById('empCode').value = emp.code || '';
@@ -542,15 +547,15 @@ function openEmpEdit(id) {
 
 function confirmDeleteEmployee(id, name) {
   openConfirm(
-    window.t('emp.deleteConfirm'),
-    `"${name}" — ${window.t('emp.deleteWarn')}`,
+    t('emp.deleteConfirm'),
+    `"${name}" — ${t('emp.deleteWarn')}`,
     async () => {
       try {
         await api(`/api/employees/${id}`, { method: 'DELETE' });
-        toast(window.t('msg.deleted'), 'success');
+        toast(t('msg.deleted'), 'success');
         loadEmployees();
       } catch (err) {
-        toast(err.message || window.t('msg.error'), 'error');
+        toast(err.message || t('msg.error'), 'error');
       }
     }
   );
@@ -586,21 +591,21 @@ function renderDirections(directions) {
             <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
           </svg>
         </div>
-        <h3 class="font-bold mb-1">${window.t('dir.empty')}</h3>
-        <p class="text-sm text-zinc-500">${window.t('dir.emptyHint')}</p>
+        <h3 class="font-bold mb-1">${t('dir.empty')}</h3>
+        <p class="text-sm text-zinc-500">${t('dir.emptyHint')}</p>
       </div>
     `;
     return;
   }
 
   container.innerHTML = `
-    <div class="overflow-x-auto">
+    <div class="table-wrap">
       <table class="data-table">
         <thead>
           <tr>
-            <th>${window.t('dir.table.type')}</th>
-            <th>${window.t('dir.table.price')}</th>
-            <th class="text-right">${window.t('common.actions')}</th>
+            <th>${t('dir.table.type')}</th>
+            <th>${t('dir.table.price')}</th>
+            <th class="text-right">${t('common.actions')}</th>
           </tr>
         </thead>
         <tbody>
@@ -608,14 +613,14 @@ function renderDirections(directions) {
             <tr>
               <td class="font-medium">${escapeHtml(d.name)}</td>
               <td class="mono"><span class="text-purple-300">${formatMoney(d.currentPrice)}</span> <span class="text-zinc-500 text-xs">so'm</span></td>
-              <td class="text-right">
-                <button data-act="dir-edit" data-id="${d._id}" class="btn-icon" title="${window.t('common.edit')}">
+              <td class="text-right whitespace-nowrap">
+                <button type="button" data-act="dir-edit" data-id="${d._id}" class="btn-icon">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
                     <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
                   </svg>
                 </button>
-                <button data-act="dir-delete" data-id="${d._id}" data-name="${escapeHtml(d.name)}" class="btn-icon danger ml-1" title="${window.t('common.delete')}">
+                <button type="button" data-act="dir-delete" data-id="${d._id}" data-name="${escapeHtml(d.name)}" class="btn-icon danger ml-1">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="3 6 5 6 21 6"/>
                     <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/>
@@ -644,23 +649,18 @@ function setupDirectionsPage() {
     state.editingDirId = null;
     document.getElementById('dirForm').reset();
     document.getElementById('dirEditingId').value = '';
-    document.getElementById('dirModalTitle').textContent = window.t('dir.add');
+    document.getElementById('dirModalTitle').textContent = t('dir.add');
     document.getElementById('dirPriceWarning').classList.add('hidden');
     openModal('dirModal');
   });
 
-  // Price change warning (only when editing)
   document.getElementById('dirPrice').addEventListener('input', () => {
     if (!state.editingDirId) return;
     const dir = state.directions.find(d => d._id === state.editingDirId);
     if (!dir) return;
     const newPrice = Number(document.getElementById('dirPrice').value);
     const warning = document.getElementById('dirPriceWarning');
-    if (newPrice !== dir.currentPrice) {
-      warning.classList.remove('hidden');
-    } else {
-      warning.classList.add('hidden');
-    }
+    warning.classList.toggle('hidden', newPrice === dir.currentPrice);
   });
 
   document.getElementById('dirForm').addEventListener('submit', async (e) => {
@@ -679,22 +679,16 @@ function setupDirectionsPage() {
 
     try {
       if (state.editingDirId) {
-        await api(`/api/directions/${state.editingDirId}`, {
-          method: 'PUT',
-          body: JSON.stringify(body),
-        });
+        await api(`/api/directions/${state.editingDirId}`, { method: 'PUT', body: JSON.stringify(body) });
       } else {
-        await api('/api/directions', {
-          method: 'POST',
-          body: JSON.stringify(body),
-        });
+        await api('/api/directions', { method: 'POST', body: JSON.stringify(body) });
       }
 
-      toast(window.t('msg.saved'), 'success');
+      toast(t('msg.saved'), 'success');
       closeModal('dirModal');
       loadDirections();
     } catch (err) {
-      toast(err.message || window.t('msg.error'), 'error');
+      toast(err.message || t('msg.error'), 'error');
     } finally {
       btn.disabled = false;
       spinner.classList.add('hidden');
@@ -707,7 +701,7 @@ function openDirEdit(id) {
   if (!dir) return;
   state.editingDirId = id;
   document.getElementById('dirEditingId').value = id;
-  document.getElementById('dirModalTitle').textContent = window.t('dir.edit');
+  document.getElementById('dirModalTitle').textContent = t('dir.edit');
   document.getElementById('dirName').value = dir.name || '';
   document.getElementById('dirPrice').value = dir.currentPrice || 0;
   document.getElementById('dirPriceWarning').classList.add('hidden');
@@ -716,15 +710,15 @@ function openDirEdit(id) {
 
 function confirmDeleteDirection(id, name) {
   openConfirm(
-    window.t('dir.deleteConfirm'),
-    `"${name}" — ${window.t('dir.deleteWarn')}`,
+    t('dir.deleteConfirm'),
+    `"${name}" — ${t('dir.deleteWarn')}`,
     async () => {
       try {
         await api(`/api/directions/${id}`, { method: 'DELETE' });
-        toast(window.t('msg.deleted'), 'success');
+        toast(t('msg.deleted'), 'success');
         loadDirections();
       } catch (err) {
-        toast(err.message || window.t('msg.error'), 'error');
+        toast(err.message || t('msg.error'), 'error');
       }
     }
   );
@@ -741,30 +735,26 @@ async function loadDailyReport() {
     state.dailyData = data;
     renderDailyReport(data);
   } catch (err) {
-    toast(err.message || window.t('msg.error'), 'error');
+    toast(err.message || t('msg.error'), 'error');
   }
 }
 
 function renderDailyReport(data) {
-  // Stats
   document.getElementById('dailyStatAssigned').textContent = data.stats.totalAssigned;
   document.getElementById('dailyStatUnassigned').textContent = data.stats.totalUnassigned;
   document.getElementById('dailyStatEarning').textContent = formatMoney(data.stats.totalEarning);
   document.getElementById('dailyStatProducts').textContent = data.stats.totalProducts;
-
-  // Date label
   document.getElementById('todayDateLabel').textContent = formatDate(data.date);
 
-  // Assigned list
   const assignedEl = document.getElementById('assignedList');
   if (data.assigned.length === 0) {
-    assignedEl.innerHTML = `<div class="text-center text-zinc-500 text-sm py-8">${window.t('daily.emptyAssigned')}</div>`;
+    assignedEl.innerHTML = `<div class="text-center text-zinc-500 text-sm py-8">${t('daily.emptyAssigned')}</div>`;
   } else {
     assignedEl.innerHTML = `<div class="space-y-2">${data.assigned.map(a => `
-      <div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-purple-500/5 border border-purple-500/10 hover:border-purple-500/25 transition">
+      <div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-purple-500/5 border border-purple-500/10">
         <div class="flex-1 min-w-0">
           <div class="font-medium text-sm truncate">${escapeHtml(a.employeeSnapshot.firstName)} ${escapeHtml(a.employeeSnapshot.lastName)}</div>
-          <div class="mono text-xs text-zinc-500 mt-0.5">
+          <div class="mono text-xs text-zinc-500 mt-0.5 truncate">
             <span class="text-purple-300">${escapeHtml(a.employeeSnapshot.code)}</span>
             · ${escapeHtml(a.directionSnapshot.name)}
             · ${a.shift === 0.5 ? '½' : '1'}
@@ -773,7 +763,7 @@ function renderDailyReport(data) {
         <div class="text-right shrink-0">
           <div class="mono text-sm font-semibold text-emerald-400">${formatMoney(a.earning)}</div>
         </div>
-        <button data-act="unassign" data-id="${a._id}" class="btn-icon danger" title="${window.t('daily.unassign')}">
+        <button type="button" data-act="unassign" data-id="${a._id}" class="btn-icon danger">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/>
             <line x1="6" y1="6" x2="18" y2="18"/>
@@ -787,19 +777,18 @@ function renderDailyReport(data) {
     });
   }
 
-  // Unassigned list
   const unassignedEl = document.getElementById('unassignedList');
   if (data.unassigned.length === 0) {
-    unassignedEl.innerHTML = `<div class="text-center text-zinc-500 text-sm py-8">${window.t('daily.emptyUnassigned')}</div>`;
+    unassignedEl.innerHTML = `<div class="text-center text-zinc-500 text-sm py-8">${t('daily.emptyUnassigned')}</div>`;
   } else {
     unassignedEl.innerHTML = `<div class="space-y-2">${data.unassigned.map(e => `
-      <div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/10 hover:border-amber-500/25 transition">
+      <div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/10">
         <div class="flex-1 min-w-0">
           <div class="font-medium text-sm truncate">${escapeHtml(e.firstName)} ${escapeHtml(e.lastName)}</div>
-          <div class="mono text-xs text-zinc-500 mt-0.5 text-amber-300/70">${escapeHtml(e.code)}</div>
+          <div class="mono text-xs text-amber-300/70 mt-0.5 truncate">${escapeHtml(e.code)}</div>
         </div>
-        <button data-act="assign" data-id="${e._id}" data-name="${escapeHtml(e.firstName + ' ' + e.lastName)}" class="btn-ghost px-3 py-1.5 rounded-lg text-xs">
-          ${window.t('daily.assign')}
+        <button type="button" data-act="assign" data-id="${e._id}" data-name="${escapeHtml(e.firstName + ' ' + e.lastName)}" class="btn-ghost px-3 py-1.5 rounded-lg text-xs whitespace-nowrap">
+          ${t('daily.assign')}
         </button>
       </div>
     `).join('')}</div>`;
@@ -809,7 +798,6 @@ function renderDailyReport(data) {
     });
   }
 
-  // Products
   renderProducts(data.products);
 }
 
@@ -817,42 +805,44 @@ function renderProducts(products) {
   const container = document.getElementById('productsContainer');
 
   if (products.length === 0) {
-    container.innerHTML = `<div class="p-8 text-center text-zinc-500 text-sm">${window.t('common.emptyData')}</div>`;
+    container.innerHTML = `<div class="p-8 text-center text-zinc-500 text-sm">${t('common.emptyData')}</div>`;
     return;
   }
 
   container.innerHTML = `
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>${window.t('daily.productName')}</th>
-          <th>${window.t('daily.quantity')}</th>
-          <th class="text-right">${window.t('common.actions')}</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${products.map(p => `
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
           <tr>
-            <td class="font-medium">${escapeHtml(p.productName)}</td>
-            <td class="mono text-purple-300">${formatMoney(p.quantity)}</td>
-            <td class="text-right">
-              <button data-act="product-edit" data-id="${p._id}" class="btn-icon" title="${window.t('common.edit')}">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                </svg>
-              </button>
-              <button data-act="product-delete" data-id="${p._id}" class="btn-icon danger ml-1" title="${window.t('common.delete')}">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="3 6 5 6 21 6"/>
-                  <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/>
-                </svg>
-              </button>
-            </td>
+            <th>${t('daily.productName')}</th>
+            <th>${t('daily.quantity')}</th>
+            <th class="text-right">${t('common.actions')}</th>
           </tr>
-        `).join('')}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          ${products.map(p => `
+            <tr>
+              <td class="font-medium">${escapeHtml(p.productName)}</td>
+              <td class="mono text-purple-300">${formatMoney(p.quantity)}</td>
+              <td class="text-right whitespace-nowrap">
+                <button type="button" data-act="product-edit" data-id="${p._id}" class="btn-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
+                </button>
+                <button type="button" data-act="product-delete" data-id="${p._id}" class="btn-icon danger ml-1">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/>
+                  </svg>
+                </button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
   `;
 
   container.querySelectorAll('[data-act]').forEach(btn => {
@@ -868,10 +858,10 @@ function renderProducts(products) {
 async function unassignEmployee(assignmentId) {
   try {
     await api(`/api/daily-report/assign/${assignmentId}`, { method: 'DELETE' });
-    toast(window.t('msg.deleted'), 'success');
+    toast(t('msg.deleted'), 'success');
     loadDailyReport();
   } catch (err) {
-    toast(err.message || window.t('msg.error'), 'error');
+    toast(err.message || t('msg.error'), 'error');
   }
 }
 
@@ -879,7 +869,6 @@ async function openAssignModal(employeeId, employeeName) {
   document.getElementById('assignEmployeeId').value = employeeId;
   document.getElementById('assignEmployeeName').textContent = employeeName;
 
-  // Load directions if not already
   if (state.directions.length === 0) {
     try {
       const directions = await api('/api/directions');
@@ -894,12 +883,10 @@ async function openAssignModal(employeeId, employeeName) {
     ).join('');
 
   document.querySelector('input[name="shift"][value="1"]').checked = true;
-
   openModal('assignModal');
 }
 
 function setupDailyReportPage() {
-  // Assign form
   document.getElementById('assignForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -913,7 +900,7 @@ function setupDailyReportPage() {
     };
 
     if (!body.directionId) {
-      toast(window.t('daily.direction'), 'error');
+      toast(t('daily.direction'), 'error');
       return;
     }
 
@@ -921,31 +908,26 @@ function setupDailyReportPage() {
     spinner.classList.remove('hidden');
 
     try {
-      await api('/api/daily-report/assign', {
-        method: 'POST',
-        body: JSON.stringify(body),
-      });
-      toast(window.t('msg.saved'), 'success');
+      await api('/api/daily-report/assign', { method: 'POST', body: JSON.stringify(body) });
+      toast(t('msg.saved'), 'success');
       closeModal('assignModal');
       loadDailyReport();
     } catch (err) {
-      toast(err.message || window.t('msg.error'), 'error');
+      toast(err.message || t('msg.error'), 'error');
     } finally {
       btn.disabled = false;
       spinner.classList.add('hidden');
     }
   });
 
-  // Product add
   document.getElementById('productAddBtn').addEventListener('click', () => {
     state.editingProductId = null;
     document.getElementById('productForm').reset();
     document.getElementById('productEditingId').value = '';
-    document.getElementById('productModalTitle').textContent = window.t('daily.addProduct');
+    document.getElementById('productModalTitle').textContent = t('daily.addProduct');
     openModal('productModal');
   });
 
-  // Product form
   document.getElementById('productForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -962,21 +944,15 @@ function setupDailyReportPage() {
 
     try {
       if (state.editingProductId) {
-        await api(`/api/daily-report/products/${state.editingProductId}`, {
-          method: 'PUT',
-          body: JSON.stringify(body),
-        });
+        await api(`/api/daily-report/products/${state.editingProductId}`, { method: 'PUT', body: JSON.stringify(body) });
       } else {
-        await api('/api/daily-report/products', {
-          method: 'POST',
-          body: JSON.stringify(body),
-        });
+        await api('/api/daily-report/products', { method: 'POST', body: JSON.stringify(body) });
       }
-      toast(window.t('msg.saved'), 'success');
+      toast(t('msg.saved'), 'success');
       closeModal('productModal');
       loadDailyReport();
     } catch (err) {
-      toast(err.message || window.t('msg.error'), 'error');
+      toast(err.message || t('msg.error'), 'error');
     } finally {
       btn.disabled = false;
       spinner.classList.add('hidden');
@@ -989,7 +965,7 @@ function openProductEdit(id) {
   if (!product) return;
   state.editingProductId = id;
   document.getElementById('productEditingId').value = id;
-  document.getElementById('productModalTitle').textContent = window.t('common.edit');
+  document.getElementById('productModalTitle').textContent = t('common.edit');
   document.getElementById('productName').value = product.productName;
   document.getElementById('productQty').value = product.quantity;
   openModal('productModal');
@@ -997,15 +973,15 @@ function openProductEdit(id) {
 
 function confirmDeleteProduct(id) {
   openConfirm(
-    window.t('common.delete'),
-    window.t('common.confirm'),
+    t('common.delete'),
+    t('common.confirm'),
     async () => {
       try {
         await api(`/api/daily-report/products/${id}`, { method: 'DELETE' });
-        toast(window.t('msg.deleted'), 'success');
+        toast(t('msg.deleted'), 'success');
         loadDailyReport();
       } catch (err) {
-        toast(err.message || window.t('msg.error'), 'error');
+        toast(err.message || t('msg.error'), 'error');
       }
     }
   );
@@ -1016,13 +992,11 @@ function confirmDeleteProduct(id) {
 // ============================================
 
 function initMonthlyReport() {
-  // Set default dates (this month)
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const today = new Date();
 
   document.getElementById('monthStart').value = startOfMonth.toISOString().split('T')[0];
-  document.getElementById('monthEnd').value = today.toISOString().split('T')[0];
+  document.getElementById('monthEnd').value = now.toISOString().split('T')[0];
 
   loadMonthlyReport();
 }
@@ -1035,46 +1009,38 @@ function setupMonthlyReportPage() {
     const endDate = document.getElementById('monthEnd').value;
 
     if (!startDate || !endDate) {
-      toast(window.t('msg.error'), 'error');
+      toast(t('msg.error'), 'error');
       return;
     }
 
     openConfirm(
-      window.t('month.archive'),
-      window.t('month.archiveConfirm'),
+      t('month.archive'),
+      t('month.archiveConfirm'),
       async () => {
         try {
           await api('/api/monthly-report/archive', {
             method: 'POST',
             body: JSON.stringify({ startDate, endDate }),
           });
-          toast(window.t('month.archived'), 'success');
+          toast(t('month.archived'), 'success');
         } catch (err) {
-          toast(err.message || window.t('msg.error'), 'error');
+          toast(err.message || t('msg.error'), 'error');
         }
       },
       'btn-primary'
     );
   });
 
-  // Presets
   document.querySelectorAll('[data-preset]').forEach(btn => {
     btn.addEventListener('click', () => {
       const preset = btn.dataset.preset;
       const now = new Date();
       let start, end;
 
-      if (preset === 'today') {
-        start = end = now;
-      } else if (preset === 'yesterday') {
-        start = end = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      } else if (preset === 'week') {
-        start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        end = now;
-      } else if (preset === 'month') {
-        start = new Date(now.getFullYear(), now.getMonth(), 1);
-        end = now;
-      }
+      if (preset === 'today') { start = end = now; }
+      else if (preset === 'yesterday') { start = end = new Date(now.getTime() - 86400000); }
+      else if (preset === 'week') { start = new Date(now.getTime() - 7 * 86400000); end = now; }
+      else if (preset === 'month') { start = new Date(now.getFullYear(), now.getMonth(), 1); end = now; }
 
       document.getElementById('monthStart').value = start.toISOString().split('T')[0];
       document.getElementById('monthEnd').value = end.toISOString().split('T')[0];
@@ -1099,10 +1065,8 @@ async function loadMonthlyReport() {
 
     const data = await api(url);
     if (!data) return;
-
     state.monthData = data;
 
-    // Stats
     document.getElementById('monthStatEarning').textContent = formatMoney(data.stats.totalEarning);
     document.getElementById('monthStatEmployees').textContent = data.stats.totalEmployees;
     document.getElementById('monthStatProducts').textContent = data.stats.totalProductCount;
@@ -1117,20 +1081,20 @@ function renderMonthlyReport(data) {
   const container = document.getElementById('monthResultsContainer');
 
   if (data.employees.length === 0) {
-    container.innerHTML = `<div class="p-10 text-center text-zinc-500 text-sm">${window.t('month.empty')}</div>`;
+    container.innerHTML = `<div class="p-10 text-center text-zinc-500 text-sm">${t('month.empty')}</div>`;
     return;
   }
 
   container.innerHTML = `
-    <div class="overflow-x-auto">
+    <div class="table-wrap">
       <table class="data-table">
         <thead>
           <tr>
-            <th>${window.t('emp.table.name')}</th>
-            <th>${window.t('emp.table.code')}</th>
-            <th>${window.t('month.totalDays')}</th>
-            <th>${window.t('month.totalShifts')}</th>
-            <th>${window.t('month.totalEarning')}</th>
+            <th>${t('emp.table.name')}</th>
+            <th>${t('emp.table.code')}</th>
+            <th>${t('month.totalDays')}</th>
+            <th>${t('month.totalShifts')}</th>
+            <th>${t('month.totalEarning')}</th>
           </tr>
         </thead>
         <tbody>
@@ -1179,21 +1143,21 @@ function renderArchive(archives) {
             <rect x="1" y="3" width="22" height="5"/>
           </svg>
         </div>
-        <h3 class="font-bold mb-1">${window.t('archive.empty')}</h3>
+        <h3 class="font-bold mb-1">${t('archive.empty')}</h3>
       </div>
     `;
     return;
   }
 
   container.innerHTML = `
-    <div class="overflow-x-auto">
+    <div class="table-wrap">
       <table class="data-table">
         <thead>
           <tr>
-            <th>${window.t('archive.period')}</th>
-            <th>${window.t('archive.archivedAt')}</th>
-            <th>${window.t('month.totalEarning')}</th>
-            <th>${window.t('nav.employees')}</th>
+            <th>${t('archive.period')}</th>
+            <th>${t('archive.archivedAt')}</th>
+            <th>${t('month.totalEarning')}</th>
+            <th>${t('nav.employees')}</th>
           </tr>
         </thead>
         <tbody>
@@ -1212,7 +1176,7 @@ function renderArchive(archives) {
 }
 
 // ============================================
-// MODALS (generic helpers)
+// MODALS
 // ============================================
 
 function openModal(id) {
@@ -1234,7 +1198,6 @@ function setupModalCloseButtons() {
     btn.addEventListener('click', () => closeModal(btn.dataset.close));
   });
 
-  // Click outside to close
   ['empModal', 'dirModal', 'assignModal', 'productModal', 'confirmModal'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
@@ -1244,7 +1207,6 @@ function setupModalCloseButtons() {
     }
   });
 
-  // Escape
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       ['empModal', 'dirModal', 'assignModal', 'productModal', 'confirmModal'].forEach(id => {
@@ -1254,10 +1216,6 @@ function setupModalCloseButtons() {
     }
   });
 }
-
-// ============================================
-// CONFIRM MODAL
-// ============================================
 
 function openConfirm(title, text, callback, btnClass = 'btn-danger') {
   document.getElementById('confirmTitle').textContent = title;
@@ -1275,7 +1233,6 @@ function setupConfirmModal() {
     if (!state.confirmCallback) return;
 
     const btn = document.getElementById('confirmOkBtn');
-    const text = document.getElementById('confirmOkText');
     const spinner = document.getElementById('confirmOkSpinner');
 
     btn.disabled = true;
@@ -1293,7 +1250,7 @@ function setupConfirmModal() {
 }
 
 // ============================================
-// SIDEBAR SETUP
+// SIDEBAR
 // ============================================
 
 function setupSidebar() {
@@ -1313,7 +1270,7 @@ function setupSidebar() {
 }
 
 // ============================================
-// INIT APP
+// INIT
 // ============================================
 
 async function initApp() {
@@ -1327,8 +1284,7 @@ async function initApp() {
     state.user = me;
     state.business = me;
 
-    // Apply language
-    if (me.defaultLanguage) {
+    if (me.defaultLanguage && typeof window.setLang === 'function') {
       const savedLang = localStorage.getItem('cc_lang');
       if (!savedLang) {
         window.setLang(me.defaultLanguage);
@@ -1336,32 +1292,22 @@ async function initApp() {
     }
     updateLangButtonsActive();
 
-    // White label
     applyBranding(me);
-
-    // Build sidebar
     buildSidebar(me.enabledModules || [], me.modulesInfo || []);
 
-    // Show app
     showApp();
 
-    // Navigate to first enabled module
     const firstModule = me.enabledModules?.[0];
     if (firstModule) {
       navigateTo(firstModule);
     }
 
-    // Apply translations
-    window.applyTranslations();
+    applyStaticTranslations();
   } catch (err) {
     console.error('Init error:', err);
     logout();
   }
 }
-
-// ============================================
-// BOOTSTRAP
-// ============================================
 
 document.addEventListener('DOMContentLoaded', () => {
   setupLangSwitchers();
@@ -1374,7 +1320,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupDailyReportPage();
   setupMonthlyReportPage();
 
-  window.applyTranslations();
+  applyStaticTranslations();
 
   if (state.token) {
     initApp();

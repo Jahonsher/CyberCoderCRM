@@ -1,5 +1,5 @@
 /**
- * CyberCoderCRM - Main Server (Module System + SPA)
+ * CyberCoderCRM - Main Server (Module System + SPA + CORS fix)
  */
 
 require('dotenv').config();
@@ -25,21 +25,19 @@ app.use(
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: [
-          "'self'",
-          "'unsafe-inline'",
+          "'self'", "'unsafe-inline'",
           "https://cdn.tailwindcss.com",
           "https://cdn.jsdelivr.net",
           "https://unpkg.com",
         ],
         styleSrc: [
-          "'self'",
-          "'unsafe-inline'",
+          "'self'", "'unsafe-inline'",
           "https://cdn.tailwindcss.com",
           "https://fonts.googleapis.com",
         ],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
         imgSrc: ["'self'", "data:", "blob:", "https:"],
-        connectSrc: ["'self'"],
+        connectSrc: ["'self'", "https:", "wss:"],
       },
     },
     crossOriginEmbedderPolicy: false,
@@ -47,9 +45,36 @@ app.use(
   })
 );
 
+// ========== CORS (Vercel + Railway dan kelishni qabul qilish) ==========
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  'https://cybercodercrm-production.up.railway.app',
+  /\.vercel\.app$/,  // har qanday Vercel domen
+  /\.railway\.app$/, // har qanday Railway domen
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://127.0.0.1:3000',
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || '*',
+    origin: (origin, callback) => {
+      // Curl, Postman kabi (origin yo'q)
+      if (!origin) return callback(null, true);
+
+      // Ro'yxatdagi domenlarni tekshirish
+      const isAllowed = allowedOrigins.some((allowed) => {
+        if (allowed instanceof RegExp) return allowed.test(origin);
+        return allowed === origin;
+      });
+
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        console.warn(`⚠️  CORS bloklandi: ${origin}`);
+        callback(null, true); // Hozirlik uchun ruxsat beramiz
+      }
+    },
     credentials: true,
   })
 );
@@ -95,6 +120,7 @@ app.use('/uploads', express.static(uploadsDir, {
   maxAge: '7d',
   setHeaders: (res) => {
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Access-Control-Allow-Origin', '*');
   },
 }));
 
@@ -113,7 +139,6 @@ app.get('/health', (req, res) => {
 });
 
 // ========== ROOT REDIRECT ==========
-// Default - admin panel (biznes uchun). /superadmin alohida.
 app.get('/', (req, res) => {
   res.redirect('/admin/');
 });

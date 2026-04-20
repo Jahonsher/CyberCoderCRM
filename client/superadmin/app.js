@@ -1,3 +1,9 @@
+const API_BASE = window.API_BASE || "";
+function apiUrl(path) {
+  if (!API_BASE) return path;
+  return API_BASE.replace(/\/$/, "") + path;
+}
+
 /**
  * CyberCoderCRM - SuperAdmin Application
  * Barcha logika: login, bizneslar CRUD, modullar toggle, suspend
@@ -70,7 +76,7 @@ async function api(endpoint, options = {}) {
   }
 
   try {
-    const res = await fetch(endpoint, { ...options, headers });
+    const res = await fetch(apiUrl(endpoint), { ...options, headers });
     const data = await res.json().catch(() => ({}));
 
     if (res.status === 401) {
@@ -150,7 +156,7 @@ function setupLogin() {
     spinner.classList.remove('hidden');
 
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch(apiUrl('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -309,7 +315,7 @@ function renderBusinesses(businesses) {
 function renderBusinessCard(b, idx) {
   const firstLetter = (b.name || '?').charAt(0).toUpperCase();
   const logoHtml = b.logo
-    ? `<img src="/uploads/${escapeHtml(b.logo)}" alt="${escapeHtml(b.name)}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<div class=\\'logo-placeholder w-full h-full\\'>${firstLetter}</div>'" />`
+    ? `<img src="${apiUrl('/uploads/' + escapeHtml(b.logo))}" alt="${escapeHtml(b.name)}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<div class=\\'logo-placeholder w-full h-full\\'>${firstLetter}</div>'" />`
     : `<div class="logo-placeholder w-full h-full">${firstLetter}</div>`;
 
   const statusBadge = b.status === 'active'
@@ -488,7 +494,7 @@ function openEditModal(id) {
 
   const preview = document.getElementById('logoPreview');
   if (biz.logo) {
-    preview.innerHTML = `<img src="/uploads/${escapeHtml(biz.logo)}" alt="logo" />`;
+    preview.innerHTML = `<img src="${apiUrl('/uploads/' + escapeHtml(biz.logo))}" alt="logo" />`;
   } else {
     resetLogoPreview();
   }
