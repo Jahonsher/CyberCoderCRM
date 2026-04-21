@@ -1,165 +1,135 @@
+/**
+ * CyberCoderCRM - Auth routes
+ */
+
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const router = express.Router();
 
+const SuperAdmin = require('../models/SuperAdmin');
 const Business = require('../models/Business');
-const createSuperAdmin = require('../utils/createSuperAdmin');
-const SuperAdmin = createSuperAdmin.SuperAdmin;
 const { verifyToken } = require('../middleware/auth');
-const { MODULES } = require('../config/modules');
+const { getAllModules } = require('../config/modules');
 
-/**
- * JWT token yaratish
- */
-const generateToken = (payload) => {
-  return jwt.sign(payload, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '30d',
-  });
-};
-
-/**
- * POST /api/auth/login
- * Login (superadmin yoki admin)
- */
 router.post('/login', async (req, res) => {
   try {
-    const { username, login, password } = req.body;
-    const loginValue = (username || login || '').toLowerCase().trim();
+    const { username, password } = req.body;
 
-    if (!loginValue || !password) {
-      return res.status(400).json({ error: 'Login va parol kerak' });
+    if (!username || !password) {
+      return res.status(400).json({ success: false, error: "Username va parol kerak" });
     }
 
-    // ========== 1. SUPERADMIN ==========
-    const superAdmin = await SuperAdmin.findOne({ username: loginValue }).select('+password');
+    const usernameLower = String(username).trim().toLowerCase();
+    console.log(`🔐 Login urinishi: ${usernameLower}`);
+
+    const superAdmin = await SuperAdmin.findOne({ username: usernameLower });
 
     if (superAdmin) {
-      const isMatch = await superAdmin.comparePassword(password);
-
+      const isMatch = await bcrypt.compare(password, superAdmin.password);
       if (!isMatch) {
-        return res.status(401).json({ error: 'Login yoki parol noto\'g\'ri' });
+        console.log(`❌ SuperAdmin parol xato`);
+        return res.status(401).json({ success: false, error: "Login yoki parol noto'g'ri" });
       }
 
-      superAdmin.lastLogin = new Date();
-      await superAdmin.save();
+      const token = jwt.sign(
+        { id: superAdmin._id, role: 'superadmin', username: superAdmin.username },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRES_IN || '30d' }
+      );
 
-      const token = generateToken({
-        id: superAdmin._id,
-        role: 'superadmin',
-      });
-
+      console.log(`✅ SuperAdmin kirdi: ${usernameLower}`);
       return res.json({
-        success: true,
-        token,
-        user: {
-          id: superAdmin._id,
-          username: superAdmin.username,
-          role: 'superadmin',
-        },
+        success: true, token,
+        user: { id: superAdmin._id, username: superAdmin.username, role: 'superadmin' }
       });
     }
 
-    // ========== 2. BUSINESS ADMIN ==========
-    const business = await Business.findOne({ login: loginValue }).select('+password');
+    const business = await Business.findOne({ login: usernameLower });
 
     if (!business) {
-      return res.status(401).json({ error: 'Login yoki parol noto\'g\'ri' });
+      console.log(`❌ Biznes topilmadi: ${usernameLower}`);
+      return res.status(401).json({ success: false, error: "Login yoki parol noto'g'ri" });
     }
 
     if (business.status === 'suspended') {
-      return res.status(403).json({
-        error: 'Biznes vaqtincha to\'xtatilgan. SuperAdmin bilan bog\'laning.',
-      });
+      return res.status(403).json({ success: false, error: "Biznes to'xtatilgan" });
     }
 
-    const isMatch = await business.comparePassword(password);
+    const isMatch = await bcrypt.compare(password, business.password);
     if (!isMatch) {
-      return res.status(401).json({ error: 'Login yoki parol noto\'g\'ri' });
+      console.log(`❌ Admin parol xato`);
+      return res.status(401).json({ success: false, error: "Login yoki parol noto'g'ri" });
     }
 
-    const token = generateToken({
-      id: business._id,
-      role: 'admin',
-      businessId: business._id.toString(),
-    });
+    const token = jwt.sign(
+      { id: business._id, role: 'admin', businessId: business._id, login: business.login },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '30d' }
+    );
+
+    console.log(`✅ Admin kirdi: ${business.name}`);
 
     return res.json({
-      success: true,
-      token,
+      success: true, token,
       user: {
         id: business._id,
         login: business.login,
         name: business.name,
-        phone: business.phone,
         logo: business.logo,
         role: 'admin',
-        businessId: business._id,
-        defaultLanguage: business.defaultLanguage,
         enabledModules: business.enabledModules || [],
-      },
+        defaultLanguage: business.defaultLanguage || 'uz-lat',
+      }
     });
   } catch (err) {
-    console.error('Login xato:', err);
-    res.status(500).json({ error: 'Server xatosi' });
+    console.error('Login xatosi:', err);
+    return res.status(500).json({ success: false, error: "Server xatosi" });
   }
 });
 
-/**
- * GET /api/auth/me
- * Joriy foydalanuvchi + modullar
- */
 router.get('/me', verifyToken, async (req, res) => {
   try {
     if (req.user.role === 'superadmin') {
-      const superAdmin = await SuperAdmin.findById(req.user.id);
-      if (!superAdmin) {
-        return res.status(404).json({ error: 'SuperAdmin topilmadi' });
-      }
-
+      const superAdmin = await SuperAdmin.findById(req.user.id).select('-password');
+      if (!superAdmin) return res.status(404).json({ error: 'Topilmadi' });
       return res.json({
         id: superAdmin._id,
         username: superAdmin.username,
         role: 'superadmin',
-        // SuperAdmin uchun barcha modullar
-        allModules: Object.values(MODULES),
       });
     }
 
-    // Admin
-    const business = await Business.findById(req.user.businessId);
-    if (!business) {
-      return res.status(404).json({ error: 'Biznes topilmadi' });
+    if (req.user.role === 'admin') {
+      const business = await Business.findById(req.user.businessId).select('-password');
+      if (!business) return res.status(404).json({ error: 'Biznes topilmadi' });
+      if (business.status === 'suspended') {
+        return res.status(403).json({ error: "Biznes to'xtatilgan" });
+      }
+
+      const allModules = getAllModules();
+      const modulesInfo = allModules.filter(m =>
+        (business.enabledModules || []).includes(m.key)
+      );
+
+      return res.json({
+        id: business._id,
+        login: business.login,
+        name: business.name,
+        logo: business.logo,
+        phone: business.phone,
+        role: 'admin',
+        enabledModules: business.enabledModules || [],
+        modulesInfo,
+        defaultLanguage: business.defaultLanguage || 'uz-lat',
+      });
     }
 
-    // Yoqilgan modullar haqida to'liq ma'lumot
-    const enabledModulesInfo = (business.enabledModules || [])
-      .filter((key) => MODULES[key])
-      .map((key) => MODULES[key]);
-
-    res.json({
-      id: business._id,
-      login: business.login,
-      name: business.name,
-      phone: business.phone,
-      logo: business.logo,
-      status: business.status,
-      role: 'admin',
-      businessId: business._id,
-      defaultLanguage: business.defaultLanguage,
-      enabledModules: business.enabledModules || [],
-      modulesInfo: enabledModulesInfo,
-    });
+    return res.status(400).json({ error: "Noto'g'ri rol" });
   } catch (err) {
-    console.error('GET /me xato:', err);
-    res.status(500).json({ error: 'Server xatosi' });
+    console.error('/me xatosi:', err);
+    return res.status(500).json({ error: 'Server xatosi' });
   }
-});
-
-/**
- * POST /api/auth/logout
- */
-router.post('/logout', (req, res) => {
-  res.json({ success: true, message: 'Chiqildi' });
 });
 
 module.exports = router;
