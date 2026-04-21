@@ -1,3 +1,7 @@
+/**
+ * CyberCoderCRM - Daily Report routes
+ */
+
 const express = require('express');
 const router = express.Router();
 
@@ -9,53 +13,64 @@ const DailyProduct = require('../models/DailyProduct');
 const { verifyToken, requireAdmin } = require('../middleware/auth');
 const businessScope = require('../middleware/businessScope');
 const requireModule = require('../middleware/requireModule');
-const { getTodayString } = require('../utils/helpers');
 
 router.use(verifyToken, requireAdmin, businessScope, requireModule('dailyReport'));
 
+function getTodayRange() {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const end = new Date();
+  end.setHours(23, 59, 59, 999);
+  return { start, end };
+}
+
 /**
  * GET /api/daily-report
+ * Bugungi kun ma'lumotlari
  */
 router.get('/', async (req, res) => {
   try {
-    const date = req.query.date || getTodayString();
+    const { start, end } = getTodayRange();
 
-    const assignments = await DailyAssignment.find({
-      ...req.businessScope,
-      dateString: date,
-    }).sort({ createdAt: -1 });
+    const [assigned, allEmployees, products] = await Promise.all([
+      DailyAssignment.find({
+        businessId: req.businessId,
+        date: { $gte: start, $lte: end },
+      }).sort('-createdAt'),
+      Employee.find({
+        businessId: req.businessId,
+        status: { $ne: 'deleted' },
+      }).sort('firstName'),
+      DailyProduct.find({
+        businessId: req.businessId,
+        date: { $gte: start, $lte: end },
+      }).sort('-createdAt'),
+    ]);
 
-    const assignedEmployeeIds = assignments.map((a) => a.employeeId.toString());
+    const assignedEmployeeIds = new Set(
+      assigned.map((a) => a.employeeId.toString())
+    );
+    const unassigned = allEmployees.filter(
+      (e) => !assignedEmployeeIds.has(e._id.toString())
+    );
 
-    const unassignedEmployees = await Employee.find({
-      ...req.businessScope,
-      status: 'active',
-      _id: { $nin: assignedEmployeeIds },
-    }).sort({ firstName: 1 });
-
-    const products = await DailyProduct.find({
-      ...req.businessScope,
-      dateString: date,
-    }).sort({ createdAt: -1 });
-
-    const totalEarning = assignments.reduce((sum, a) => sum + (a.earning || 0), 0);
-    const totalProductCount = products.reduce((sum, p) => sum + (p.quantity || 0), 0);
+    const totalEarning = assigned.reduce((sum, a) => sum + (a.earning || 0), 0);
+    const totalProducts = products.reduce((sum, p) => sum + (p.quantity || 0), 0);
 
     res.json({
-      date,
-      assigned: assignments,
-      unassigned: unassignedEmployees,
+      date: new Date(),
+      assigned,
+      unassigned,
       products,
       stats: {
-        totalAssigned: assignments.length,
-        totalUnassigned: unassignedEmployees.length,
+        totalAssigned: assigned.length,
+        totalUnassigned: unassigned.length,
         totalEarning,
-        totalProducts: products.length,
-        totalProductCount,
+        totalProducts,
       },
     });
   } catch (err) {
-    console.error('GET /daily-report xato:', err);
+    console.error('Daily report GET xato:', err);
     res.status(500).json({ error: 'Server xatosi' });
   }
 });
@@ -65,134 +80,93 @@ router.get('/', async (req, res) => {
  */
 router.post('/assign', async (req, res) => {
   try {
-    const { employeeId, directionId, shift, date } = req.body;
+    const { employeeId, directionId, shift } = req.body;
 
-    if (!employeeId || !directionId) {
-      return res.status(400).json({ error: 'Xodim va yo\'nalish kerak' });
+    if (!employeeId || !directionId || !shift) {
+      return res.status(400).json({ error: 'Barcha maydonlar kerak' });
     }
 
-    const shiftValue = shift === 0.5 || shift === '0.5' ? 0.5 : 1;
-    const dateString = date || getTodayString();
-    const dateObj = new Date(dateString);
-
-    const employee = await Employee.findOne({
-      _id: employeeId,
-      ...req.businessScope,
-      status: 'active',
-    });
-    if (!employee) {
-      return res.status(404).json({ error: 'Xodim topilmadi' });
+    const shiftNum = Number(shift);
+    if (![0.5, 1].includes(shiftNum)) {
+      return res.status(400).json({ error: "Smena 1 yoki 0.5 bo'lishi kerak" });
     }
 
-    const direction = await Direction.findOne({
-      _id: directionId,
-      ...req.businessScope,
-      status: 'active',
-    });
-    if (!direction) {
-      return res.status(404).json({ error: 'Yo\'nalish topilmadi' });
-    }
+    const [employee, direction] = await Promise.all([
+      Employee.findOne({
+        _id: employeeId,
+        businessId: req.businessId,
+        status: { $ne: 'deleted' }
+      }),
+      Direction.findOne({
+        _id: directionId,
+        businessId: req.businessId,
+        status: 'active'
+      }),
+    ]);
 
+    if (!employee) return res.status(404).json({ error: 'Xodim topilmadi' });
+    if (!direction) return res.status(404).json({ error: "Yo'nalish topilmadi" });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Takrorlanishni oldini olish
     const existing = await DailyAssignment.findOne({
-      ...req.businessScope,
-      employeeId,
-      dateString,
+      businessId: req.businessId,
+      employeeId: employee._id,
+      date: today,
     });
+
     if (existing) {
       return res.status(400).json({ error: 'Bu xodim bugun allaqachon biriktirilgan' });
     }
 
-    const assignment = await DailyAssignment.create({
-      ...req.businessScope,
-      employeeId,
+    const priceSnapshot = direction.currentPrice;
+    const earning = priceSnapshot * shiftNum;
+
+    const assignment = new DailyAssignment({
+      businessId: req.businessId,
+      employeeId: employee._id,
+      directionId: direction._id,
+      date: today,
+      shift: shiftNum,
+      priceSnapshot,
+      earning,
       employeeSnapshot: {
         firstName: employee.firstName,
         lastName: employee.lastName,
         code: employee.code,
       },
-      directionId,
-      directionSnapshot: { name: direction.name },
-      priceSnapshot: direction.currentPrice,
-      shift: shiftValue,
-      earning: direction.currentPrice * shiftValue,
-      date: dateObj,
-      dateString,
+      directionSnapshot: {
+        name: direction.name,
+      },
     });
 
-    res.status(201).json({ success: true, assignment });
+    await assignment.save();
+    res.status(201).json(assignment);
   } catch (err) {
-    console.error('POST /assign xato:', err);
-
+    console.error('Assign POST xato:', err);
     if (err.code === 11000) {
       return res.status(400).json({ error: 'Bu xodim bugun allaqachon biriktirilgan' });
     }
-
-    res.status(500).json({ error: 'Server xatosi' });
+    res.status(500).json({ error: err.message || 'Server xatosi' });
   }
 });
 
-/**
- * PUT /api/daily-report/assign/:id
- */
-router.put('/assign/:id', async (req, res) => {
-  try {
-    const assignment = await DailyAssignment.findOne({
-      _id: req.params.id,
-      ...req.businessScope,
-    });
-
-    if (!assignment) {
-      return res.status(404).json({ error: 'Biriktirish topilmadi' });
-    }
-
-    const { directionId, shift } = req.body;
-
-    if (directionId && directionId !== assignment.directionId.toString()) {
-      const direction = await Direction.findOne({
-        _id: directionId,
-        ...req.businessScope,
-        status: 'active',
-      });
-      if (!direction) {
-        return res.status(404).json({ error: 'Yo\'nalish topilmadi' });
-      }
-
-      assignment.directionId = direction._id;
-      assignment.directionSnapshot = { name: direction.name };
-      assignment.priceSnapshot = direction.currentPrice;
-    }
-
-    if (shift !== undefined) {
-      const shiftValue = shift === 0.5 || shift === '0.5' ? 0.5 : 1;
-      assignment.shift = shiftValue;
-    }
-
-    assignment.earning = assignment.priceSnapshot * assignment.shift;
-
-    await assignment.save();
-
-    res.json({ success: true, assignment });
-  } catch (err) {
-    res.status(500).json({ error: 'Server xatosi' });
-  }
-});
-
-/**
- * DELETE /api/daily-report/assign/:id
- */
 router.delete('/assign/:id', async (req, res) => {
   try {
-    const result = await DailyAssignment.deleteOne({
+    const result = await DailyAssignment.findOneAndDelete({
       _id: req.params.id,
-      ...req.businessScope,
+      businessId: req.businessId,
     });
 
-    if (result.deletedCount === 0) {
-      return res.status(404).json({ error: 'Biriktirish topilmadi' });
+    if (!result) {
+      return res.status(404).json({ error: 'Topilmadi' });
     }
 
-    res.json({ success: true, message: 'Biriktirish bekor qilindi' });
+    res.json({ success: true });
   } catch (err) {
+    console.error('Assign DELETE xato:', err);
     res.status(500).json({ error: 'Server xatosi' });
   }
 });
@@ -202,82 +176,64 @@ router.delete('/assign/:id', async (req, res) => {
  */
 router.post('/products', async (req, res) => {
   try {
-    const { productName, quantity, note, date } = req.body;
+    const { productName, quantity } = req.body;
 
     if (!productName || quantity === undefined) {
-      return res.status(400).json({ error: 'Mahsulot nomi va soni kerak' });
+      return res.status(400).json({ error: 'Nom va soni kerak' });
     }
 
-    const qty = Number(quantity);
-    if (isNaN(qty) || qty < 0) {
-      return res.status(400).json({ error: 'Soni to\'g\'ri raqam' });
-    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    const dateString = date || getTodayString();
-    const dateObj = new Date(dateString);
-
-    const product = await DailyProduct.create({
-      ...req.businessScope,
-      productName: productName.trim(),
-      quantity: qty,
-      note: note || '',
-      date: dateObj,
-      dateString,
+    const product = new DailyProduct({
+      businessId: req.businessId,
+      date: today,
+      productName: String(productName).trim(),
+      quantity: Number(quantity),
     });
 
-    res.status(201).json({ success: true, product });
+    await product.save();
+    res.status(201).json(product);
   } catch (err) {
-    res.status(500).json({ error: 'Server xatosi' });
+    console.error('Product POST xato:', err);
+    res.status(500).json({ error: err.message || 'Server xatosi' });
   }
 });
 
-/**
- * PUT /api/daily-report/products/:id
- */
 router.put('/products/:id', async (req, res) => {
   try {
     const product = await DailyProduct.findOne({
       _id: req.params.id,
-      ...req.businessScope,
+      businessId: req.businessId,
     });
 
     if (!product) {
       return res.status(404).json({ error: 'Mahsulot topilmadi' });
     }
 
-    const { productName, quantity, note } = req.body;
-
-    if (productName) product.productName = productName.trim();
-    if (quantity !== undefined) {
-      const qty = Number(quantity);
-      if (!isNaN(qty) && qty >= 0) product.quantity = qty;
-    }
-    if (note !== undefined) product.note = note;
+    const { productName, quantity } = req.body;
+    if (productName) product.productName = String(productName).trim();
+    if (quantity !== undefined) product.quantity = Number(quantity);
 
     await product.save();
-
-    res.json({ success: true, product });
+    res.json(product);
   } catch (err) {
-    res.status(500).json({ error: 'Server xatosi' });
+    console.error('Product PUT xato:', err);
+    res.status(500).json({ error: err.message || 'Server xatosi' });
   }
 });
 
-/**
- * DELETE /api/daily-report/products/:id
- */
 router.delete('/products/:id', async (req, res) => {
   try {
-    const result = await DailyProduct.deleteOne({
+    const result = await DailyProduct.findOneAndDelete({
       _id: req.params.id,
-      ...req.businessScope,
+      businessId: req.businessId,
     });
 
-    if (result.deletedCount === 0) {
-      return res.status(404).json({ error: 'Mahsulot topilmadi' });
-    }
-
-    res.json({ success: true, message: 'Mahsulot o\'chirildi' });
+    if (!result) return res.status(404).json({ error: 'Topilmadi' });
+    res.json({ success: true });
   } catch (err) {
+    console.error('Product DELETE xato:', err);
     res.status(500).json({ error: 'Server xatosi' });
   }
 });

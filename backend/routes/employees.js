@@ -1,111 +1,97 @@
+/**
+ * CyberCoderCRM - Employees routes
+ */
+
 const express = require('express');
 const router = express.Router();
 
 const Employee = require('../models/Employee');
 const ReservedCode = require('../models/ReservedCode');
+
 const { verifyToken, requireAdmin } = require('../middleware/auth');
 const businessScope = require('../middleware/businessScope');
 const requireModule = require('../middleware/requireModule');
-const { isValidCode } = require('../utils/helpers');
 
+// Barcha route'lar uchun
 router.use(verifyToken, requireAdmin, businessScope, requireModule('employees'));
 
 /**
  * GET /api/employees
+ * Barcha xodimlar ro'yxati
  */
 router.get('/', async (req, res) => {
   try {
     const { search } = req.query;
+    const filter = {
+      businessId: req.businessId,
+      status: { $ne: 'deleted' }
+    };
 
-    const filter = { ...req.businessScope, status: 'active' };
-
-    if (search && search.trim()) {
-      const searchRegex = new RegExp(search.trim(), 'i');
+    if (search) {
+      const regex = new RegExp(search, 'i');
       filter.$or = [
-        { firstName: searchRegex },
-        { lastName: searchRegex },
-        { code: searchRegex },
-        { phone: searchRegex },
+        { firstName: regex },
+        { lastName: regex },
+        { code: regex },
+        { phone: regex },
       ];
     }
 
-    const employees = await Employee.find(filter).sort({ createdAt: -1 });
+    const employees = await Employee.find(filter).sort('-createdAt');
     res.json(employees);
   } catch (err) {
-    console.error('GET /employees xato:', err);
-    res.status(500).json({ error: 'Server xatosi' });
-  }
-});
-
-/**
- * GET /api/employees/:id
- */
-router.get('/:id', async (req, res) => {
-  try {
-    const employee = await Employee.findOne({
-      _id: req.params.id,
-      ...req.businessScope,
-    });
-
-    if (!employee) {
-      return res.status(404).json({ error: 'Xodim topilmadi' });
-    }
-
-    res.json(employee);
-  } catch (err) {
+    console.error('Employees GET xato:', err);
     res.status(500).json({ error: 'Server xatosi' });
   }
 });
 
 /**
  * POST /api/employees
+ * Yangi xodim qo'shish
  */
 router.post('/', async (req, res) => {
   try {
     const { firstName, lastName, code, phone } = req.body;
 
     if (!firstName || !lastName || !code) {
-      return res.status(400).json({ error: 'Ism, familiya va kod majburiy' });
+      return res.status(400).json({ error: 'Ism, familiya va kod kerak' });
     }
 
-    if (!isValidCode(code)) {
-      return res.status(400).json({ error: 'Kod noto\'g\'ri (1-50 belgi)' });
+    const codeTrim = String(code).trim();
+
+    // Kod band emasligini tekshirish (aktiv xodimlar)
+    const existing = await Employee.findOne({
+      businessId: req.businessId,
+      code: codeTrim,
+      status: { $ne: 'deleted' },
+    });
+    if (existing) {
+      return res.status(400).json({ error: 'Bu kod band' });
     }
 
-    const trimmedCode = code.trim();
-
-    const isReserved = await ReservedCode.isCodeReserved(req.user.businessId, trimmedCode);
-    if (isReserved) {
+    // ReservedCode (o'chirilgan xodim kodi) tekshirish
+    const reserved = await ReservedCode.findOne({
+      businessId: req.businessId,
+      code: codeTrim,
+    });
+    if (reserved) {
       return res.status(400).json({
-        error: 'Bu kod band. Bu oy oxiriga qadar ishlatib bo\'lmaydi (avvalgi xodim o\'chirilgan).',
+        error: `Bu kod oy oxirigacha band: ${reserved.reservedUntil.toLocaleDateString()}`
       });
     }
 
-    const existing = await Employee.findOne({
-      ...req.businessScope,
-      code: trimmedCode,
-      status: 'active',
-    });
-    if (existing) {
-      return res.status(400).json({ error: 'Bu kod boshqa xodimda mavjud' });
-    }
-
-    const employee = await Employee.create({
-      ...req.businessScope,
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      code: trimmedCode,
-      phone: phone ? phone.trim() : '',
+    const employee = new Employee({
+      businessId: req.businessId,
+      firstName: String(firstName).trim(),
+      lastName: String(lastName).trim(),
+      code: codeTrim,
+      phone: phone ? String(phone).trim() : '',
     });
 
-    res.status(201).json({ success: true, employee });
+    await employee.save();
+    res.status(201).json(employee);
   } catch (err) {
-    console.error('POST /employees xato:', err);
-
-    if (err.code === 11000) {
-      return res.status(400).json({ error: 'Bu kod allaqachon mavjud' });
-    }
-
+    console.error('Employee POST xato:', err);
     res.status(500).json({ error: err.message || 'Server xatosi' });
   }
 });
@@ -117,7 +103,7 @@ router.put('/:id', async (req, res) => {
   try {
     const employee = await Employee.findOne({
       _id: req.params.id,
-      ...req.businessScope,
+      businessId: req.businessId,
     });
 
     if (!employee) {
@@ -126,76 +112,69 @@ router.put('/:id', async (req, res) => {
 
     const { firstName, lastName, code, phone } = req.body;
 
-    if (code && code.trim() !== employee.code) {
-      if (!isValidCode(code)) {
-        return res.status(400).json({ error: 'Kod noto\'g\'ri' });
-      }
-
-      const trimmedCode = code.trim();
-
-      const isReserved = await ReservedCode.isCodeReserved(req.user.businessId, trimmedCode);
-      if (isReserved) {
-        return res.status(400).json({ error: 'Bu kod band' });
-      }
-
+    if (code && code !== employee.code) {
+      const codeTrim = String(code).trim();
       const existing = await Employee.findOne({
-        ...req.businessScope,
-        code: trimmedCode,
-        status: 'active',
+        businessId: req.businessId,
+        code: codeTrim,
+        status: { $ne: 'deleted' },
         _id: { $ne: employee._id },
       });
       if (existing) {
-        return res.status(400).json({ error: 'Bu kod boshqa xodimda mavjud' });
+        return res.status(400).json({ error: 'Bu kod band' });
       }
-
-      employee.code = trimmedCode;
+      employee.code = codeTrim;
     }
 
-    if (firstName) employee.firstName = firstName.trim();
-    if (lastName) employee.lastName = lastName.trim();
-    if (phone !== undefined) employee.phone = phone.trim();
+    if (firstName) employee.firstName = String(firstName).trim();
+    if (lastName) employee.lastName = String(lastName).trim();
+    if (phone !== undefined) employee.phone = String(phone).trim();
 
     await employee.save();
-
-    res.json({ success: true, employee });
+    res.json(employee);
   } catch (err) {
-    console.error('PUT /employees xato:', err);
-    res.status(500).json({ error: 'Server xatosi' });
+    console.error('Employee PUT xato:', err);
+    res.status(500).json({ error: err.message || 'Server xatosi' });
   }
 });
 
 /**
  * DELETE /api/employees/:id
- * Soft delete + kodni band qilish
+ * Soft delete + ReservedCode
  */
 router.delete('/:id', async (req, res) => {
   try {
     const employee = await Employee.findOne({
       _id: req.params.id,
-      ...req.businessScope,
-      status: 'active',
+      businessId: req.businessId,
     });
 
     if (!employee) {
       return res.status(404).json({ error: 'Xodim topilmadi' });
     }
 
+    // Oy oxirigacha band qilish
+    const now = new Date();
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+    await ReservedCode.create({
+      businessId: req.businessId,
+      code: employee.code,
+      reservedUntil: endOfMonth,
+      employeeData: {
+        firstName: employee.firstName,
+        lastName: employee.lastName,
+        phone: employee.phone,
+      },
+    });
+
     employee.status = 'deleted';
-    employee.deletedAt = new Date();
+    employee.deletedAt = now;
     await employee.save();
 
-    try {
-      await ReservedCode.reserveCode(employee);
-    } catch (err) {
-      if (err.code !== 11000) throw err;
-    }
-
-    res.json({
-      success: true,
-      message: 'Xodim o\'chirildi. Kod oy oxirigacha band.',
-    });
+    res.json({ success: true });
   } catch (err) {
-    console.error('DELETE /employees xato:', err);
+    console.error('Employee DELETE xato:', err);
     res.status(500).json({ error: 'Server xatosi' });
   }
 });

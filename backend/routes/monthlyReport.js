@@ -1,6 +1,11 @@
+/**
+ * CyberCoderCRM - Monthly Report routes
+ */
+
 const express = require('express');
 const router = express.Router();
 
+const Employee = require('../models/Employee');
 const DailyAssignment = require('../models/DailyAssignment');
 const DailyProduct = require('../models/DailyProduct');
 const Archive = require('../models/Archive');
@@ -8,105 +13,76 @@ const Archive = require('../models/Archive');
 const { verifyToken, requireAdmin } = require('../middleware/auth');
 const businessScope = require('../middleware/businessScope');
 const requireModule = require('../middleware/requireModule');
-const { toDateString } = require('../utils/helpers');
 
 router.use(verifyToken, requireAdmin, businessScope, requireModule('monthlyReport'));
 
 /**
- * GET /api/monthly-report
+ * GET /api/monthly-report?startDate=...&endDate=...&code=...
  */
 router.get('/', async (req, res) => {
   try {
     const { startDate, endDate, code } = req.query;
 
     if (!startDate || !endDate) {
-      return res.status(400).json({ error: 'startDate va endDate kerak' });
+      return res.status(400).json({ error: 'Sana oralig\'i kerak' });
     }
 
-    const startStr = toDateString(startDate);
-    const endStr = toDateString(endDate);
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
 
     const filter = {
-      ...req.businessScope,
-      dateString: { $gte: startStr, $lte: endStr },
+      businessId: req.businessId,
+      date: { $gte: start, $lte: end },
     };
 
-    if (code && code.trim()) {
+    if (code) {
       filter['employeeSnapshot.code'] = code.trim();
     }
 
-    const assignments = await DailyAssignment.find(filter).sort({ date: 1 });
+    const assignments = await DailyAssignment.find(filter).sort('date');
+    const products = await DailyProduct.find({
+      businessId: req.businessId,
+      date: { $gte: start, $lte: end },
+    });
 
-    const employeeMap = new Map();
-
+    // Xodimlar bo'yicha guruhlash
+    const grouped = {};
     for (const a of assignments) {
-      const empId = a.employeeId.toString();
-
-      if (!employeeMap.has(empId)) {
-        employeeMap.set(empId, {
-          employeeId: a.employeeId,
+      const key = a.employeeSnapshot.code;
+      if (!grouped[key]) {
+        grouped[key] = {
           firstName: a.employeeSnapshot.firstName,
           lastName: a.employeeSnapshot.lastName,
           code: a.employeeSnapshot.code,
-          totalEarning: 0,
           totalDays: 0,
           totalShifts: 0,
-          assignments: [],
-        });
+          totalEarning: 0,
+        };
       }
-
-      const emp = employeeMap.get(empId);
-      emp.totalEarning += a.earning;
-      emp.totalDays += 1;
-      emp.totalShifts += a.shift;
-      emp.assignments.push({
-        _id: a._id,
-        date: a.date,
-        dateString: a.dateString,
-        directionName: a.directionSnapshot.name,
-        priceSnapshot: a.priceSnapshot,
-        shift: a.shift,
-        earning: a.earning,
-      });
+      grouped[key].totalDays++;
+      grouped[key].totalShifts += a.shift;
+      grouped[key].totalEarning += a.earning;
     }
 
-    const employees = Array.from(employeeMap.values()).sort(
-      (a, b) => b.totalEarning - a.totalEarning
-    );
+    const employees = Object.values(grouped);
 
-    const totalEarning = employees.reduce((sum, e) => sum + e.totalEarning, 0);
-
-    const products = await DailyProduct.find({
-      ...req.businessScope,
-      dateString: { $gte: startStr, $lte: endStr },
-    }).sort({ date: 1 });
-
-    const productMap = new Map();
-    for (const p of products) {
-      if (!productMap.has(p.productName)) {
-        productMap.set(p.productName, { name: p.productName, totalQuantity: 0, count: 0 });
-      }
-      const item = productMap.get(p.productName);
-      item.totalQuantity += p.quantity;
-      item.count += 1;
-    }
-    const productStats = Array.from(productMap.values());
+    const totalEarning = assignments.reduce((s, a) => s + (a.earning || 0), 0);
+    const totalProductCount = products.reduce((s, p) => s + (p.quantity || 0), 0);
 
     res.json({
-      startDate: startStr,
-      endDate: endStr,
+      period: { startDate: start, endDate: end },
       employees,
-      products,
-      productStats,
       stats: {
-        totalEmployees: employees.length,
         totalEarning,
+        totalEmployees: employees.length,
+        totalProductCount,
         totalAssignments: assignments.length,
-        totalProductCount: products.reduce((s, p) => s + p.quantity, 0),
       },
     });
   } catch (err) {
-    console.error('GET /monthly-report xato:', err);
+    console.error('Monthly report GET xato:', err);
     res.status(500).json({ error: 'Server xatosi' });
   }
 });
@@ -116,101 +92,57 @@ router.get('/', async (req, res) => {
  */
 router.post('/archive', async (req, res) => {
   try {
-    const { startDate, endDate, label } = req.body;
+    const { startDate, endDate } = req.body;
 
     if (!startDate || !endDate) {
-      return res.status(400).json({ error: 'startDate va endDate kerak' });
+      return res.status(400).json({ error: 'Sana oralig\'i kerak' });
     }
 
-    const startStr = toDateString(startDate);
-    const endStr = toDateString(endDate);
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
 
     const [assignments, products] = await Promise.all([
       DailyAssignment.find({
-        ...req.businessScope,
-        dateString: { $gte: startStr, $lte: endStr },
+        businessId: req.businessId,
+        date: { $gte: start, $lte: end },
       }).lean(),
       DailyProduct.find({
-        ...req.businessScope,
-        dateString: { $gte: startStr, $lte: endStr },
+        businessId: req.businessId,
+        date: { $gte: start, $lte: end },
       }).lean(),
     ]);
 
-    if (assignments.length === 0 && products.length === 0) {
-      return res.status(400).json({
-        error: 'Bu sanalar oralig\'ida ma\'lumot yo\'q',
-      });
-    }
+    const totalEarnings = assignments.reduce((s, a) => s + (a.earning || 0), 0);
+    const totalShifts = assignments.reduce((s, a) => s + a.shift, 0);
+    const uniqueEmployees = new Set(assignments.map(a => a.employeeSnapshot?.code)).size;
+    const totalProducts = products.reduce((s, p) => s + (p.quantity || 0), 0);
 
-    const employeeMap = new Map();
-    for (const a of assignments) {
-      const empId = a.employeeId.toString();
-      if (!employeeMap.has(empId)) {
-        employeeMap.set(empId, {
-          employeeId: a.employeeId,
-          firstName: a.employeeSnapshot.firstName,
-          lastName: a.employeeSnapshot.lastName,
-          code: a.employeeSnapshot.code,
-          totalEarning: 0,
-          totalDays: 0,
-          totalShifts: 0,
-        });
-      }
-      const emp = employeeMap.get(empId);
-      emp.totalEarning += a.earning;
-      emp.totalDays += 1;
-      emp.totalShifts += a.shift;
-    }
+    const periodLabel = `${start.toLocaleDateString('uz')} - ${end.toLocaleDateString('uz')}`;
 
-    const employeeSummary = Array.from(employeeMap.values());
-
-    const archive = await Archive.create({
-      ...req.businessScope,
-      periodStart: new Date(startStr),
-      periodEnd: new Date(endStr),
-      periodLabel: label || `${startStr} — ${endStr}`,
+    const archive = new Archive({
+      businessId: req.businessId,
+      periodLabel,
+      startDate: start,
+      endDate: end,
       archivedAt: new Date(),
-      employeeSummary,
-      assignments: assignments.map((a) => ({
-        employeeId: a.employeeId,
-        employeeSnapshot: a.employeeSnapshot,
-        directionId: a.directionId,
-        directionSnapshot: a.directionSnapshot,
-        priceSnapshot: a.priceSnapshot,
-        shift: a.shift,
-        earning: a.earning,
-        date: a.date,
-        dateString: a.dateString,
-      })),
-      products: products.map((p) => ({
-        productName: p.productName,
-        quantity: p.quantity,
-        date: p.date,
-        dateString: p.dateString,
-        note: p.note,
-      })),
-      stats: {
-        totalEarnings: employeeSummary.reduce((s, e) => s + e.totalEarning, 0),
-        totalAssignments: assignments.length,
-        totalEmployeesWorked: employeeSummary.length,
-        totalProducts: products.length,
-        totalProductQuantity: products.reduce((s, p) => s + p.quantity, 0),
+      data: {
+        assignments,
+        products,
       },
-      archivedBy: 'admin',
+      stats: {
+        totalEarnings,
+        totalEmployeesWorked: uniqueEmployees,
+        totalShifts,
+        totalProducts,
+      },
     });
 
-    res.status(201).json({
-      success: true,
-      archive: {
-        _id: archive._id,
-        periodLabel: archive.periodLabel,
-        archivedAt: archive.archivedAt,
-        stats: archive.stats,
-      },
-      message: `${assignments.length} ta biriktirish va ${products.length} ta mahsulot arxivlandi`,
-    });
+    await archive.save();
+    res.status(201).json({ success: true, archiveId: archive._id });
   } catch (err) {
-    console.error('POST /archive xato:', err);
+    console.error('Archive POST xato:', err);
     res.status(500).json({ error: err.message || 'Server xatosi' });
   }
 });

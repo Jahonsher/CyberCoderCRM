@@ -1,35 +1,29 @@
 /**
- * Business Scope Middleware
- *
- * Multi-tenant isolation - har bir biznes faqat o'zining ma'lumotlarini ko'radi
- *
- * Foydalanish:
- * - verifyToken dan keyin ishlatiladi
- * - req.user.businessId ni tekshiradi
- * - req.businessScope ga qo'yadi (barcha MongoDB query larda ishlatiladi)
- *
- * Masalan:
- *   const employees = await Employee.find({ ...req.businessScope, status: 'active' });
+ * CyberCoderCRM - businessScope Middleware
  */
-const businessScope = (req, res, next) => {
-  // Admin bo'lmasa (masalan SuperAdmin) - scope yo'q
-  if (req.user.role !== 'admin') {
-    return next();
+
+function businessScope(req, res, next) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Autentifikatsiya kerak' });
+    }
+
+    if (req.user.role === 'superadmin') {
+      const qBusinessId = req.query.businessId || req.body?.businessId;
+      req.businessId = qBusinessId || null;
+      return next();
+    }
+
+    if (req.user.role === 'admin') {
+      req.businessId = req.user.businessId;
+      return next();
+    }
+
+    return res.status(403).json({ error: 'Ruxsat yo\'q' });
+  } catch (err) {
+    console.error('businessScope xato:', err);
+    return res.status(500).json({ error: 'Server xatosi' });
   }
-
-  // businessId bo'lmasa - xato
-  if (!req.user.businessId) {
-    return res.status(400).json({
-      error: 'Biznes aniqlanmadi',
-    });
-  }
-
-  // Har bir query uchun businessId filter tayyorlash
-  req.businessScope = {
-    businessId: req.user.businessId,
-  };
-
-  next();
-};
+}
 
 module.exports = businessScope;

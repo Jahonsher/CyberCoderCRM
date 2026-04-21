@@ -1,58 +1,58 @@
+/**
+ * CyberCoderCRM - requireModule Middleware
+ * Biznes uchun kerakli modul yoqilganligini tekshiradi
+ */
+
 const Business = require('../models/Business');
-const { isValidModule } = require('../config/modules');
+const { moduleExists } = require('../config/modules');
 
 /**
- * requireModule Middleware
- *
- * Biznes admin ma'lum bir modulga kirish huquqini tekshiradi.
- *
- * Ishlashi:
- * 1. verifyToken va requireAdmin dan keyin ishlaydi
- * 2. req.business ni tekshiradi (yoki qayta yuklaydi)
- * 3. Modul enabledModules ro'yxatida bormi - tekshiradi
- * 4. Yo'q bo'lsa - 403 qaytaradi
- *
- * Foydalanish:
- *   router.use(requireModule('employees'));
- *   router.get('/', ...);
+ * requireModule(moduleKey) - middleware factory
+ * Misol: router.get('/', verifyToken, requireModule('employees'), handler)
  */
-const requireModule = (moduleKey) => {
-  // Dev-time tekshiruv
-  if (!isValidModule(moduleKey)) {
-    throw new Error(`Noma'lum modul: ${moduleKey}`);
-  }
-
+function requireModule(moduleKey) {
   return async (req, res, next) => {
     try {
-      // SuperAdmin uchun barcha modullarga ruxsat
+      // SuperAdmin har doim o'ta olishi mumkin
       if (req.user && req.user.role === 'superadmin') {
         return next();
       }
 
-      // req.business bo'lmasa (verifyToken dan keyin bo'lishi kerak)
-      let business = req.business;
-      if (!business && req.user && req.user.businessId) {
-        business = await Business.findById(req.user.businessId);
+      // Admin bo'lmasa - xato
+      if (!req.user || req.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Ruxsat yo\'q' });
       }
 
+      // Modul mavjudligi
+      if (!moduleExists(moduleKey)) {
+        return res.status(400).json({ error: `Modul topilmadi: ${moduleKey}` });
+      }
+
+      // Biznesni olish
+      const business = await Business.findById(req.user.businessId).select('enabledModules status');
+
       if (!business) {
-        return res.status(401).json({ error: 'Biznes topilmadi' });
+        return res.status(404).json({ error: 'Biznes topilmadi' });
+      }
+
+      if (business.status === 'suspended') {
+        return res.status(403).json({ error: "Biznes to'xtatilgan" });
       }
 
       // Modul yoqilganmi?
-      if (!business.hasModule(moduleKey)) {
+      const enabledModules = business.enabledModules || [];
+      if (!enabledModules.includes(moduleKey)) {
         return res.status(403).json({
-          error: 'Bu modul sizning biznesingiz uchun yoqilmagan. SuperAdmin bilan bog\'laning.',
-          moduleKey,
+          error: `Bu modul yoqilmagan: ${moduleKey}`
         });
       }
 
       next();
     } catch (err) {
-      console.error('requireModule xato:', err);
+      console.error('requireModule xatosi:', err);
       res.status(500).json({ error: 'Server xatosi' });
     }
   };
-};
+}
 
 module.exports = requireModule;
