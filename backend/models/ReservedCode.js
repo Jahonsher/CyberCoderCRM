@@ -1,7 +1,6 @@
 /**
  * CyberCoderCRM - ReservedCode Model
- * Xodim o'chirilganda uning kodi oy oxirigacha band qilinadi
- * TTL index orqali avtomatik o'chiriladi
+ * TTL index orqali avtomatik o'chiradi
  */
 
 const mongoose = require('mongoose');
@@ -22,8 +21,7 @@ const reservedCodeSchema = new mongoose.Schema(
     reservedUntil: {
       type: Date,
       required: true,
-      // TTL index - avtomatik o'chiradi (expires qachon kelganda)
-      // Faqat shu yerda bitta marta aniqlaymiz
+      // expires: 0 - reservedUntil vaqti kelganda avtomatik o'chiriladi
       expires: 0,
     },
     employeeData: {
@@ -37,7 +35,6 @@ const reservedCodeSchema = new mongoose.Schema(
   }
 );
 
-// Kompozit index (businessId + code birgalikda)
 reservedCodeSchema.index({ businessId: 1, code: 1 });
 
-module.exports = mongoose.model('ReservedCode', reservedCodeSchema);
+module.exports = mongoose.models.ReservedCode || mongoose.model('ReservedCode', reservedCodeSchema);

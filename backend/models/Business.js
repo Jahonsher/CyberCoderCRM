@@ -21,7 +21,7 @@ const businessSchema = new mongoose.Schema(
     login: {
       type: String,
       required: true,
-      unique: true,
+      unique: true,  // unique o'zi index yaratadi
       trim: true,
       lowercase: true,
       minlength: 3,
@@ -30,7 +30,6 @@ const businessSchema = new mongoose.Schema(
     password: {
       type: String,
       required: true,
-      // select: false YO'Q - login uchun kerak
     },
     logo: {
       type: String,
@@ -61,8 +60,9 @@ const businessSchema = new mongoose.Schema(
   }
 );
 
-businessSchema.index({ login: 1 }, { unique: true });
+// FAQAT QO'SHIMCHA indexes (login yo'q — u unique orqali qo'shiladi)
 businessSchema.index({ status: 1 });
 businessSchema.index({ createdAt: -1 });
 
-module.exports = mongoose.model('Business', businessSchema);
+// OverwriteModelError ni oldini olish (hot-reload uchun)
+module.exports = mongoose.models.Business || mongoose.model('Business', businessSchema);
