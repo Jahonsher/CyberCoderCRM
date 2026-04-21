@@ -1,114 +1,68 @@
 /**
- * Module Registry
- *
- * Tizimda mavjud bo'lgan barcha modullar (sidebar tab'lari).
- * Har bir biznesga individual ravishda yoqish/o'chirish mumkin.
- *
- * Yangi modul qo'shish uchun:
- * 1. Shu yerga qo'shing
- * 2. Frontend modules.js ga qo'shing (icon + translations)
- * 3. Backend route ga requireModule('moduleKey') qo'shing
+ * CyberCoderCRM - Module Registry
+ * Mavjud modullar ro'yxati
  */
 
 const MODULES = {
-  // ========== ASOSIY MODULLAR ==========
   employees: {
     key: 'employees',
     name: 'Xodimlar',
     nameRu: 'Сотрудники',
-    nameCyr: 'Ходимлар',
-    category: 'core',
-    default: true, // Yangi bizneslar uchun default yoqilgan
-  },
-
-  directions: {
-    key: 'directions',
-    name: 'Yo\'nalishlar',
-    nameRu: 'Направления',
-    nameCyr: 'Йўналишлар',
-    category: 'core',
+    icon: 'users',
     default: true,
   },
-
+  directions: {
+    key: 'directions',
+    name: "Yo'nalishlar",
+    nameRu: 'Направления',
+    icon: 'compass',
+    default: true,
+  },
   dailyReport: {
     key: 'dailyReport',
     name: 'Kunlik Hisobot',
     nameRu: 'Ежедневный отчёт',
-    nameCyr: 'Кунлик Ҳисобот',
-    category: 'core',
+    icon: 'calendar',
     default: true,
   },
-
   monthlyReport: {
     key: 'monthlyReport',
     name: 'Oylik Hisobot',
     nameRu: 'Месячный отчёт',
-    nameCyr: 'Ойлик Ҳисобот',
-    category: 'core',
+    icon: 'trending-up',
     default: true,
   },
-
   archive: {
     key: 'archive',
     name: 'Arxiv',
     nameRu: 'Архив',
-    nameCyr: 'Архив',
-    category: 'core',
-    default: true,
+    icon: 'archive',
+    default: false,
   },
-
-  // ========== KELAJAK MODULLARI (hozircha o'chirilgan) ==========
-  // Kerak bo'lganda default: true qilsa bo'ladi
-
-  // voiceAgent: {
-  //   key: 'voiceAgent',
-  //   name: 'Voice Agent',
-  //   category: 'premium',
-  //   default: false,
-  // },
-  //
-  // aiAccountant: {
-  //   key: 'aiAccountant',
-  //   name: 'AI Accountant',
-  //   category: 'premium',
-  //   default: false,
-  // },
 };
 
-/**
- * Barcha modul key'lari
- */
-const getAllModuleKeys = () => Object.keys(MODULES);
+function getAllModules() {
+  return Object.values(MODULES);
+}
 
-/**
- * Default yoqilgan modullar (yangi biznes yaratilganda)
- */
-const getDefaultModules = () =>
-  Object.values(MODULES)
+function getModule(key) {
+  return MODULES[key] || null;
+}
+
+function getDefaultModules() {
+  return Object.values(MODULES)
     .filter((m) => m.default)
     .map((m) => m.key);
+}
 
-/**
- * Modul kaliti haqiqiy ekanligini tekshirish
- */
-const isValidModule = (key) => !!MODULES[key];
-
-/**
- * Modul nomi (til bo'yicha)
- */
-const getModuleName = (key, lang = 'uz-lat') => {
-  const mod = MODULES[key];
-  if (!mod) return key;
-
-  if (lang === 'ru') return mod.nameRu || mod.name;
-  if (lang === 'uz-cyr') return mod.nameCyr || mod.name;
-  return mod.name;
-};
+function moduleExists(key) {
+  return !!MODULES[key];
+}
 
 module.exports = {
   MODULES,
-  getAllModuleKeys,
+  getAllModules,
+  getModule,
   getDefaultModules,
-  isValidModule,
-  getModuleName,
+  moduleExists,
 };
