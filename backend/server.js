@@ -1,5 +1,6 @@
 /**
- * CyberCoderCRM - Main Server (Module System + SPA + CORS fix)
+ * CyberCoderCRM - Main Server
+ * Railway proxy qo'llab-quvvatlaydi
  */
 
 require('dotenv').config();
@@ -17,6 +18,10 @@ const mongoose = require('mongoose');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// ========== TRUST PROXY (Railway, Vercel uchun MUHIM!) ==========
+// Railway proxy orqali ishlaydi — X-Forwarded-For header keladi
+app.set('trust proxy', 1);
 
 // ========== SECURITY ==========
 app.use(
@@ -45,12 +50,12 @@ app.use(
   })
 );
 
-// ========== CORS (Vercel + Railway dan kelishni qabul qilish) ==========
+// ========== CORS ==========
 const allowedOrigins = [
   process.env.CLIENT_URL,
   'https://cybercodercrm-production.up.railway.app',
-  /\.vercel\.app$/,  // har qanday Vercel domen
-  /\.railway\.app$/, // har qanday Railway domen
+  /\.vercel\.app$/,
+  /\.railway\.app$/,
   'http://localhost:3000',
   'http://localhost:5173',
   'http://127.0.0.1:3000',
@@ -59,20 +64,16 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Curl, Postman kabi (origin yo'q)
       if (!origin) return callback(null, true);
-
-      // Ro'yxatdagi domenlarni tekshirish
       const isAllowed = allowedOrigins.some((allowed) => {
         if (allowed instanceof RegExp) return allowed.test(origin);
         return allowed === origin;
       });
-
       if (isAllowed) {
         callback(null, true);
       } else {
         console.warn(`⚠️  CORS bloklandi: ${origin}`);
-        callback(null, true); // Hozirlik uchun ruxsat beramiz
+        callback(null, true);
       }
     },
     credentials: true,
@@ -86,12 +87,15 @@ app.use(mongoSanitize());
 app.use(xss());
 app.use(hpp());
 
+// ========== RATE LIMITING ==========
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 500,
   message: { error: 'Juda ko\'p so\'rov' },
   standardHeaders: true,
   legacyHeaders: false,
+  // Railway proxy uchun validatsiyani o'chirish
+  validate: { xForwardedForHeader: false, trustProxy: false },
 });
 app.use('/api/', generalLimiter);
 
@@ -100,6 +104,7 @@ const authLimiter = rateLimit({
   max: 10,
   message: { error: 'Juda ko\'p login urinishi' },
   skipSuccessfulRequests: true,
+  validate: { xForwardedForHeader: false, trustProxy: false },
 });
 app.use('/api/auth/login', authLimiter);
 
@@ -110,7 +115,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// ========== STATIC ==========
+// ========== STATIC FILES ==========
 const uploadsDir = path.join(__dirname, '..', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
@@ -128,7 +133,7 @@ app.use('/superadmin', express.static(path.join(__dirname, '..', 'client', 'supe
 app.use('/admin', express.static(path.join(__dirname, '..', 'client', 'admin')));
 app.use('/shared', express.static(path.join(__dirname, '..', 'client', 'shared')));
 
-// ========== HEALTH ==========
+// ========== HEALTH CHECK ==========
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
@@ -138,12 +143,11 @@ app.get('/health', (req, res) => {
   });
 });
 
-// ========== ROOT REDIRECT ==========
 app.get('/', (req, res) => {
   res.redirect('/admin/');
 });
 
-// ========== START ==========
+// ========== START SERVER ==========
 async function startServer() {
   try {
     console.log('========================================');
@@ -181,14 +185,12 @@ async function startServer() {
 
     app.use((err, req, res, next) => {
       console.error('❌ Request xatosi:', err);
-
       if (err.name === 'ValidationError') {
         return res.status(400).json({ error: err.message });
       }
       if (err.name === 'MulterError') {
         return res.status(400).json({ error: `Fayl xatosi: ${err.message}` });
       }
-
       res.status(err.status || 500).json({
         error: err.message || 'Server xatosi',
       });
