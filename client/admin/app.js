@@ -133,7 +133,12 @@ async function api(endpoint, options = {}) {
 }
 
 function t(key) {
-  if (typeof window.t === 'function') return window.t(key);
+  // translations.js global _t funksiyasini chaqiradi
+  if (window.TRANSLATIONS) {
+    const lang = localStorage.getItem('cc_lang') || 'uz-lat';
+    const dict = window.TRANSLATIONS[lang] || window.TRANSLATIONS['uz-lat'];
+    return (dict && dict[key]) || key;
+  }
   return key;
 }
 

@@ -5,7 +5,6 @@
 
 const TRANSLATIONS = {
   'uz-lat': {
-    // Common
     'common.loading': 'Yuklanmoqda...',
     'common.save': 'Saqlash',
     'common.cancel': 'Bekor qilish',
@@ -40,16 +39,14 @@ const TRANSLATIONS = {
     'common.error': 'Xato',
     'common.success': 'Muvaffaqiyatli',
 
-    // Login
     'login.username': 'Username',
     'login.password': 'Parol',
     'login.signIn': 'Kirish',
     'login.signingIn': 'Kirilmoqda...',
     'login.welcome': 'Xush kelibsiz!',
 
-    // Sidebar
     'nav.management': 'Boshqaruv',
-    'nav.modules': 'Bo\'limlar',
+    'nav.modules': "Bo'limlar",
     'nav.businesses': 'Bizneslar',
     'nav.employees': 'Xodimlar',
     'nav.directions': "Yo'nalishlar",
@@ -57,7 +54,6 @@ const TRANSLATIONS = {
     'nav.monthlyReport': 'Oylik Hisobot',
     'nav.archive': 'Arxiv',
 
-    // Employees
     'emp.title': 'Xodimlar',
     'emp.add': "Xodim qo'shish",
     'emp.edit': 'Xodimni tahrirlash',
@@ -74,27 +70,25 @@ const TRANSLATIONS = {
     'emp.table.code': 'Kod',
     'emp.table.phone': 'Raqam',
 
-    // Directions
     'dir.title': "Yo'nalishlar",
     'dir.add': "Yo'nalish qo'shish",
     'dir.edit': "Yo'nalishni tahrirlash",
     'dir.name': "Yo'nalish nomi",
     'dir.price': 'Kunlik narx',
-    'dir.priceHint': 'So\'m',
+    'dir.priceHint': "So'm",
     'dir.empty': "Hech qanday yo'nalish yo'q",
     'dir.emptyHint': "Birinchi yo'nalishni qo'shing",
     'dir.deleteConfirm': "Yo'nalishni arxivlash?",
     'dir.deleteWarn': "Yo'nalish faqat ro'yxatdan olib tashlanadi. Eski hisobotlar saqlanadi.",
-    'dir.priceChanged': 'Narx o\'zgartirildi - eski kunlar eski narxda qoladi',
+    'dir.priceChanged': "Narx o'zgartirildi - eski kunlar eski narxda qoladi",
     'dir.table.type': 'Turi',
     'dir.table.price': 'Kunlik Narxi',
 
-    // Daily Report
     'daily.title': 'Kunlik Hisobot',
     'daily.assigned': 'Biriktirilgan xodimlar',
     'daily.unassigned': 'Biriktirilmagan xodimlar',
     'daily.assign': 'Biriktirish',
-    'daily.shift.full': 'To\'liq smena (1)',
+    'daily.shift.full': "To'liq smena (1)",
     'daily.shift.half': 'Yarim smena (0.5)',
     'daily.employee': 'Xodim',
     'daily.direction': "Yo'nalish",
@@ -107,10 +101,9 @@ const TRANSLATIONS = {
     'daily.totalEarning': 'Jami daromad',
     'daily.totalProducts': 'Jami mahsulot',
     'daily.emptyAssigned': 'Hali hech kim biriktirilmagan',
-    'daily.emptyUnassigned': 'Biriktirilmagan xodim yo\'q',
+    'daily.emptyUnassigned': "Biriktirilmagan xodim yo'q",
     'daily.unassign': 'Bekor qilish',
 
-    // Monthly Report
     'month.title': 'Oylik Hisobot',
     'month.startDate': 'Boshlanish sanasi',
     'month.endDate': 'Tugash sanasi',
@@ -124,25 +117,22 @@ const TRANSLATIONS = {
     'month.totalShifts': 'Jami smenalar',
     'month.empty': "Bu davrda ma'lumot yo'q",
 
-    // Archive
     'archive.title': 'Arxiv',
     'archive.empty': "Arxivda hech narsa yo'q",
     'archive.period': 'Davr',
     'archive.archivedAt': 'Arxivlangan vaqt',
     'archive.view': "Ko'rish",
 
-    // Messages
     'msg.saved': 'Saqlandi',
     'msg.deleted': "O'chirildi",
     'msg.suspended': "Biznes to'xtatildi",
     'msg.activated': 'Biznes faollashtirildi',
     'msg.loginWrong': "Login yoki parol noto'g'ri",
     'msg.tooMany': "Juda ko'p urinish, kuting",
-    'msg.error': "Xato yuz berdi",
+    'msg.error': 'Xato yuz berdi',
   },
 
   'uz-cyr': {
-    // Common
     'common.loading': 'Юкланмоқда...',
     'common.save': 'Сақлаш',
     'common.cancel': 'Бекор қилиш',
@@ -177,14 +167,12 @@ const TRANSLATIONS = {
     'common.error': 'Хато',
     'common.success': 'Муваффақиятли',
 
-    // Login
     'login.username': 'Username',
     'login.password': 'Парол',
     'login.signIn': 'Кириш',
     'login.signingIn': 'Кирилмоқда...',
     'login.welcome': 'Хуш келибсиз!',
 
-    // Sidebar
     'nav.management': 'Бошқарув',
     'nav.modules': 'Бўлимлар',
     'nav.businesses': 'Бизнеслар',
@@ -194,7 +182,6 @@ const TRANSLATIONS = {
     'nav.monthlyReport': 'Ойлик Ҳисобот',
     'nav.archive': 'Архив',
 
-    // Employees
     'emp.title': 'Ходимлар',
     'emp.add': 'Ходим қўшиш',
     'emp.edit': 'Ходимни таҳрирлаш',
@@ -211,7 +198,6 @@ const TRANSLATIONS = {
     'emp.table.code': 'Код',
     'emp.table.phone': 'Рақам',
 
-    // Directions
     'dir.title': 'Йўналишлар',
     'dir.add': 'Йўналиш қўшиш',
     'dir.edit': 'Йўналишни таҳрирлаш',
@@ -226,12 +212,11 @@ const TRANSLATIONS = {
     'dir.table.type': 'Тури',
     'dir.table.price': 'Кунлик Нархи',
 
-    // Daily Report
     'daily.title': 'Кунлик Ҳисобот',
     'daily.assigned': 'Бириктирилган ходимлар',
     'daily.unassigned': 'Бириктирилмаган ходимлар',
     'daily.assign': 'Бириктириш',
-    'daily.shift.full': "Тўлиқ смена (1)",
+    'daily.shift.full': 'Тўлиқ смена (1)',
     'daily.shift.half': 'Ярим смена (0.5)',
     'daily.employee': 'Ходим',
     'daily.direction': 'Йўналиш',
@@ -247,7 +232,6 @@ const TRANSLATIONS = {
     'daily.emptyUnassigned': 'Бириктирилмаган ходим йўқ',
     'daily.unassign': 'Бекор қилиш',
 
-    // Monthly Report
     'month.title': 'Ойлик Ҳисобот',
     'month.startDate': 'Бошланиш санаси',
     'month.endDate': 'Тугаш санаси',
@@ -261,25 +245,22 @@ const TRANSLATIONS = {
     'month.totalShifts': 'Жами сменалар',
     'month.empty': 'Бу даврда маълумот йўқ',
 
-    // Archive
     'archive.title': 'Архив',
     'archive.empty': 'Архивда ҳеч нарса йўқ',
     'archive.period': 'Давр',
     'archive.archivedAt': 'Архивланган вақт',
     'archive.view': 'Кўриш',
 
-    // Messages
     'msg.saved': 'Сақланди',
     'msg.deleted': 'Ўчирилди',
     'msg.suspended': 'Бизнес тўхтатилди',
     'msg.activated': 'Бизнес фаоллаштирилди',
-    'msg.loginWrong': "Логин ёки парол нотўғри",
+    'msg.loginWrong': 'Логин ёки парол нотўғри',
     'msg.tooMany': 'Жуда кўп уриниш, кутинг',
     'msg.error': 'Хато юз берди',
   },
 
   'ru': {
-    // Common
     'common.loading': 'Загрузка...',
     'common.save': 'Сохранить',
     'common.cancel': 'Отмена',
@@ -314,14 +295,12 @@ const TRANSLATIONS = {
     'common.error': 'Ошибка',
     'common.success': 'Успешно',
 
-    // Login
     'login.username': 'Username',
     'login.password': 'Пароль',
     'login.signIn': 'Войти',
     'login.signingIn': 'Вход...',
     'login.welcome': 'Добро пожаловать!',
 
-    // Sidebar
     'nav.management': 'Управление',
     'nav.modules': 'Разделы',
     'nav.businesses': 'Бизнесы',
@@ -331,7 +310,6 @@ const TRANSLATIONS = {
     'nav.monthlyReport': 'Месячный отчёт',
     'nav.archive': 'Архив',
 
-    // Employees
     'emp.title': 'Сотрудники',
     'emp.add': 'Добавить сотрудника',
     'emp.edit': 'Редактировать сотрудника',
@@ -348,7 +326,6 @@ const TRANSLATIONS = {
     'emp.table.code': 'Код',
     'emp.table.phone': 'Телефон',
 
-    // Directions
     'dir.title': 'Направления',
     'dir.add': 'Добавить направление',
     'dir.edit': 'Редактировать направление',
@@ -363,7 +340,6 @@ const TRANSLATIONS = {
     'dir.table.type': 'Тип',
     'dir.table.price': 'Ежедневная цена',
 
-    // Daily Report
     'daily.title': 'Ежедневный отчёт',
     'daily.assigned': 'Закреплённые сотрудники',
     'daily.unassigned': 'Незакреплённые сотрудники',
@@ -384,7 +360,6 @@ const TRANSLATIONS = {
     'daily.emptyUnassigned': 'Нет незакреплённых сотрудников',
     'daily.unassign': 'Отменить',
 
-    // Monthly Report
     'month.title': 'Месячный отчёт',
     'month.startDate': 'Дата начала',
     'month.endDate': 'Дата окончания',
@@ -398,14 +373,12 @@ const TRANSLATIONS = {
     'month.totalShifts': 'Всего смен',
     'month.empty': 'Нет данных за этот период',
 
-    // Archive
     'archive.title': 'Архив',
     'archive.empty': 'В архиве ничего нет',
     'archive.period': 'Период',
     'archive.archivedAt': 'Время архивации',
     'archive.view': 'Просмотр',
 
-    // Messages
     'msg.saved': 'Сохранено',
     'msg.deleted': 'Удалено',
     'msg.suspended': 'Бизнес приостановлен',
@@ -433,35 +406,33 @@ function setLang(lang) {
   document.documentElement.lang = lang.startsWith('uz') ? 'uz' : 'ru';
 }
 
-function t(key) {
+// MUHIM: funksiyaga _t nom berildi — app.js dagi t() bilan konflikt qilmaydi
+function _t(key) {
   const lang = getCurrentLang();
   const dict = TRANSLATIONS[lang] || TRANSLATIONS['uz-lat'];
   return dict[key] || key;
 }
 
 function applyTranslations() {
-  // data-i18n (text content)
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.dataset.i18n;
-    el.textContent = t(key);
+    el.textContent = _t(key);
   });
 
-  // data-i18n-placeholder
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
     const key = el.dataset.i18nPlaceholder;
-    el.placeholder = t(key);
+    el.placeholder = _t(key);
   });
 
-  // data-i18n-title
   document.querySelectorAll('[data-i18n-title]').forEach(el => {
     const key = el.dataset.i18nTitle;
-    el.title = t(key);
+    el.title = _t(key);
   });
 }
 
-// Expose to window
-window.t = t;
+// Global ga qo'yish
+window.TRANSLATIONS = TRANSLATIONS;
+window._t = _t;
 window.setLang = setLang;
 window.getCurrentLang = getCurrentLang;
 window.applyTranslations = applyTranslations;
-window.TRANSLATIONS = TRANSLATIONS;
