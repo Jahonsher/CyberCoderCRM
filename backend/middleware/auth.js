@@ -1,68 +1,60 @@
 /**
- * CyberCoderCRM - Module Registry
- * Mavjud modullar ro'yxati
+ * CyberCoderCRM - Auth Middleware
+ * JWT token tekshiruv va rol
  */
 
-const MODULES = {
-  employees: {
-    key: 'employees',
-    name: 'Xodimlar',
-    nameRu: 'Сотрудники',
-    icon: 'users',
-    default: true,
-  },
-  directions: {
-    key: 'directions',
-    name: "Yo'nalishlar",
-    nameRu: 'Направления',
-    icon: 'compass',
-    default: true,
-  },
-  dailyReport: {
-    key: 'dailyReport',
-    name: 'Kunlik Hisobot',
-    nameRu: 'Ежедневный отчёт',
-    icon: 'calendar',
-    default: true,
-  },
-  monthlyReport: {
-    key: 'monthlyReport',
-    name: 'Oylik Hisobot',
-    nameRu: 'Месячный отчёт',
-    icon: 'trending-up',
-    default: true,
-  },
-  archive: {
-    key: 'archive',
-    name: 'Arxiv',
-    nameRu: 'Архив',
-    icon: 'archive',
-    default: false,
-  },
-};
+const jwt = require('jsonwebtoken');
 
-function getAllModules() {
-  return Object.values(MODULES);
+/**
+ * verifyToken - tokenni tekshiradi va req.user'ga qo'yadi
+ */
+function verifyToken(req, res, next) {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Token yo\'q' });
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    if (!token) {
+      return res.status(401).json({ error: 'Token yo\'q' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Token muddati tugagan' });
+    }
+    return res.status(401).json({ error: 'Token noto\'g\'ri' });
+  }
 }
 
-function getModule(key) {
-  return MODULES[key] || null;
+/**
+ * requireSuperAdmin - faqat SuperAdmin uchun
+ */
+function requireSuperAdmin(req, res, next) {
+  if (!req.user || req.user.role !== 'superadmin') {
+    return res.status(403).json({ error: 'Faqat SuperAdmin uchun' });
+  }
+  next();
 }
 
-function getDefaultModules() {
-  return Object.values(MODULES)
-    .filter((m) => m.default)
-    .map((m) => m.key);
-}
-
-function moduleExists(key) {
-  return !!MODULES[key];
+/**
+ * requireAdmin - faqat Admin (biznes) uchun
+ */
+function requireAdmin(req, res, next) {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Faqat Admin uchun' });
+  }
+  next();
 }
 
 module.exports = {
-  MODULES,
-  getAllModules,
-  getModule,
-  getDefaultModules,
-  moduleExists,
+  verifyToken,
+  requireSuperAdmin,
+  requireAdmin,
 };
