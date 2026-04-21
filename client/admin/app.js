@@ -168,7 +168,19 @@ function setupLangSwitchers() {
         window.setLang(lang);
       }
       updateLangButtonsActive();
-      // Refresh current page content
+
+      // Sidebar ni qayta chizish (modul nomlari til bilan)
+      if (state.business && state.business.enabledModules) {
+        buildSidebar(state.business.enabledModules, state.business.modulesInfo || []);
+        // Active nav item ni qaytarish
+        if (state.currentPage) {
+          document.querySelectorAll('[data-page]').forEach(el => {
+            el.classList.toggle('active', el.dataset.page === state.currentPage);
+          });
+        }
+      }
+
+      // Joriy sahifani qayta chizish
       if (state.currentPage) {
         navigateTo(state.currentPage);
       } else {
