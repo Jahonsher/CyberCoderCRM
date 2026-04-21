@@ -21,12 +21,19 @@ router.post('/login', async (req, res) => {
     }
 
     const usernameLower = String(username).trim().toLowerCase();
+    const passwordStr = String(password);
     console.log(`🔐 Login urinishi: ${usernameLower}`);
 
+    // ========== SUPERADMIN ==========
     const superAdmin = await SuperAdmin.findOne({ username: usernameLower });
 
     if (superAdmin) {
-      const isMatch = await bcrypt.compare(password, superAdmin.password);
+      if (!superAdmin.password) {
+        console.log(`❌ SuperAdmin paroli yo'q DB'da`);
+        return res.status(500).json({ success: false, error: "Server konfiguratsiya xatosi" });
+      }
+
+      const isMatch = await bcrypt.compare(passwordStr, superAdmin.password);
       if (!isMatch) {
         console.log(`❌ SuperAdmin parol xato`);
         return res.status(401).json({ success: false, error: "Login yoki parol noto'g'ri" });
@@ -45,6 +52,7 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    // ========== BUSINESS ADMIN ==========
     const business = await Business.findOne({ login: usernameLower });
 
     if (!business) {
@@ -52,11 +60,20 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ success: false, error: "Login yoki parol noto'g'ri" });
     }
 
+    // PASSWORD TEKSHIRUVI (himoya)
+    if (!business.password) {
+      console.log(`❌ Biznesning paroli DB'da yo'q: ${usernameLower}`);
+      return res.status(500).json({
+        success: false,
+        error: "Biznes parol noto'g'ri saqlangan. SuperAdmin orqali yangilang."
+      });
+    }
+
     if (business.status === 'suspended') {
       return res.status(403).json({ success: false, error: "Biznes to'xtatilgan" });
     }
 
-    const isMatch = await bcrypt.compare(password, business.password);
+    const isMatch = await bcrypt.compare(passwordStr, business.password);
     if (!isMatch) {
       console.log(`❌ Admin parol xato`);
       return res.status(401).json({ success: false, error: "Login yoki parol noto'g'ri" });
@@ -83,7 +100,7 @@ router.post('/login', async (req, res) => {
       }
     });
   } catch (err) {
-    console.error('Login xatosi:', err);
+    console.error('❌ Login xatosi:', err);
     return res.status(500).json({ success: false, error: "Server xatosi" });
   }
 });
