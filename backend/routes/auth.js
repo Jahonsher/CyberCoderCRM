@@ -25,7 +25,8 @@ router.post('/login', async (req, res) => {
     console.log(`🔐 Login urinishi: ${usernameLower}`);
 
     // ========== SUPERADMIN ==========
-    const superAdmin = await SuperAdmin.findOne({ username: usernameLower });
+    // +password orqali parolni ham olish (kafolat uchun)
+    const superAdmin = await SuperAdmin.findOne({ username: usernameLower }).select('+password');
 
     if (superAdmin) {
       if (!superAdmin.password) {
@@ -53,14 +54,17 @@ router.post('/login', async (req, res) => {
     }
 
     // ========== BUSINESS ADMIN ==========
-    const business = await Business.findOne({ login: usernameLower });
+    // +password orqali parolni ham olish (MUHIM!)
+    const business = await Business.findOne({ login: usernameLower }).select('+password');
 
     if (!business) {
       console.log(`❌ Biznes topilmadi: ${usernameLower}`);
       return res.status(401).json({ success: false, error: "Login yoki parol noto'g'ri" });
     }
 
-    // PASSWORD TEKSHIRUVI (himoya)
+    // Debug: password borligini tekshirish
+    console.log(`   Password mavjud: ${!!business.password}, uzunlik: ${business.password?.length || 0}`);
+
     if (!business.password) {
       console.log(`❌ Biznesning paroli DB'da yo'q: ${usernameLower}`);
       return res.status(500).json({
