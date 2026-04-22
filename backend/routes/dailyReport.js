@@ -153,6 +153,38 @@ router.post('/assign', async (req, res) => {
   }
 });
 
+/**
+ * PUT /api/daily-report/assign/:id/earning
+ * Biriktirilgan xodimning daromadini qo'lda o'zgartirish
+ */
+router.put('/assign/:id/earning', async (req, res) => {
+  try {
+    const { earning } = req.body;
+    const earningNum = Number(earning);
+
+    if (isNaN(earningNum) || earningNum < 0) {
+      return res.status(400).json({ error: 'Narx noto\'g\'ri' });
+    }
+
+    const assignment = await DailyAssignment.findOne({
+      _id: req.params.id,
+      businessId: req.businessId,
+    });
+
+    if (!assignment) {
+      return res.status(404).json({ error: 'Topilmadi' });
+    }
+
+    assignment.earning = earningNum;
+    await assignment.save();
+
+    res.json(assignment);
+  } catch (err) {
+    console.error('Earning update xato:', err);
+    res.status(500).json({ error: 'Server xatosi' });
+  }
+});
+
 router.delete('/assign/:id', async (req, res) => {
   try {
     const result = await DailyAssignment.findOneAndDelete({

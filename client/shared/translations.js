@@ -130,6 +130,12 @@ const TRANSLATIONS = {
     'msg.loginWrong': "Login yoki parol noto'g'ri",
     'msg.tooMany': "Juda ko'p urinish, kuting",
     'msg.error': 'Xato yuz berdi',
+
+    'theme.light': 'Light Mode',
+    'theme.dark': 'Dark Mode',
+
+    'daily.editEarning': 'Narxni tahrirlash',
+    'daily.earningHint': "Qo'lda kiritishingiz mumkin",
   },
 
   'uz-cyr': {
@@ -258,6 +264,12 @@ const TRANSLATIONS = {
     'msg.loginWrong': 'Логин ёки парол нотўғри',
     'msg.tooMany': 'Жуда кўп уриниш, кутинг',
     'msg.error': 'Хато юз берди',
+
+    'theme.light': 'Ёруғ режим',
+    'theme.dark': 'Қоронғи режим',
+
+    'daily.editEarning': 'Нархни таҳрирлаш',
+    'daily.earningHint': "Қўлда киритишингиз мумкин",
   },
 
   'ru': {
@@ -386,6 +398,12 @@ const TRANSLATIONS = {
     'msg.loginWrong': 'Неверный логин или пароль',
     'msg.tooMany': 'Слишком много попыток, подождите',
     'msg.error': 'Произошла ошибка',
+
+    'theme.light': 'Светлый режим',
+    'theme.dark': 'Тёмный режим',
+
+    'daily.editEarning': 'Редактировать доход',
+    'daily.earningHint': 'Можно ввести вручную',
   },
 };
 

@@ -143,6 +143,60 @@ function t(key) {
 }
 
 // ============================================
+// THEME MANAGEMENT (Dark/Light)
+// ============================================
+
+const THEME_KEY = 'cc_theme';
+
+function getCurrentTheme() {
+  return localStorage.getItem(THEME_KEY) || 'dark';
+}
+
+function setTheme(theme) {
+  localStorage.setItem(THEME_KEY, theme);
+  document.documentElement.setAttribute('data-theme', theme);
+  updateThemeButton();
+}
+
+function toggleTheme() {
+  const current = getCurrentTheme();
+  const newTheme = current === 'dark' ? 'light' : 'dark';
+  setTheme(newTheme);
+}
+
+function updateThemeButton() {
+  const theme = getCurrentTheme();
+  const iconDark = document.getElementById('themeIconDark');
+  const iconLight = document.getElementById('themeIconLight');
+  const text = document.getElementById('themeText');
+
+  if (!iconDark || !iconLight || !text) return;
+
+  if (theme === 'dark') {
+    // Dark mode - show sun icon (click to go light)
+    iconDark.classList.remove('hidden');
+    iconLight.classList.add('hidden');
+    text.textContent = t('theme.light');
+  } else {
+    // Light mode - show moon icon (click to go dark)
+    iconDark.classList.add('hidden');
+    iconLight.classList.remove('hidden');
+    text.textContent = t('theme.dark');
+  }
+}
+
+function setupThemeToggle() {
+  const btn = document.getElementById('themeToggle');
+  if (btn) {
+    btn.addEventListener('click', toggleTheme);
+  }
+
+  // Dastlab saqlangan theme'ni tatbiq qilish
+  setTheme(getCurrentTheme());
+}
+
+
+// ============================================
 // VIEW SWITCHER
 // ============================================
 
@@ -168,6 +222,7 @@ function setupLangSwitchers() {
         window.setLang(lang);
       }
       updateLangButtonsActive();
+      updateThemeButton();  // Theme button text til bilan
 
       // Sidebar ni qayta chizish (modul nomlari til bilan)
       if (state.business && state.business.enabledModules) {
@@ -454,7 +509,6 @@ function renderEmployees(employees) {
         <thead>
           <tr>
             <th>${t('emp.table.name')}</th>
-            <th>${t('emp.table.lastName')}</th>
             <th>${t('emp.table.code')}</th>
             <th>${t('emp.table.phone')}</th>
             <th class="text-right">${t('common.actions')}</th>
@@ -464,7 +518,6 @@ function renderEmployees(employees) {
           ${employees.map(e => `
             <tr>
               <td class="font-medium">${escapeHtml(e.firstName)}</td>
-              <td>${escapeHtml(e.lastName)}</td>
               <td><span class="mono text-xs px-2 py-1 rounded bg-purple-500/10 border border-purple-500/20 text-purple-300">${escapeHtml(e.code)}</span></td>
               <td class="mono text-sm text-zinc-400">${escapeHtml(e.phone || '—')}</td>
               <td class="text-right whitespace-nowrap">
@@ -474,7 +527,7 @@ function renderEmployees(employees) {
                     <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
                   </svg>
                 </button>
-                <button type="button" data-act="emp-delete" data-id="${e._id}" data-name="${escapeHtml(e.firstName + ' ' + e.lastName)}" class="btn-icon danger ml-1" title="${t('common.delete')}">
+                <button type="button" data-act="emp-delete" data-id="${e._id}" data-name="${escapeHtml(e.firstName)}" class="btn-icon danger ml-1" title="${t('common.delete')}">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="3 6 5 6 21 6"/>
                     <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/>
@@ -521,7 +574,7 @@ function setupEmployeesPage() {
 
     const body = {
       firstName: document.getElementById('empFirstName').value.trim(),
-      lastName: document.getElementById('empLastName').value.trim(),
+      lastName: document.getElementById('empLastName').value.trim() || '-',
       code: document.getElementById('empCode').value.trim(),
       phone: document.getElementById('empPhone').value.trim(),
     };
@@ -556,7 +609,8 @@ function openEmpEdit(id) {
   document.getElementById('empEditingId').value = id;
   document.getElementById('empModalTitle').textContent = t('emp.edit');
   document.getElementById('empFirstName').value = emp.firstName || '';
-  document.getElementById('empLastName').value = emp.lastName || '';
+  // lastName hidden - eski qiymat saqlanadi
+  document.getElementById('empLastName').value = emp.lastName || '-';
   document.getElementById('empCode').value = emp.code || '';
   document.getElementById('empPhone').value = emp.phone || '';
   openModal('empModal');
@@ -770,27 +824,39 @@ function renderDailyReport(data) {
     assignedEl.innerHTML = `<div class="space-y-2">${data.assigned.map(a => `
       <div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-purple-500/5 border border-purple-500/10">
         <div class="flex-1 min-w-0">
-          <div class="font-medium text-sm truncate">${escapeHtml(a.employeeSnapshot.firstName)} ${escapeHtml(a.employeeSnapshot.lastName)}</div>
+          <div class="font-medium text-sm truncate">${escapeHtml(a.employeeSnapshot.firstName)}${a.employeeSnapshot.lastName && a.employeeSnapshot.lastName !== '-' ? ' ' + escapeHtml(a.employeeSnapshot.lastName) : ''}</div>
           <div class="mono text-xs text-zinc-500 mt-0.5 truncate">
             <span class="text-purple-300">${escapeHtml(a.employeeSnapshot.code)}</span>
             · ${escapeHtml(a.directionSnapshot.name)}
             · ${a.shift === 0.5 ? '½' : '1'}
           </div>
         </div>
-        <div class="text-right shrink-0">
-          <div class="mono text-sm font-semibold text-emerald-400">${formatMoney(a.earning)}</div>
+        <div class="flex items-center gap-1 shrink-0">
+          <div class="text-right mr-1">
+            <div class="mono text-sm font-semibold text-emerald-400">${formatMoney(a.earning)}</div>
+          </div>
+          <button type="button" data-act="edit-earning" data-id="${a._id}" class="btn-icon" title="${t('daily.editEarning')}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+          <button type="button" data-act="unassign" data-id="${a._id}" class="btn-icon danger">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
         </div>
-        <button type="button" data-act="unassign" data-id="${a._id}" class="btn-icon danger">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"/>
-            <line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
       </div>
     `).join('')}</div>`;
 
     assignedEl.querySelectorAll('[data-act="unassign"]').forEach(btn => {
       btn.addEventListener('click', () => unassignEmployee(btn.dataset.id));
+    });
+
+    assignedEl.querySelectorAll('[data-act="edit-earning"]').forEach(btn => {
+      btn.addEventListener('click', () => openEarningEditModal(btn.dataset.id));
     });
   }
 
@@ -988,6 +1054,64 @@ function openProductEdit(id) {
   openModal('productModal');
 }
 
+
+// ============================================
+// EARNING EDIT (3-talab: qo'lda narx tahrirlash)
+// ============================================
+
+function openEarningEditModal(assignmentId) {
+  const assignment = state.dailyData?.assigned.find(a => a._id === assignmentId);
+  if (!assignment) return;
+
+  const fullName = assignment.employeeSnapshot.firstName +
+    (assignment.employeeSnapshot.lastName && assignment.employeeSnapshot.lastName !== '-'
+      ? ' ' + assignment.employeeSnapshot.lastName : '');
+
+  document.getElementById('earningAssignmentId').value = assignmentId;
+  document.getElementById('earningEmployeeName').textContent = `${fullName} (${assignment.employeeSnapshot.code})`;
+  document.getElementById('earningDirectionName').textContent = assignment.directionSnapshot.name;
+  document.getElementById('earningAmount').value = assignment.earning;
+  openModal('earningModal');
+}
+
+function setupEarningEdit() {
+  const form = document.getElementById('earningForm');
+  if (!form) return;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const btn = document.getElementById('earningSubmitBtn');
+    const spinner = document.getElementById('earningSubmitSpinner');
+
+    const assignmentId = document.getElementById('earningAssignmentId').value;
+    const earning = Number(document.getElementById('earningAmount').value);
+
+    if (isNaN(earning) || earning < 0) {
+      toast(t('msg.error'), 'error');
+      return;
+    }
+
+    btn.disabled = true;
+    spinner.classList.remove('hidden');
+
+    try {
+      await api(`/api/daily-report/assign/${assignmentId}/earning`, {
+        method: 'PUT',
+        body: JSON.stringify({ earning }),
+      });
+      toast(t('msg.saved'), 'success');
+      closeModal('earningModal');
+      loadDailyReport();
+    } catch (err) {
+      toast(err.message || t('msg.error'), 'error');
+    } finally {
+      btn.disabled = false;
+      spinner.classList.add('hidden');
+    }
+  });
+}
+
 function confirmDeleteProduct(id) {
   openConfirm(
     t('common.delete'),
@@ -1117,7 +1241,7 @@ function renderMonthlyReport(data) {
         <tbody>
           ${data.employees.map(e => `
             <tr>
-              <td class="font-medium">${escapeHtml(e.firstName)} ${escapeHtml(e.lastName)}</td>
+              <td class="font-medium">${escapeHtml(e.firstName)}${e.lastName && e.lastName !== '-' ? ' ' + escapeHtml(e.lastName) : ''}</td>
               <td><span class="mono text-xs px-2 py-1 rounded bg-purple-500/10 border border-purple-500/20 text-purple-300">${escapeHtml(e.code)}</span></td>
               <td class="mono">${e.totalDays}</td>
               <td class="mono">${e.totalShifts}</td>
@@ -1215,7 +1339,7 @@ function setupModalCloseButtons() {
     btn.addEventListener('click', () => closeModal(btn.dataset.close));
   });
 
-  ['empModal', 'dirModal', 'assignModal', 'productModal', 'confirmModal'].forEach(id => {
+  ['empModal', 'dirModal', 'assignModal', 'productModal', 'confirmModal', 'earningModal'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
       el.addEventListener('click', (e) => {
@@ -1226,7 +1350,7 @@ function setupModalCloseButtons() {
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      ['empModal', 'dirModal', 'assignModal', 'productModal', 'confirmModal'].forEach(id => {
+      ['empModal', 'dirModal', 'assignModal', 'productModal', 'confirmModal', 'earningModal'].forEach(id => {
         const el = document.getElementById(id);
         if (el && !el.classList.contains('hidden')) closeModal(id);
       });
@@ -1327,6 +1451,7 @@ async function initApp() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  setupThemeToggle();  // Theme birinchi navbatda
   setupLangSwitchers();
   setupLogin();
   setupSidebar();
@@ -1336,6 +1461,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupDirectionsPage();
   setupDailyReportPage();
   setupMonthlyReportPage();
+  setupEarningEdit();  // 3-talab
 
   applyStaticTranslations();
 

@@ -32,6 +32,55 @@ const state = {
 };
 
 // ============================================
+// THEME MANAGEMENT (Dark/Light)
+// ============================================
+const THEME_KEY = 'cc_theme';
+
+function getCurrentTheme() {
+  return localStorage.getItem(THEME_KEY) || 'dark';
+}
+
+function setTheme(theme) {
+  localStorage.setItem(THEME_KEY, theme);
+  document.documentElement.setAttribute('data-theme', theme);
+  updateThemeButton();
+}
+
+function toggleTheme() {
+  const current = getCurrentTheme();
+  setTheme(current === 'dark' ? 'light' : 'dark');
+}
+
+function updateThemeButton() {
+  const theme = getCurrentTheme();
+  const iconDark = document.getElementById('themeIconDark');
+  const iconLight = document.getElementById('themeIconLight');
+  const text = document.getElementById('themeText');
+
+  if (!iconDark || !iconLight || !text) return;
+
+  if (theme === 'dark') {
+    iconDark.classList.remove('hidden');
+    iconLight.classList.add('hidden');
+    text.textContent = 'Light Mode';
+  } else {
+    iconDark.classList.add('hidden');
+    iconLight.classList.remove('hidden');
+    text.textContent = 'Dark Mode';
+  }
+}
+
+function setupThemeToggle() {
+  const btn = document.getElementById('themeToggle');
+  if (btn) {
+    btn.addEventListener('click', toggleTheme);
+  }
+  setTheme(getCurrentTheme());
+}
+
+
+
+// ============================================
 // UTILS
 // ============================================
 
@@ -748,6 +797,7 @@ async function initApp() {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', () => {
+  setupThemeToggle();
   setupLogin();
   setupSidebar();
   setupSearch();
