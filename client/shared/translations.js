@@ -136,6 +136,41 @@ const TRANSLATIONS = {
 
     'daily.editEarning': 'Narxni tahrirlash',
     'daily.earningHint': "Qo'lda kiritishingiz mumkin",
+
+    // Departments
+    'dept.title': "Bo'limlar",
+    'dept.add': "Bo'lim qo'shish",
+    'dept.edit': "Bo'limni tahrirlash",
+    'dept.name': "Bo'lim nomi",
+    'dept.description': 'Tavsif (ixtiyoriy)',
+    'dept.select': "Bo'lim",
+    'dept.empty': "Bo'limlar yo'q",
+    'dept.emptyHint': "Yo'nalish qo'shish uchun avval bo'lim yarating",
+    'dept.selectFirst': "Bo'limni tanlang",
+    'dept.directionCount': 'ta yo\'nalish',
+    'dept.deleteConfirm': "Bo'limni o'chirish?",
+    'dept.deleteWarn': "Bu bo'limdagi barcha yo'nalishlar ham arxivlanadi.",
+    'dir.selectDept': "Yo'nalishlarni ko'rish uchun bo'limni tanlang",
+    'dir.noDept': "Bo'lim tanlanmagan",
+
+    // Daily calendar
+    'daily.selectDate': 'Sana tanlang',
+    'daily.datePrev': 'Oldingi',
+    'daily.dateNext': 'Keyingi',
+    'daily.dateToday': 'Bugun',
+
+    // Monthly pay
+    'month.selectAll': 'Hammasini tanlash',
+    'month.deselectAll': 'Tanlashni bekor qilish',
+    'month.payBtn': 'Oylik berish',
+    'month.paidBadge': "To'langan",
+    'month.unpaidBadge': "To'lanmagan",
+    'month.payConfirm': 'tanlangan xodimlarga oylik berilsinmi?',
+    'month.paySuccess': 'Oylik berildi',
+    'month.alreadyPaid': 'Allaqachon to\'langan',
+    'month.noEarning': 'Daromad yo\'q',
+    'month.viewDetails': 'Batafsil',
+    'month.dayDetails': 'Kunlik ma\'lumot',
   },
 
   'uz-cyr': {
@@ -270,6 +305,38 @@ const TRANSLATIONS = {
 
     'daily.editEarning': 'Нархни таҳрирлаш',
     'daily.earningHint': "Қўлда киритишингиз мумкин",
+
+    'dept.title': 'Бўлимлар',
+    'dept.add': 'Бўлим қўшиш',
+    'dept.edit': 'Бўлимни таҳрирлаш',
+    'dept.name': 'Бўлим номи',
+    'dept.description': 'Тавсиф (ихтиёрий)',
+    'dept.select': 'Бўлим',
+    'dept.empty': 'Бўлимлар йўқ',
+    'dept.emptyHint': 'Йўналиш қўшиш учун аввал бўлим яратинг',
+    'dept.selectFirst': 'Бўлимни танланг',
+    'dept.directionCount': 'та йўналиш',
+    'dept.deleteConfirm': 'Бўлимни ўчириш?',
+    'dept.deleteWarn': 'Бу бўлимдаги барча йўналишлар ҳам архивланади.',
+    'dir.selectDept': 'Йўналишларни кўриш учун бўлимни танланг',
+    'dir.noDept': 'Бўлим танланмаган',
+
+    'daily.selectDate': 'Сана танланг',
+    'daily.datePrev': 'Олдинги',
+    'daily.dateNext': 'Кейинги',
+    'daily.dateToday': 'Бугун',
+
+    'month.selectAll': 'Ҳаммасини танлаш',
+    'month.deselectAll': 'Танлашни бекор қилиш',
+    'month.payBtn': 'Ойлик бериш',
+    'month.paidBadge': 'Тўланган',
+    'month.unpaidBadge': 'Тўланмаган',
+    'month.payConfirm': 'танланган ходимларга ойлик берилсинми?',
+    'month.paySuccess': 'Ойлик берилди',
+    'month.alreadyPaid': 'Аллақачон тўланган',
+    'month.noEarning': 'Даромад йўқ',
+    'month.viewDetails': 'Батафсил',
+    'month.dayDetails': 'Кунлик маълумот',
   },
 
   'ru': {
@@ -404,6 +471,38 @@ const TRANSLATIONS = {
 
     'daily.editEarning': 'Редактировать доход',
     'daily.earningHint': 'Можно ввести вручную',
+
+    'dept.title': 'Отделы',
+    'dept.add': 'Добавить отдел',
+    'dept.edit': 'Редактировать отдел',
+    'dept.name': 'Название отдела',
+    'dept.description': 'Описание (необязательно)',
+    'dept.select': 'Отдел',
+    'dept.empty': 'Нет отделов',
+    'dept.emptyHint': 'Создайте отдел, чтобы добавлять направления',
+    'dept.selectFirst': 'Выберите отдел',
+    'dept.directionCount': 'направлений',
+    'dept.deleteConfirm': 'Удалить отдел?',
+    'dept.deleteWarn': 'Все направления в этом отделе будут архивированы.',
+    'dir.selectDept': 'Выберите отдел для просмотра направлений',
+    'dir.noDept': 'Отдел не выбран',
+
+    'daily.selectDate': 'Выберите дату',
+    'daily.datePrev': 'Предыдущий',
+    'daily.dateNext': 'Следующий',
+    'daily.dateToday': 'Сегодня',
+
+    'month.selectAll': 'Выбрать все',
+    'month.deselectAll': 'Отменить выбор',
+    'month.payBtn': 'Выплатить зарплату',
+    'month.paidBadge': 'Выплачено',
+    'month.unpaidBadge': 'Не выплачено',
+    'month.payConfirm': 'выплатить зарплату выбранным сотрудникам?',
+    'month.paySuccess': 'Зарплата выплачена',
+    'month.alreadyPaid': 'Уже выплачено',
+    'month.noEarning': 'Нет дохода',
+    'month.viewDetails': 'Подробнее',
+    'month.dayDetails': 'Детали по дням',
   },
 };
 

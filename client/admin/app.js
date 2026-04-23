@@ -44,12 +44,17 @@ const state = {
 
   employees: [],
   directions: [],
+  departments: [],
+  selectedDepartmentId: null,
   dailyData: null,
+  dailyDate: null,
   monthData: null,
+  monthSelected: new Set(),
   archives: [],
 
   editingEmpId: null,
   editingDirId: null,
+  editingDeptId: null,
   editingProductId: null,
 };
 
@@ -457,7 +462,7 @@ function navigateTo(pageKey) {
   // Load page data
   switch (pageKey) {
     case 'employees': loadEmployees(); break;
-    case 'directions': loadDirections(); break;
+    case 'directions': loadDepartments(); break;
     case 'dailyReport': loadDailyReport(); break;
     case 'monthlyReport': initMonthlyReport(); break;
     case 'archive': loadArchive(); break;
@@ -636,12 +641,20 @@ function confirmDeleteEmployee(id, name) {
 // PAGE: DIRECTIONS
 // ============================================
 
-async function loadDirections() {
+async function loadDirections(departmentId) {
   const container = document.getElementById('dirTableContainer');
+  const dirSection = document.getElementById('directionsSection');
+
+  if (!departmentId) {
+    dirSection.classList.add('hidden');
+    return;
+  }
+
+  dirSection.classList.remove('hidden');
   container.innerHTML = '<div class="p-6"><div class="skeleton h-32"></div></div>';
 
   try {
-    const directions = await api('/api/directions');
+    const directions = await api(`/api/directions?departmentId=${departmentId}`);
     if (!directions) return;
     state.directions = directions;
     renderDirections(directions);
@@ -650,8 +663,124 @@ async function loadDirections() {
   }
 }
 
+async function loadDepartments() {
+  const container = document.getElementById('departmentsContainer');
+  container.innerHTML = '<div class="skeleton h-24"></div>';
+
+  try {
+    const departments = await api('/api/departments');
+    if (!departments) return;
+    state.departments = departments;
+    renderDepartments(departments);
+
+    // Default - birinchi bo'limni tanlash
+    if (departments.length > 0 && !state.selectedDepartmentId) {
+      selectDepartment(departments[0]._id);
+    } else if (state.selectedDepartmentId) {
+      // Tanlangan bo'lim bor bo'lsa, qayta ko'rsatish
+      selectDepartment(state.selectedDepartmentId);
+    }
+  } catch (err) {
+    container.innerHTML = `<div class="text-center text-red-400 p-6">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function renderDepartments(departments) {
+  const container = document.getElementById('departmentsContainer');
+
+  if (departments.length === 0) {
+    container.innerHTML = `
+      <div class="card p-8 text-center">
+        <div class="inline-flex w-14 h-14 rounded-xl bg-purple-500/10 border border-purple-500/20 items-center justify-center mb-3">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-purple-400">
+            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+          </svg>
+        </div>
+        <h3 class="font-bold mb-1">${t('dept.empty')}</h3>
+        <p class="text-sm text-zinc-500">${t('dept.emptyHint')}</p>
+      </div>
+    `;
+    document.getElementById('directionsSection').classList.add('hidden');
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      ${departments.map(d => `
+        <div class="dept-card ${state.selectedDepartmentId === d._id ? 'selected' : ''}" data-dept-id="${d._id}">
+          <div class="dept-card-actions">
+            <button type="button" data-act="dept-edit" data-id="${d._id}" class="btn-icon" title="${t('common.edit')}">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </button>
+            <button type="button" data-act="dept-delete" data-id="${d._id}" data-name="${escapeHtml(d.name)}" class="btn-icon danger" title="${t('common.delete')}">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/>
+              </svg>
+            </button>
+          </div>
+          <div class="font-bold text-base pr-16 truncate">${escapeHtml(d.name)}</div>
+          <div class="mono text-xs text-zinc-500 mt-1">${d.directionCount || 0} ${t('dept.directionCount')}</div>
+          ${d.description ? `<div class="text-xs text-zinc-500 mt-2 line-clamp-2">${escapeHtml(d.description)}</div>` : ''}
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  // Click handlers
+  container.querySelectorAll('.dept-card').forEach(card => {
+    card.addEventListener('click', (e) => {
+      // Actions tugmalarga bosilganda bo'lim tanlanmasin
+      if (e.target.closest('[data-act]')) return;
+      const deptId = card.dataset.deptId;
+      selectDepartment(deptId);
+    });
+  });
+
+  container.querySelectorAll('[data-act]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const act = btn.dataset.act;
+      const id = btn.dataset.id;
+      if (act === 'dept-edit') openDeptEdit(id);
+      else if (act === 'dept-delete') confirmDeleteDept(id, btn.dataset.name);
+    });
+  });
+}
+
+function selectDepartment(deptId) {
+  state.selectedDepartmentId = deptId;
+  const dept = state.departments.find(d => d._id === deptId);
+
+  // Update active card
+  document.querySelectorAll('.dept-card').forEach(c => {
+    c.classList.toggle('selected', c.dataset.deptId === deptId);
+  });
+
+  // Update title
+  if (dept) {
+    document.getElementById('currentDeptName').textContent = dept.name;
+    document.getElementById('currentDeptHint').textContent = `${dept.directionCount || 0} ${t('dept.directionCount')}`;
+  }
+
+  // Load directions
+  loadDirections(deptId);
+}
+
 function renderDirections(directions) {
   const container = document.getElementById('dirTableContainer');
+
+  if (!state.selectedDepartmentId) {
+    container.innerHTML = `
+      <div class="p-10 text-center text-zinc-500">
+        <p class="text-sm">${t('dir.selectDept')}</p>
+      </div>
+    `;
+    return;
+  }
 
   if (directions.length === 0) {
     container.innerHTML = `
@@ -716,12 +845,74 @@ function renderDirections(directions) {
 }
 
 function setupDirectionsPage() {
+  // Department add button
+  const deptAddBtn = document.getElementById('deptAddBtn');
+  if (deptAddBtn) {
+    deptAddBtn.addEventListener('click', () => {
+      state.editingDeptId = null;
+      document.getElementById('deptForm').reset();
+      document.getElementById('deptEditingId').value = '';
+      document.getElementById('deptModalTitle').textContent = t('dept.add');
+      openModal('deptModal');
+    });
+  }
+
+  // Department form submit
+  const deptForm = document.getElementById('deptForm');
+  if (deptForm) {
+    deptForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const btn = document.getElementById('deptSubmitBtn');
+      const spinner = document.getElementById('deptSubmitSpinner');
+
+      const body = {
+        name: document.getElementById('deptName').value.trim(),
+        description: document.getElementById('deptDescription').value.trim(),
+      };
+
+      btn.disabled = true;
+      spinner.classList.remove('hidden');
+
+      try {
+        if (state.editingDeptId) {
+          await api(`/api/departments/${state.editingDeptId}`, {
+            method: 'PUT', body: JSON.stringify(body)
+          });
+        } else {
+          await api('/api/departments', {
+            method: 'POST', body: JSON.stringify(body)
+          });
+        }
+
+        toast(t('msg.saved'), 'success');
+        closeModal('deptModal');
+        loadDepartments();
+      } catch (err) {
+        toast(err.message || t('msg.error'), 'error');
+      } finally {
+        btn.disabled = false;
+        spinner.classList.add('hidden');
+      }
+    });
+  }
+
+  // Direction add
   document.getElementById('dirAddBtn').addEventListener('click', () => {
+    if (!state.selectedDepartmentId) {
+      toast(t('dept.selectFirst'), 'error');
+      return;
+    }
+
     state.editingDirId = null;
     document.getElementById('dirForm').reset();
     document.getElementById('dirEditingId').value = '';
     document.getElementById('dirModalTitle').textContent = t('dir.add');
     document.getElementById('dirPriceWarning').classList.add('hidden');
+
+    // Department dropdown to'ldirish
+    fillDepartmentSelect('dirDepartment', state.selectedDepartmentId);
+
     openModal('dirModal');
   });
 
@@ -743,6 +934,7 @@ function setupDirectionsPage() {
     const body = {
       name: document.getElementById('dirName').value.trim(),
       currentPrice: Number(document.getElementById('dirPrice').value),
+      departmentId: document.getElementById('dirDepartment').value,
     };
 
     btn.disabled = true;
@@ -776,7 +968,64 @@ function openDirEdit(id) {
   document.getElementById('dirName').value = dir.name || '';
   document.getElementById('dirPrice').value = dir.currentPrice || 0;
   document.getElementById('dirPriceWarning').classList.add('hidden');
+
+  // Department dropdown
+  const deptId = dir.departmentId?._id || dir.departmentId || state.selectedDepartmentId;
+  fillDepartmentSelect('dirDepartment', deptId);
+
   openModal('dirModal');
+}
+
+// ============================================
+// DEPARTMENT HELPER FUNCTIONS
+// ============================================
+
+function fillDepartmentSelect(selectId, selectedId) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+  select.innerHTML = '<option value="">—</option>' +
+    state.departments.map(d =>
+      `<option value="${d._id}" ${selectedId === d._id ? 'selected' : ''}>${escapeHtml(d.name)}</option>`
+    ).join('');
+}
+
+function openDeptEdit(id) {
+  const dept = state.departments.find(d => d._id === id);
+  if (!dept) return;
+  state.editingDeptId = id;
+  document.getElementById('deptEditingId').value = id;
+  document.getElementById('deptModalTitle').textContent = t('dept.edit');
+  document.getElementById('deptName').value = dept.name || '';
+  document.getElementById('deptDescription').value = dept.description || '';
+  openModal('deptModal');
+}
+
+function confirmDeleteDept(id, name) {
+  const dept = state.departments.find(d => d._id === id);
+  const hasDirections = dept && dept.directionCount > 0;
+
+  openConfirm(
+    t('dept.deleteConfirm'),
+    `"${name}"${hasDirections ? ` (${dept.directionCount} ${t('dept.directionCount')})` : ''} — ${t('dept.deleteWarn')}`,
+    async () => {
+      try {
+        const url = hasDirections
+          ? `/api/departments/${id}?force=true`
+          : `/api/departments/${id}`;
+        await api(url, { method: 'DELETE' });
+        toast(t('msg.deleted'), 'success');
+
+        // Agar o'chirilgan bo'lim tanlangan bo'lsa - null qilish
+        if (state.selectedDepartmentId === id) {
+          state.selectedDepartmentId = null;
+        }
+
+        loadDepartments();
+      } catch (err) {
+        toast(err.message || t('msg.error'), 'error');
+      }
+    }
+  );
 }
 
 function confirmDeleteDirection(id, name) {
@@ -952,24 +1201,62 @@ async function openAssignModal(employeeId, employeeName) {
   document.getElementById('assignEmployeeId').value = employeeId;
   document.getElementById('assignEmployeeName').textContent = employeeName;
 
-  if (state.directions.length === 0) {
+  // Departmentlarni yuklash
+  if (state.departments.length === 0) {
     try {
-      const directions = await api('/api/directions');
-      if (directions) state.directions = directions;
+      const depts = await api('/api/departments');
+      if (depts) state.departments = depts;
     } catch (err) {}
   }
 
-  const select = document.getElementById('assignDirection');
-  select.innerHTML = '<option value="">—</option>' +
-    state.directions.map(d =>
-      `<option value="${d._id}">${escapeHtml(d.name)} — ${formatMoney(d.currentPrice)}</option>`
-    ).join('');
+  // Department select
+  fillDepartmentSelect('assignDepartment', '');
 
+  // Direction select ni tozalash va disabled
+  const dirSelect = document.getElementById('assignDirection');
+  dirSelect.innerHTML = '<option value="">—</option>';
+  dirSelect.disabled = true;
+
+  // Default shift
   document.querySelector('input[name="shift"][value="1"]').checked = true;
+
   openModal('assignModal');
 }
 
+async function loadDirectionsForAssign(departmentId) {
+  const dirSelect = document.getElementById('assignDirection');
+  dirSelect.innerHTML = '<option value="">—</option>';
+
+  if (!departmentId) {
+    dirSelect.disabled = true;
+    return;
+  }
+
+  try {
+    const directions = await api(`/api/directions?departmentId=${departmentId}`);
+    if (directions && directions.length > 0) {
+      dirSelect.innerHTML = '<option value="">—</option>' +
+        directions.map(d =>
+          `<option value="${d._id}">${escapeHtml(d.name)} — ${formatMoney(d.currentPrice)}</option>`
+        ).join('');
+      dirSelect.disabled = false;
+    } else {
+      dirSelect.disabled = true;
+    }
+  } catch (err) {
+    console.error('Directions load error:', err);
+  }
+}
+
 function setupDailyReportPage() {
+  // Department change - direction yuklash
+  const deptSelect = document.getElementById('assignDepartment');
+  if (deptSelect) {
+    deptSelect.addEventListener('change', () => {
+      loadDirectionsForAssign(deptSelect.value);
+    });
+  }
+
   document.getElementById('assignForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -1339,7 +1626,7 @@ function setupModalCloseButtons() {
     btn.addEventListener('click', () => closeModal(btn.dataset.close));
   });
 
-  ['empModal', 'dirModal', 'assignModal', 'productModal', 'confirmModal', 'earningModal'].forEach(id => {
+  ['empModal', 'dirModal', 'deptModal', 'assignModal', 'productModal', 'confirmModal', 'earningModal'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
       el.addEventListener('click', (e) => {
@@ -1350,7 +1637,7 @@ function setupModalCloseButtons() {
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      ['empModal', 'dirModal', 'assignModal', 'productModal', 'confirmModal', 'earningModal'].forEach(id => {
+      ['empModal', 'dirModal', 'deptModal', 'assignModal', 'productModal', 'confirmModal', 'earningModal'].forEach(id => {
         const el = document.getElementById(id);
         if (el && !el.classList.contains('hidden')) closeModal(id);
       });

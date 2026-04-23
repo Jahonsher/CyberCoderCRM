@@ -366,7 +366,14 @@
       -webkit-backdrop-filter: blur(20px) saturate(1.4);
       border-right: 1px solid var(--glass-border);
       transition: background 0.3s ease;
+      /* Desktop: fixed o'zaro scroll */
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      max-height: 100vh;
+      overflow-y: auto;
     }
+    .sidebar::-webkit-scrollbar { width: 4px; }
 
     .nav-item {
       display: flex; align-items: center; gap: 12px;
@@ -662,6 +669,44 @@
 
     .page { display: none; }
     .page.active { display: block; }
+
+    /* Department card */
+    .dept-card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.25s;
+      position: relative;
+    }
+    .dept-card:hover {
+      border-color: rgba(139, 92, 246, 0.4);
+      transform: translateY(-2px);
+    }
+    .dept-card.selected {
+      background: rgba(139, 92, 246, 0.15);
+      border-color: #8b5cf6;
+      box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.25);
+    }
+    [data-theme="light"] .dept-card.selected {
+      background: rgba(109, 40, 217, 0.1);
+      border-color: #6d28d9;
+      box-shadow: 0 0 0 2px rgba(109, 40, 217, 0.25);
+    }
+    .dept-card-actions {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .dept-card:hover .dept-card-actions {
+      opacity: 1;
+    }
+  
   </style>
 </head>
 <body>
@@ -731,7 +776,7 @@
   <!-- ============================================== -->
   <!-- APP VIEW (SPA) -->
   <!-- ============================================== -->
-  <div id="appView" class="hidden relative z-10 min-h-screen flex w-full max-w-full">
+  <div id="appView" class="hidden relative z-10 flex w-full max-w-full" style="min-height: 100vh;">
 
     <aside id="sidebar" class="sidebar w-64 shrink-0 flex flex-col p-5">
       <div class="flex items-center gap-3 px-2 mb-8">
@@ -825,20 +870,43 @@
           </div>
         </div>
 
-        <!-- PAGE: DIRECTIONS -->
+        <!-- PAGE: DIRECTIONS (Bo'limlar + Yo'nalishlar) -->
         <div class="page" data-page="directions">
-          <div class="mb-6 flex justify-end">
-            <button id="dirAddBtn" type="button" class="btn-primary px-5 py-3 rounded-xl flex items-center gap-2 text-sm whitespace-nowrap">
+          <!-- Departments section -->
+          <div class="mb-6 flex items-center justify-between flex-wrap gap-3">
+            <h2 class="text-lg font-bold" data-i18n="dept.title">Bo'limlar</h2>
+            <button id="deptAddBtn" type="button" class="btn-primary px-5 py-3 rounded-xl flex items-center gap-2 text-sm whitespace-nowrap">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <line x1="12" y1="5" x2="12" y2="19"/>
                 <line x1="5" y1="12" x2="19" y2="12"/>
               </svg>
-              <span data-i18n="dir.add">Yo'nalish qo'shish</span>
+              <span data-i18n="dept.add">Bo'lim qo'shish</span>
             </button>
           </div>
 
-          <div class="card overflow-hidden" id="dirTableContainer">
-            <div class="p-6"><div class="skeleton h-32"></div></div>
+          <div id="departmentsContainer" class="mb-8">
+            <div class="skeleton h-24"></div>
+          </div>
+
+          <!-- Directions section (depends on selected department) -->
+          <div id="directionsSection" class="hidden">
+            <div class="mb-6 flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <h2 class="text-lg font-bold" id="currentDeptName" data-i18n="dir.title">Yo'nalishlar</h2>
+                <p class="mono text-xs text-zinc-500 mt-1" id="currentDeptHint" data-i18n="dir.selectDept">Bo'limni tanlang</p>
+              </div>
+              <button id="dirAddBtn" type="button" class="btn-primary px-5 py-3 rounded-xl flex items-center gap-2 text-sm whitespace-nowrap">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="12" y1="5" x2="12" y2="19"/>
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                <span data-i18n="dir.add">Yo'nalish qo'shish</span>
+              </button>
+            </div>
+
+            <div class="card overflow-hidden" id="dirTableContainer">
+              <div class="p-6"><div class="skeleton h-32"></div></div>
+            </div>
           </div>
         </div>
 
@@ -1007,6 +1075,38 @@
     </div>
   </div>
 
+  <!-- MODAL: Department Form -->
+  <div id="deptModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
+    <div class="modal-content w-full max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
+      <div class="p-6 border-b border-purple-500/10 flex items-center justify-between">
+        <h2 id="deptModalTitle" class="text-xl font-bold" data-i18n="dept.add">Bo'lim qo'shish</h2>
+        <button type="button" data-close="deptModal" class="btn-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <form id="deptForm" class="p-6 space-y-4">
+        <input type="hidden" id="deptEditingId" />
+        <div>
+          <label class="field-label" data-i18n="dept.name">Bo'lim nomi</label>
+          <input type="text" id="deptName" required maxlength="100" class="input-field w-full px-4 py-3 rounded-xl" placeholder="Masalan: Yozgi stanoklar" />
+        </div>
+        <div>
+          <label class="field-label" data-i18n="dept.description">Tavsif (ixtiyoriy)</label>
+          <textarea id="deptDescription" maxlength="500" rows="2" class="input-field w-full px-4 py-3 rounded-xl resize-none"></textarea>
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button type="button" data-close="deptModal" class="flex-1 btn-ghost py-3 rounded-xl" data-i18n="common.cancel">Bekor qilish</button>
+          <button type="submit" id="deptSubmitBtn" class="flex-1 btn-primary py-3 rounded-xl flex items-center justify-center gap-2">
+            <span id="deptSubmitText" data-i18n="common.save">Saqlash</span>
+            <span id="deptSubmitSpinner" class="spinner hidden"></span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div id="dirModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
     <div class="modal-content w-full max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
       <div class="p-6 border-b border-purple-500/10 flex items-center justify-between">
@@ -1019,6 +1119,12 @@
       </div>
       <form id="dirForm" class="p-6 space-y-4">
         <input type="hidden" id="dirEditingId" />
+        <div>
+          <label class="field-label" data-i18n="dept.select">Bo'lim</label>
+          <select id="dirDepartment" required class="input-field w-full px-4 py-3 rounded-xl">
+            <option value="">—</option>
+          </select>
+        </div>
         <div>
           <label class="field-label" data-i18n="dir.name">Yo'nalish nomi</label>
           <input type="text" id="dirName" required maxlength="100" class="input-field w-full px-4 py-3 rounded-xl" />
@@ -1056,8 +1162,14 @@
           <div class="input-field w-full px-4 py-3 rounded-xl mono" id="assignEmployeeName">—</div>
         </div>
         <div>
+          <label class="field-label" data-i18n="dept.select">Bo'lim</label>
+          <select id="assignDepartment" required class="input-field w-full px-4 py-3 rounded-xl">
+            <option value="">—</option>
+          </select>
+        </div>
+        <div>
           <label class="field-label" data-i18n="daily.direction">Yo'nalish</label>
-          <select id="assignDirection" required class="input-field w-full px-4 py-3 rounded-xl">
+          <select id="assignDirection" required class="input-field w-full px-4 py-3 rounded-xl" disabled>
             <option value="">—</option>
           </select>
         </div>
