@@ -74,6 +74,15 @@ function formatMoney(amount) {
   return amount.toLocaleString('uz-UZ');
 }
 
+
+function todayISO() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 function formatDate(dateStr, opts = {}) {
   if (!dateStr) return '';
   const d = new Date(dateStr);
@@ -463,7 +472,10 @@ function navigateTo(pageKey) {
   switch (pageKey) {
     case 'employees': loadEmployees(); break;
     case 'directions': loadDepartments(); break;
-    case 'dailyReport': loadDailyReport(); break;
+    case 'dailyReport':
+      if (!state.dailyDate) state.dailyDate = todayISO();
+      loadDailyReport(state.dailyDate);
+      break;
     case 'monthlyReport': initMonthlyReport(); break;
     case 'archive': loadArchive(); break;
   }
@@ -1048,14 +1060,32 @@ function confirmDeleteDirection(id, name) {
 // PAGE: DAILY REPORT
 // ============================================
 
-async function loadDailyReport() {
+async function loadDailyReport(dateStr) {
+  // dateStr - YYYY-MM-DD formatda (ixtiyoriy)
+  const url = dateStr ? `/api/daily-report?date=${dateStr}` : '/api/daily-report';
   try {
-    const data = await api('/api/daily-report');
+    const data = await api(url);
     if (!data) return;
     state.dailyData = data;
+    if (data.dateStr) state.dailyDate = data.dateStr;
     renderDailyReport(data);
+    updateDailyDateInput();
   } catch (err) {
     toast(err.message || t('msg.error'), 'error');
+  }
+}
+
+function updateDailyDateInput() {
+  const input = document.getElementById('dailyDateInput');
+  const label = document.getElementById('dailyDateLabel');
+  if (!input || !state.dailyDate) return;
+
+  input.value = state.dailyDate;
+
+  // Label - to'liq sana
+  if (label) {
+    const d = new Date(state.dailyDate);
+    label.textContent = formatDate(d);
   }
 }
 
@@ -1064,7 +1094,7 @@ function renderDailyReport(data) {
   document.getElementById('dailyStatUnassigned').textContent = data.stats.totalUnassigned;
   document.getElementById('dailyStatEarning').textContent = formatMoney(data.stats.totalEarning);
   document.getElementById('dailyStatProducts').textContent = data.stats.totalProducts;
-  document.getElementById('todayDateLabel').textContent = formatDate(data.date);
+
 
   const assignedEl = document.getElementById('assignedList');
   if (data.assigned.length === 0) {
@@ -1191,7 +1221,7 @@ async function unassignEmployee(assignmentId) {
   try {
     await api(`/api/daily-report/assign/${assignmentId}`, { method: 'DELETE' });
     toast(t('msg.deleted'), 'success');
-    loadDailyReport();
+    loadDailyReport(state.dailyDate);
   } catch (err) {
     toast(err.message || t('msg.error'), 'error');
   }
@@ -1257,6 +1287,45 @@ function setupDailyReportPage() {
     });
   }
 
+  // Date controls
+  const dateInput = document.getElementById('dailyDateInput');
+  if (dateInput) {
+    dateInput.addEventListener('change', () => {
+      state.dailyDate = dateInput.value;
+      loadDailyReport(state.dailyDate);
+    });
+  }
+
+  const datePrevBtn = document.getElementById('datePrevBtn');
+  if (datePrevBtn) {
+    datePrevBtn.addEventListener('click', () => {
+      if (!state.dailyDate) state.dailyDate = todayISO();
+      const d = new Date(state.dailyDate);
+      d.setDate(d.getDate() - 1);
+      state.dailyDate = d.toISOString().split('T')[0];
+      loadDailyReport(state.dailyDate);
+    });
+  }
+
+  const dateNextBtn = document.getElementById('dateNextBtn');
+  if (dateNextBtn) {
+    dateNextBtn.addEventListener('click', () => {
+      if (!state.dailyDate) state.dailyDate = todayISO();
+      const d = new Date(state.dailyDate);
+      d.setDate(d.getDate() + 1);
+      state.dailyDate = d.toISOString().split('T')[0];
+      loadDailyReport(state.dailyDate);
+    });
+  }
+
+  const dateTodayBtn = document.getElementById('dateTodayBtn');
+  if (dateTodayBtn) {
+    dateTodayBtn.addEventListener('click', () => {
+      state.dailyDate = todayISO();
+      loadDailyReport(state.dailyDate);
+    });
+  }
+
   document.getElementById('assignForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -1281,7 +1350,7 @@ function setupDailyReportPage() {
       await api('/api/daily-report/assign', { method: 'POST', body: JSON.stringify(body) });
       toast(t('msg.saved'), 'success');
       closeModal('assignModal');
-      loadDailyReport();
+      loadDailyReport(state.dailyDate);
     } catch (err) {
       toast(err.message || t('msg.error'), 'error');
     } finally {
@@ -1307,6 +1376,7 @@ function setupDailyReportPage() {
     const body = {
       productName: document.getElementById('productName').value.trim(),
       quantity: Number(document.getElementById('productQty').value),
+      date: state.dailyDate || undefined,
     };
 
     btn.disabled = true;
@@ -1320,7 +1390,7 @@ function setupDailyReportPage() {
       }
       toast(t('msg.saved'), 'success');
       closeModal('productModal');
-      loadDailyReport();
+      loadDailyReport(state.dailyDate);
     } catch (err) {
       toast(err.message || t('msg.error'), 'error');
     } finally {
@@ -1389,7 +1459,7 @@ function setupEarningEdit() {
       });
       toast(t('msg.saved'), 'success');
       closeModal('earningModal');
-      loadDailyReport();
+      loadDailyReport(state.dailyDate);
     } catch (err) {
       toast(err.message || t('msg.error'), 'error');
     } finally {
@@ -1407,7 +1477,7 @@ function confirmDeleteProduct(id) {
       try {
         await api(`/api/daily-report/products/${id}`, { method: 'DELETE' });
         toast(t('msg.deleted'), 'success');
-        loadDailyReport();
+        loadDailyReport(state.dailyDate);
       } catch (err) {
         toast(err.message || t('msg.error'), 'error');
       }
@@ -1430,51 +1500,82 @@ function initMonthlyReport() {
 }
 
 function setupMonthlyReportPage() {
+  const today = todayISO();
+  const d = new Date();
+  d.setDate(1);
+  const monthStart = d.toISOString().split('T')[0];
+
+  document.getElementById('monthStart').value = monthStart;
+  document.getElementById('monthEnd').value = today;
+
   document.getElementById('monthLoadBtn').addEventListener('click', loadMonthlyReport);
 
-  document.getElementById('monthArchiveBtn').addEventListener('click', () => {
-    const startDate = document.getElementById('monthStart').value;
-    const endDate = document.getElementById('monthEnd').value;
-
-    if (!startDate || !endDate) {
-      toast(t('msg.error'), 'error');
-      return;
-    }
-
-    openConfirm(
-      t('month.archive'),
-      t('month.archiveConfirm'),
-      async () => {
-        try {
-          await api('/api/monthly-report/archive', {
-            method: 'POST',
-            body: JSON.stringify({ startDate, endDate }),
-          });
-          toast(t('month.archived'), 'success');
-        } catch (err) {
-          toast(err.message || t('msg.error'), 'error');
-        }
-      },
-      'btn-primary'
-    );
-  });
-
+  // Presets
   document.querySelectorAll('[data-preset]').forEach(btn => {
     btn.addEventListener('click', () => {
       const preset = btn.dataset.preset;
       const now = new Date();
-      let start, end;
+      const end = now.toISOString().split('T')[0];
+      let start = end;
 
-      if (preset === 'today') { start = end = now; }
-      else if (preset === 'yesterday') { start = end = new Date(now.getTime() - 86400000); }
-      else if (preset === 'week') { start = new Date(now.getTime() - 7 * 86400000); end = now; }
-      else if (preset === 'month') { start = new Date(now.getFullYear(), now.getMonth(), 1); end = now; }
+      if (preset === 'today') start = end;
+      else if (preset === 'yesterday') {
+        const y = new Date();
+        y.setDate(y.getDate() - 1);
+        start = y.toISOString().split('T')[0];
+        document.getElementById('monthEnd').value = start;
+      }
+      else if (preset === 'week') {
+        const w = new Date();
+        w.setDate(w.getDate() - 7);
+        start = w.toISOString().split('T')[0];
+      }
+      else if (preset === 'month') {
+        const m = new Date();
+        m.setDate(1);
+        start = m.toISOString().split('T')[0];
+      }
 
-      document.getElementById('monthStart').value = start.toISOString().split('T')[0];
-      document.getElementById('monthEnd').value = end.toISOString().split('T')[0];
+      document.getElementById('monthStart').value = start;
+      if (preset !== 'yesterday') document.getElementById('monthEnd').value = end;
+
       loadMonthlyReport();
     });
   });
+
+  // Select all checkbox
+  const selectAllCb = document.getElementById('monthSelectAll');
+  if (selectAllCb) {
+    selectAllCb.addEventListener('change', () => {
+      const checked = selectAllCb.checked;
+      state.monthSelected.clear();
+
+      document.querySelectorAll('.pay-checkbox').forEach(cb => {
+        const row = cb.closest('.emp-row');
+        if (row && row.classList.contains('paid')) return; // Paidlarga tegmaymiz
+
+        cb.checked = checked;
+        if (checked) state.monthSelected.add(cb.dataset.employeeId);
+      });
+
+      updateMonthActionBar();
+    });
+  }
+
+  // Pay button
+  const payBtn = document.getElementById('monthPayBtn');
+  if (payBtn) {
+    payBtn.addEventListener('click', openPayModal);
+  }
+
+  // Pay form submit
+  const payForm = document.getElementById('payForm');
+  if (payForm) {
+    payForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await submitPay();
+    });
+  }
 }
 
 async function loadMonthlyReport() {
@@ -1482,68 +1583,240 @@ async function loadMonthlyReport() {
   const endDate = document.getElementById('monthEnd').value;
   const code = document.getElementById('monthCode').value.trim();
 
-  if (!startDate || !endDate) return;
+  if (!startDate || !endDate) {
+    toast(t('msg.error'), 'error');
+    return;
+  }
 
-  const container = document.getElementById('monthResultsContainer');
-  container.innerHTML = '<div class="p-6"><div class="skeleton h-48"></div></div>';
+  // Reset selection
+  state.monthSelected.clear();
+
+  const params = new URLSearchParams({ startDate, endDate });
+  if (code) params.append('code', code);
 
   try {
-    let url = `/api/monthly-report?startDate=${startDate}&endDate=${endDate}`;
-    if (code) url += `&code=${encodeURIComponent(code)}`;
-
-    const data = await api(url);
+    const data = await api(`/api/monthly-report?${params}`);
     if (!data) return;
     state.monthData = data;
-
-    document.getElementById('monthStatEarning').textContent = formatMoney(data.stats.totalEarning);
-    document.getElementById('monthStatEmployees').textContent = data.stats.totalEmployees;
-    document.getElementById('monthStatProducts').textContent = data.stats.totalProductCount;
-
     renderMonthlyReport(data);
   } catch (err) {
-    container.innerHTML = `<div class="p-6 text-center text-red-400">${escapeHtml(err.message)}</div>`;
+    toast(err.message || t('msg.error'), 'error');
   }
 }
 
 function renderMonthlyReport(data) {
-  const container = document.getElementById('monthResultsContainer');
+  // Stats
+  document.getElementById('monthStatEarning').textContent = formatMoney(data.stats.totalEarning);
+  document.getElementById('monthStatEmployees').textContent = data.stats.totalEmployees;
+  document.getElementById('monthStatPaid').textContent = data.stats.totalPaid || 0;
+  document.getElementById('monthStatProducts').textContent = data.stats.totalProductCount;
 
-  if (data.employees.length === 0) {
-    container.innerHTML = `<div class="p-10 text-center text-zinc-500 text-sm">${t('month.empty')}</div>`;
+  const container = document.getElementById('monthResultsContainer');
+  const actionBar = document.getElementById('monthActionBar');
+  const detailsContainer = document.getElementById('monthDetailsContainer');
+
+  // Agar xodimlar yo'q bo'lsa
+  if (!data.employees || data.employees.length === 0) {
+    container.innerHTML = `<div class="p-10 text-center text-zinc-500"><p class="text-sm">${t('month.empty')}</p></div>`;
+    actionBar.classList.add('hidden');
+    detailsContainer.classList.add('hidden');
     return;
   }
+
+  // Agar bitta xodim (kod bo'yicha qidirilgan) - batafsil ko'rinish
+  const isSingleEmployee = data.employees.length === 1 && document.getElementById('monthCode').value.trim();
+
+  if (isSingleEmployee) {
+    const emp = data.employees[0];
+    const fullName = emp.firstName + (emp.lastName && emp.lastName !== '-' ? ' ' + emp.lastName : '');
+
+    // Summary (ro'yxat)
+    container.innerHTML = `
+      <div class="p-5">
+        <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
+          <div>
+            <div class="font-bold text-lg">${escapeHtml(fullName)}</div>
+            <div class="mono text-xs text-zinc-500 mt-1">
+              <span class="text-purple-300">${escapeHtml(emp.code)}</span>
+              · ${emp.totalDays} kun · ${emp.totalShifts} smena
+              ${emp.isPaid ? `<span class="paid-badge ml-2">✓ ${t('month.paidBadge')}</span>` : ''}
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="mono text-xs text-zinc-500">${t('month.totalEarning')}</div>
+            <div class="text-2xl font-bold text-emerald-400">${formatMoney(emp.totalEarning)}</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Details table - har kun alohida
+    detailsContainer.classList.remove('hidden');
+    document.getElementById('monthDetailsSubtitle').textContent = `${escapeHtml(emp.code)} · ${emp.totalDays} ${t('common.days') || 'kun'}`;
+    document.getElementById('monthDetailsTable').innerHTML = `
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>${t('common.date') || 'Sana'}</th>
+              <th>${t('dept.title')}</th>
+              <th>${t('daily.direction')}</th>
+              <th class="text-center">${t('daily.shift') || 'Smena'}</th>
+              <th class="text-right">${t('daily.earning') || 'Daromad'}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${emp.days.map(day => `
+              <tr>
+                <td class="mono text-sm">${formatDate(day.date)}</td>
+                <td class="text-sm text-zinc-400">${escapeHtml(day.departmentName || '—')}</td>
+                <td class="text-sm">${escapeHtml(day.directionName)}</td>
+                <td class="mono text-sm text-center">${day.shift === 0.5 ? '½' : '1'}</td>
+                <td class="mono font-semibold text-emerald-400 text-right">${formatMoney(day.earning)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    actionBar.classList.add('hidden');
+    return;
+  }
+
+  // Oddiy ro'yxat (checkbox + pay)
+  detailsContainer.classList.add('hidden');
+  actionBar.classList.remove('hidden');
+
+  // Select all reset
+  document.getElementById('monthSelectAll').checked = false;
 
   container.innerHTML = `
     <div class="table-wrap">
       <table class="data-table">
         <thead>
           <tr>
+            <th style="width: 50px"></th>
             <th>${t('emp.table.name')}</th>
             <th>${t('emp.table.code')}</th>
-            <th>${t('month.totalDays')}</th>
-            <th>${t('month.totalShifts')}</th>
-            <th>${t('month.totalEarning')}</th>
+            <th class="text-center">${t('common.days') || 'Kunlar'}</th>
+            <th class="text-center">${t('common.shifts') || 'Smena'}</th>
+            <th class="text-right">${t('month.totalEarning')}</th>
+            <th class="text-center">${t('common.status') || 'Holat'}</th>
           </tr>
         </thead>
         <tbody>
-          ${data.employees.map(e => `
-            <tr>
-              <td class="font-medium">${escapeHtml(e.firstName)}${e.lastName && e.lastName !== '-' ? ' ' + escapeHtml(e.lastName) : ''}</td>
-              <td><span class="mono text-xs px-2 py-1 rounded bg-purple-500/10 border border-purple-500/20 text-purple-300">${escapeHtml(e.code)}</span></td>
-              <td class="mono">${e.totalDays}</td>
-              <td class="mono">${e.totalShifts}</td>
-              <td class="mono font-semibold text-emerald-400">${formatMoney(e.totalEarning)}</td>
-            </tr>
-          `).join('')}
+          ${data.employees.map(e => {
+            const fullName = e.firstName + (e.lastName && e.lastName !== '-' ? ' ' + e.lastName : '');
+            return `
+              <tr class="emp-row ${e.isPaid ? 'paid' : ''}" data-employee-id="${e.employeeId}">
+                <td>
+                  <input type="checkbox" class="pay-checkbox" data-employee-id="${e.employeeId}" ${e.isPaid ? 'disabled' : ''} />
+                </td>
+                <td class="font-medium">${escapeHtml(fullName)}</td>
+                <td><span class="mono text-xs px-2 py-1 rounded bg-purple-500/10 border border-purple-500/20 text-purple-300">${escapeHtml(e.code)}</span></td>
+                <td class="mono text-center">${e.totalDays}</td>
+                <td class="mono text-center">${e.totalShifts}</td>
+                <td class="mono font-semibold text-emerald-400 text-right">${formatMoney(e.totalEarning)}</td>
+                <td class="text-center">
+                  ${e.isPaid
+                    ? `<span class="paid-badge">✓ ${t('month.paidBadge')}</span>`
+                    : `<span class="mono text-xs text-zinc-500">${t('month.unpaidBadge')}</span>`}
+                </td>
+              </tr>
+            `;
+          }).join('')}
         </tbody>
       </table>
     </div>
   `;
+
+  // Checkbox handlerlar
+  container.querySelectorAll('.pay-checkbox').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const empId = cb.dataset.employeeId;
+      if (cb.checked) {
+        state.monthSelected.add(empId);
+      } else {
+        state.monthSelected.delete(empId);
+      }
+      updateMonthActionBar();
+    });
+  });
+
+  updateMonthActionBar();
 }
 
-// ============================================
-// PAGE: ARCHIVE
-// ============================================
+function updateMonthActionBar() {
+  const count = state.monthSelected.size;
+  document.getElementById('monthSelectedCount').textContent = count > 0 ? `(${count})` : '';
+  document.getElementById('monthPayBtn').disabled = count === 0;
+}
+
+function openPayModal() {
+  if (state.monthSelected.size === 0) return;
+
+  const selectedEmps = state.monthData.employees.filter(e =>
+    state.monthSelected.has(String(e.employeeId))
+  );
+
+  const total = selectedEmps.reduce((sum, e) => sum + e.totalEarning, 0);
+
+  document.getElementById('payCountLabel').textContent = selectedEmps.length;
+  document.getElementById('payTotalLabel').textContent = formatMoney(total);
+
+  const listEl = document.getElementById('payList');
+  listEl.innerHTML = selectedEmps.map(e => {
+    const fullName = e.firstName + (e.lastName && e.lastName !== '-' ? ' ' + e.lastName : '');
+    return `
+      <div class="flex items-center justify-between p-3 rounded-lg bg-purple-500/5 border border-purple-500/10">
+        <div class="flex-1 min-w-0">
+          <div class="font-medium text-sm truncate">${escapeHtml(fullName)}</div>
+          <div class="mono text-xs text-zinc-500">${escapeHtml(e.code)} · ${e.totalDays} kun</div>
+        </div>
+        <div class="mono font-semibold text-emerald-400 text-sm shrink-0 ml-3">${formatMoney(e.totalEarning)}</div>
+      </div>
+    `;
+  }).join('');
+
+  openModal('payModal');
+}
+
+async function submitPay() {
+  const btn = document.getElementById('paySubmitBtn');
+  const spinner = document.getElementById('paySubmitSpinner');
+
+  const body = {
+    employeeIds: Array.from(state.monthSelected),
+    startDate: document.getElementById('monthStart').value,
+    endDate: document.getElementById('monthEnd').value,
+  };
+
+  btn.disabled = true;
+  spinner.classList.remove('hidden');
+
+  try {
+    const result = await api('/api/monthly-report/pay', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    if (result) {
+      const msg = `${t('month.paySuccess')}: ${result.paidCount}` +
+        (result.errorsCount > 0 ? ` (${result.errorsCount} xato)` : '');
+      toast(msg, result.paidCount > 0 ? 'success' : 'error');
+
+      closeModal('payModal');
+      state.monthSelected.clear();
+      loadMonthlyReport();
+    }
+  } catch (err) {
+    toast(err.message || t('msg.error'), 'error');
+  } finally {
+    btn.disabled = false;
+    spinner.classList.add('hidden');
+  }
+}
 
 async function loadArchive() {
   const container = document.getElementById('archiveContainer');
@@ -1626,7 +1899,7 @@ function setupModalCloseButtons() {
     btn.addEventListener('click', () => closeModal(btn.dataset.close));
   });
 
-  ['empModal', 'dirModal', 'deptModal', 'assignModal', 'productModal', 'confirmModal', 'earningModal'].forEach(id => {
+  ['empModal', 'dirModal', 'deptModal', 'assignModal', 'productModal', 'confirmModal', 'earningModal', 'payModal'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
       el.addEventListener('click', (e) => {
@@ -1637,7 +1910,7 @@ function setupModalCloseButtons() {
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      ['empModal', 'dirModal', 'deptModal', 'assignModal', 'productModal', 'confirmModal', 'earningModal'].forEach(id => {
+      ['empModal', 'dirModal', 'deptModal', 'assignModal', 'productModal', 'confirmModal', 'earningModal', 'payModal'].forEach(id => {
         const el = document.getElementById(id);
         if (el && !el.classList.contains('hidden')) closeModal(id);
       });

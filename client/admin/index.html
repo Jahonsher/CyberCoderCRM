@@ -706,7 +706,48 @@
     .dept-card:hover .dept-card-actions {
       opacity: 1;
     }
-  
+
+    /* Monthly employee row */
+    .emp-row {
+      transition: all 0.2s;
+    }
+    .emp-row.paid {
+      opacity: 0.55;
+    }
+    .emp-row.paid .pay-checkbox {
+      pointer-events: none;
+      opacity: 0.5;
+    }
+    .pay-checkbox {
+      width: 20px;
+      height: 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      accent-color: #8b5cf6;
+    }
+    [data-theme="light"] .pay-checkbox {
+      accent-color: #6d28d9;
+    }
+    .paid-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      background: rgba(16, 185, 129, 0.12);
+      color: #6ee7b7;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    [data-theme="light"] .paid-badge {
+      background: rgba(4, 120, 87, 0.1);
+      color: #047857;
+      border-color: rgba(4, 120, 87, 0.35);
+    }
+
   </style>
 </head>
 <body>
@@ -912,6 +953,29 @@
 
         <!-- PAGE: DAILY REPORT -->
         <div class="page" data-page="dailyReport">
+          <!-- Date selector -->
+          <div class="card p-4 mb-6">
+            <div class="flex items-center gap-3 flex-wrap">
+              <button id="datePrevBtn" type="button" class="btn-icon" title="Oldingi kun">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="15 18 9 12 15 6"/>
+                </svg>
+              </button>
+              <input type="date" id="dailyDateInput" class="input-field px-4 py-2.5 rounded-xl text-sm flex-1 max-w-xs" />
+              <button id="dateNextBtn" type="button" class="btn-icon" title="Keyingi kun">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+              </button>
+              <button id="dateTodayBtn" type="button" class="btn-ghost px-4 py-2.5 rounded-xl text-sm">
+                <span data-i18n="common.today">Bugun</span>
+              </button>
+              <div class="ml-auto">
+                <div class="mono text-xs text-zinc-500" id="dailyDateLabel">—</div>
+              </div>
+            </div>
+          </div>
+
           <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
             <div class="stat-card">
               <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2" data-i18n="daily.assigned">Biriktirilgan</div>
@@ -935,7 +999,6 @@
             <div class="card">
               <div class="p-5 border-b border-purple-500/10">
                 <h3 class="font-bold" data-i18n="daily.assigned">Biriktirilgan xodimlar</h3>
-                <p class="mono text-xs text-zinc-500 mt-0.5" id="todayDateLabel"></p>
               </div>
               <div class="p-5" id="assignedList">
                 <div class="skeleton h-24"></div>
@@ -971,6 +1034,7 @@
 
         <!-- PAGE: MONTHLY REPORT -->
         <div class="page" data-page="monthlyReport">
+          <!-- Filters -->
           <div class="card p-5 mb-6">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
@@ -985,15 +1049,8 @@
                 <label class="field-label" data-i18n="month.codeSearch">Kod qidirish</label>
                 <input type="text" id="monthCode" class="input-field w-full px-4 py-3 rounded-xl text-sm mono" data-i18n-placeholder="month.codePlaceholder" />
               </div>
-              <div class="flex items-end gap-2">
-                <button id="monthLoadBtn" type="button" class="btn-primary flex-1 py-3 rounded-xl text-sm" data-i18n="common.search">Qidirish</button>
-                <button id="monthArchiveBtn" type="button" class="btn-ghost py-3 px-4 rounded-xl text-sm shrink-0" data-i18n-title="month.archive">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="21 8 21 21 3 21 3 8"/>
-                    <rect x="1" y="3" width="22" height="5"/>
-                    <line x1="10" y1="12" x2="14" y2="12"/>
-                  </svg>
-                </button>
+              <div class="flex items-end">
+                <button id="monthLoadBtn" type="button" class="btn-primary w-full py-3 rounded-xl text-sm" data-i18n="common.search">Qidirish</button>
               </div>
             </div>
             <div class="flex flex-wrap gap-2 mt-4">
@@ -1004,7 +1061,8 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 mb-6">
+          <!-- Stats -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
             <div class="stat-card">
               <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2" data-i18n="month.totalEarning">Jami daromad</div>
               <div class="text-2xl font-bold text-emerald-400" id="monthStatEarning">0</div>
@@ -1014,15 +1072,48 @@
               <div class="text-2xl font-bold" id="monthStatEmployees">0</div>
             </div>
             <div class="stat-card">
+              <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2" data-i18n="month.paidBadge">To'langan</div>
+              <div class="text-2xl font-bold text-emerald-400" id="monthStatPaid">0</div>
+            </div>
+            <div class="stat-card">
               <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2" data-i18n="daily.totalProducts">Mahsulotlar</div>
               <div class="text-2xl font-bold text-purple-400" id="monthStatProducts">0</div>
             </div>
           </div>
 
+          <!-- Select all + Pay button bar -->
+          <div class="card p-4 mb-4 hidden" id="monthActionBar">
+            <div class="flex items-center justify-between flex-wrap gap-3">
+              <div class="flex items-center gap-3">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" id="monthSelectAll" class="w-5 h-5 rounded cursor-pointer accent-purple-600" />
+                  <span class="text-sm font-medium" data-i18n="month.selectAll">Hammasini tanlash</span>
+                </label>
+                <span class="mono text-xs text-zinc-500" id="monthSelectedCount">0</span>
+              </div>
+              <button id="monthPayBtn" type="button" class="btn-primary px-5 py-2.5 rounded-xl text-sm flex items-center gap-2" disabled>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+                </svg>
+                <span data-i18n="month.payBtn">Oylik berish</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Results -->
           <div class="card overflow-hidden" id="monthResultsContainer">
             <div class="p-10 text-center text-zinc-500">
               <p class="text-sm" data-i18n="month.empty">Ma'lumot yo'q</p>
             </div>
+          </div>
+
+          <!-- Details (bir xodim qidirilganda) -->
+          <div class="card overflow-hidden mt-6 hidden" id="monthDetailsContainer">
+            <div class="p-5 border-b border-purple-500/10">
+              <h3 class="font-bold" data-i18n="month.dayDetails">Kunlik ma'lumot</h3>
+              <p class="mono text-xs text-zinc-500 mt-0.5" id="monthDetailsSubtitle">—</p>
+            </div>
+            <div id="monthDetailsTable"></div>
           </div>
         </div>
 
@@ -1265,6 +1356,40 @@
           <button type="submit" id="earningSubmitBtn" class="flex-1 btn-primary py-3 rounded-xl flex items-center justify-center gap-2">
             <span id="earningSubmitText" data-i18n="common.save">Saqlash</span>
             <span id="earningSubmitSpinner" class="spinner hidden"></span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Salary Pay Confirm -->
+  <div id="payModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
+    <div class="modal-content w-full max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
+      <div class="p-6 border-b border-purple-500/10 flex items-center justify-between">
+        <h2 class="text-xl font-bold" data-i18n="month.payBtn">Oylik berish</h2>
+        <button type="button" data-close="payModal" class="btn-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <form id="payForm" class="p-6 space-y-4">
+        <div class="p-4 rounded-xl bg-purple-500/5 border border-purple-500/15">
+          <div class="mono text-xs text-zinc-500 mb-1" data-i18n="month.selectAll">Tanlangan</div>
+          <div class="text-2xl font-bold text-purple-400"><span id="payCountLabel">0</span> xodim</div>
+          <div class="mono text-sm text-emerald-400 mt-2">
+            <span data-i18n="month.totalEarning">Jami</span>:
+            <span id="payTotalLabel">0</span>
+          </div>
+        </div>
+
+        <div id="payList" class="max-h-60 overflow-y-auto space-y-2"></div>
+
+        <div class="flex gap-3 pt-2">
+          <button type="button" data-close="payModal" class="flex-1 btn-ghost py-3 rounded-xl" data-i18n="common.cancel">Bekor qilish</button>
+          <button type="submit" id="paySubmitBtn" class="flex-1 btn-primary py-3 rounded-xl flex items-center justify-center gap-2">
+            <span id="paySubmitText" data-i18n="common.confirm">Tasdiqlash</span>
+            <span id="paySubmitSpinner" class="spinner hidden"></span>
           </button>
         </div>
       </form>
