@@ -1,5 +1,6 @@
 /**
  * CyberCoderCRM - Direction Model
+ * Endi departmentId bor
  */
 
 const mongoose = require('mongoose');
@@ -18,6 +19,12 @@ const directionSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Business',
       required: true,
+      index: true,
+    },
+    departmentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Department',
+      required: false, // Eski data uchun optional
       index: true,
     },
     name: {
@@ -47,5 +54,6 @@ const directionSchema = new mongoose.Schema(
 );
 
 directionSchema.index({ businessId: 1, status: 1 });
+directionSchema.index({ businessId: 1, departmentId: 1 });
 
 module.exports = mongoose.models.Direction || mongoose.model('Direction', directionSchema);

@@ -1,5 +1,6 @@
 /**
  * CyberCoderCRM - Daily Report routes
+ * Endi ?date=YYYY-MM-DD parametri qo'llab-quvvatlanadi
  */
 
 const express = require('express');
@@ -7,6 +8,7 @@ const router = express.Router();
 
 const Employee = require('../models/Employee');
 const Direction = require('../models/Direction');
+const Department = require('../models/Department');
 const DailyAssignment = require('../models/DailyAssignment');
 const DailyProduct = require('../models/DailyProduct');
 
@@ -16,21 +18,33 @@ const requireModule = require('../middleware/requireModule');
 
 router.use(verifyToken, requireAdmin, businessScope, requireModule('dailyReport'));
 
-function getTodayRange() {
-  const start = new Date();
+/**
+ * Berilgan sana uchun diapazon (yoki bugun)
+ */
+function getDateRange(dateStr) {
+  let d;
+  if (dateStr) {
+    d = new Date(dateStr);
+    if (isNaN(d.getTime())) d = new Date();
+  } else {
+    d = new Date();
+  }
+
+  const start = new Date(d);
   start.setHours(0, 0, 0, 0);
-  const end = new Date();
+  const end = new Date(d);
   end.setHours(23, 59, 59, 999);
-  return { start, end };
+
+  return { start, end, dateStr: start.toISOString().split('T')[0] };
 }
 
 /**
- * GET /api/daily-report
- * Bugungi kun ma'lumotlari
+ * GET /api/daily-report?date=YYYY-MM-DD
+ * Tanlangan kun (yoki bugungi) ma'lumotlari
  */
 router.get('/', async (req, res) => {
   try {
-    const { start, end } = getTodayRange();
+    const { start, end, dateStr } = getDateRange(req.query.date);
 
     const [assigned, allEmployees, products] = await Promise.all([
       DailyAssignment.find({
@@ -58,7 +72,8 @@ router.get('/', async (req, res) => {
     const totalProducts = products.reduce((sum, p) => sum + (p.quantity || 0), 0);
 
     res.json({
-      date: new Date(),
+      date: start,
+      dateStr,
       assigned,
       unassigned,
       products,
@@ -77,10 +92,11 @@ router.get('/', async (req, res) => {
 
 /**
  * POST /api/daily-report/assign
+ * body: { employeeId, directionId, shift, date? }
  */
 router.post('/assign', async (req, res) => {
   try {
-    const { employeeId, directionId, shift } = req.body;
+    const { employeeId, directionId, shift, date } = req.body;
 
     if (!employeeId || !directionId || !shift) {
       return res.status(400).json({ error: 'Barcha maydonlar kerak' });
@@ -101,24 +117,31 @@ router.post('/assign', async (req, res) => {
         _id: directionId,
         businessId: req.businessId,
         status: 'active'
-      }),
+      }).populate('departmentId', 'name'),
     ]);
 
     if (!employee) return res.status(404).json({ error: 'Xodim topilmadi' });
     if (!direction) return res.status(404).json({ error: "Yo'nalish topilmadi" });
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Sana - tanlangan yoki bugun
+    let targetDate;
+    if (date) {
+      targetDate = new Date(date);
+      if (isNaN(targetDate.getTime())) targetDate = new Date();
+    } else {
+      targetDate = new Date();
+    }
+    targetDate.setHours(0, 0, 0, 0);
 
     // Takrorlanishni oldini olish
     const existing = await DailyAssignment.findOne({
       businessId: req.businessId,
       employeeId: employee._id,
-      date: today,
+      date: targetDate,
     });
 
     if (existing) {
-      return res.status(400).json({ error: 'Bu xodim bugun allaqachon biriktirilgan' });
+      return res.status(400).json({ error: 'Bu xodim bu kun uchun allaqachon biriktirilgan' });
     }
 
     const priceSnapshot = direction.currentPrice;
@@ -128,7 +151,7 @@ router.post('/assign', async (req, res) => {
       businessId: req.businessId,
       employeeId: employee._id,
       directionId: direction._id,
-      date: today,
+      date: targetDate,
       shift: shiftNum,
       priceSnapshot,
       earning,
@@ -139,6 +162,7 @@ router.post('/assign', async (req, res) => {
       },
       directionSnapshot: {
         name: direction.name,
+        departmentName: direction.departmentId?.name || '',
       },
     });
 
@@ -147,7 +171,7 @@ router.post('/assign', async (req, res) => {
   } catch (err) {
     console.error('Assign POST xato:', err);
     if (err.code === 11000) {
-      return res.status(400).json({ error: 'Bu xodim bugun allaqachon biriktirilgan' });
+      return res.status(400).json({ error: 'Bu xodim bu kun uchun allaqachon biriktirilgan' });
     }
     res.status(500).json({ error: err.message || 'Server xatosi' });
   }
@@ -155,7 +179,7 @@ router.post('/assign', async (req, res) => {
 
 /**
  * PUT /api/daily-report/assign/:id/earning
- * Biriktirilgan xodimning daromadini qo'lda o'zgartirish
+ * Daromadni qo'lda o'zgartirish
  */
 router.put('/assign/:id/earning', async (req, res) => {
   try {
@@ -163,7 +187,7 @@ router.put('/assign/:id/earning', async (req, res) => {
     const earningNum = Number(earning);
 
     if (isNaN(earningNum) || earningNum < 0) {
-      return res.status(400).json({ error: 'Narx noto\'g\'ri' });
+      return res.status(400).json({ error: "Narx noto'g'ri" });
     }
 
     const assignment = await DailyAssignment.findOne({
@@ -205,21 +229,28 @@ router.delete('/assign/:id', async (req, res) => {
 
 /**
  * POST /api/daily-report/products
+ * body: { productName, quantity, date? }
  */
 router.post('/products', async (req, res) => {
   try {
-    const { productName, quantity } = req.body;
+    const { productName, quantity, date } = req.body;
 
     if (!productName || quantity === undefined) {
       return res.status(400).json({ error: 'Nom va soni kerak' });
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    let targetDate;
+    if (date) {
+      targetDate = new Date(date);
+      if (isNaN(targetDate.getTime())) targetDate = new Date();
+    } else {
+      targetDate = new Date();
+    }
+    targetDate.setHours(0, 0, 0, 0);
 
     const product = new DailyProduct({
       businessId: req.businessId,
-      date: today,
+      date: targetDate,
       productName: String(productName).trim(),
       quantity: Number(quantity),
     });

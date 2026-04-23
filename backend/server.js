@@ -173,6 +173,7 @@ async function startServer() {
     app.use('/api/auth', require('./routes/auth'));
     app.use('/api/superadmin', require('./routes/superadmin'));
     app.use('/api/employees', require('./routes/employees'));
+    app.use('/api/departments', require('./routes/departments'));
     app.use('/api/directions', require('./routes/directions'));
     app.use('/api/daily-report', require('./routes/dailyReport'));
     app.use('/api/monthly-report', require('./routes/monthlyReport'));
