@@ -1390,11 +1390,15 @@ function setupDailyReportPage() {
     }
   });
 
-  document.getElementById('productAddBtn').addEventListener('click', () => {
+  document.getElementById('productAddBtn').addEventListener('click', async () => {
     state.editingProductId = null;
     document.getElementById('productForm').reset();
     document.getElementById('productEditingId').value = '';
     document.getElementById('productModalTitle').textContent = t('daily.addProduct');
+
+    // Yo'nalishlarni yuklash
+    await loadAllDirectionsForProduct();
+
     openModal('productModal');
   });
 
@@ -1432,7 +1436,7 @@ function setupDailyReportPage() {
   });
 }
 
-function openProductEdit(id) {
+async function openProductEdit(id) {
   const product = state.dailyData?.products.find(p => p._id === id);
   if (!product) return;
   state.editingProductId = id;
@@ -1440,6 +1444,14 @@ function openProductEdit(id) {
   document.getElementById('productModalTitle').textContent = t('common.edit');
   document.getElementById('productName').value = product.productName;
   document.getElementById('productQty').value = product.quantity;
+
+  // Yo'nalishlarni yuklash
+  await loadAllDirectionsForProduct();
+  if (product.directionId) {
+    const dirId = typeof product.directionId === 'string' ? product.directionId : product.directionId._id;
+    document.getElementById('productDirection').value = dirId;
+  }
+
   openModal('productModal');
 }
 
