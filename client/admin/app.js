@@ -1238,26 +1238,6 @@ async function unassignEmployee(assignmentId) {
 }
 
 
-async function loadAllDirectionsForProduct() {
-  const select = document.getElementById('productDirection');
-  if (!select) return;
-
-  try {
-    // Barcha yo'nalishlarni yuklash (department ko'rsatmasdan)
-    const directions = await api('/api/directions');
-    if (!directions) return;
-
-    select.innerHTML = '<option value="">—</option>' +
-      directions.map(d => {
-        const deptName = d.departmentId?.name || '';
-        const label = deptName ? `${escapeHtml(deptName)} › ${escapeHtml(d.name)}` : escapeHtml(d.name);
-        return `<option value="${d._id}">${label} — ${formatMoney(d.currentPrice)}</option>`;
-      }).join('');
-  } catch (err) {
-    console.error('Product directions load error:', err);
-  }
-}
-
 async function openAssignModal(employeeId, employeeName) {
   document.getElementById('assignEmployeeId').value = employeeId;
   document.getElementById('assignEmployeeName').textContent = employeeName;
@@ -1390,15 +1370,11 @@ function setupDailyReportPage() {
     }
   });
 
-  document.getElementById('productAddBtn').addEventListener('click', async () => {
+  document.getElementById('productAddBtn').addEventListener('click', () => {
     state.editingProductId = null;
     document.getElementById('productForm').reset();
     document.getElementById('productEditingId').value = '';
     document.getElementById('productModalTitle').textContent = t('daily.addProduct');
-
-    // Yo'nalishlarni yuklash
-    await loadAllDirectionsForProduct();
-
     openModal('productModal');
   });
 
@@ -1412,7 +1388,6 @@ function setupDailyReportPage() {
       productName: document.getElementById('productName').value.trim(),
       quantity: Number(document.getElementById('productQty').value),
       date: state.dailyDate || undefined,
-      directionId: document.getElementById('productDirection').value,
     };
 
     btn.disabled = true;
@@ -1436,7 +1411,7 @@ function setupDailyReportPage() {
   });
 }
 
-async function openProductEdit(id) {
+function openProductEdit(id) {
   const product = state.dailyData?.products.find(p => p._id === id);
   if (!product) return;
   state.editingProductId = id;
@@ -1444,14 +1419,6 @@ async function openProductEdit(id) {
   document.getElementById('productModalTitle').textContent = t('common.edit');
   document.getElementById('productName').value = product.productName;
   document.getElementById('productQty').value = product.quantity;
-
-  // Yo'nalishlarni yuklash
-  await loadAllDirectionsForProduct();
-  if (product.directionId) {
-    const dirId = typeof product.directionId === 'string' ? product.directionId : product.directionId._id;
-    document.getElementById('productDirection').value = dirId;
-  }
-
   openModal('productModal');
 }
 

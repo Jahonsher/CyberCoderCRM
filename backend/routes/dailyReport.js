@@ -1,6 +1,6 @@
 /**
  * CyberCoderCRM - Daily Report routes
- * Yangi formula bilan (recalculate)
+ * Sodda formula - umumiy mahsulot barcha yo'nalishlarga taaluqli
  */
 
 const express = require('express');
@@ -27,18 +27,13 @@ function getDateRange(dateStr) {
   } else {
     d = new Date();
   }
-
   const start = new Date(d);
   start.setHours(0, 0, 0, 0);
   const end = new Date(d);
   end.setHours(23, 59, 59, 999);
-
   return { start, end, dateStr: start.toISOString().split('T')[0] };
 }
 
-/**
- * GET /api/daily-report?date=YYYY-MM-DD
- */
 router.get('/', async (req, res) => {
   try {
     const { start, end, dateStr } = getDateRange(req.query.date);
@@ -55,7 +50,7 @@ router.get('/', async (req, res) => {
       DailyProduct.find({
         businessId: req.businessId,
         date: { $gte: start, $lte: end },
-      }).populate('directionId', 'name currentPrice').sort('-createdAt'),
+      }).sort('-createdAt'),
     ]);
 
     const assignedEmployeeIds = new Set(
@@ -87,9 +82,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-/**
- * POST /api/daily-report/assign
- */
 router.post('/assign', async (req, res) => {
   try {
     const { employeeId, directionId, shift, date } = req.body;
@@ -138,16 +130,14 @@ router.post('/assign', async (req, res) => {
       return res.status(400).json({ error: 'Bu xodim bu kun uchun allaqachon biriktirilgan' });
     }
 
-    const priceSnapshot = direction.currentPrice;
-
     const assignment = new DailyAssignment({
       businessId: req.businessId,
       employeeId: employee._id,
       directionId: direction._id,
       date: targetDate,
       shift: shiftNum,
-      priceSnapshot,
-      earning: 0,     // Recalculate hisoblaydi
+      priceSnapshot: direction.currentPrice,
+      earning: 0,
       fairShare: 0,
       bonus: 0,
       isManual: false,
@@ -164,10 +154,9 @@ router.post('/assign', async (req, res) => {
 
     await assignment.save();
 
-    // Recalculate - yangi xodim qo'shilgandan keyin
+    // Shu yo'nalish uchun recalculate
     await recalculateDirection(req.businessId, direction._id, targetDate);
 
-    // Yangi assignment ma'lumotini qaytarish (recalculate'dan keyin)
     const updated = await DailyAssignment.findById(assignment._id);
     res.status(201).json(updated);
   } catch (err) {
@@ -179,10 +168,6 @@ router.post('/assign', async (req, res) => {
   }
 });
 
-/**
- * PUT /api/daily-report/assign/:id/earning
- * Manual o'zgartirish
- */
 router.put('/assign/:id/earning', async (req, res) => {
   try {
     const { earning } = req.body;
@@ -197,16 +182,12 @@ router.put('/assign/:id/earning', async (req, res) => {
       businessId: req.businessId,
     });
 
-    if (!assignment) {
-      return res.status(404).json({ error: 'Topilmadi' });
-    }
+    if (!assignment) return res.status(404).json({ error: 'Topilmadi' });
 
-    // Manual belgilash
     assignment.isManual = true;
     assignment.manualAmount = earningNum;
     await assignment.save();
 
-    // Shu yo'nalish uchun recalculate
     await recalculateDirection(req.businessId, assignment.directionId, assignment.date);
 
     const updated = await DailyAssignment.findById(assignment._id);
@@ -217,10 +198,6 @@ router.put('/assign/:id/earning', async (req, res) => {
   }
 });
 
-/**
- * DELETE /api/daily-report/assign/:id
- * Biriktirishni bekor qilish
- */
 router.delete('/assign/:id', async (req, res) => {
   try {
     const assignment = await DailyAssignment.findOne({
@@ -228,16 +205,13 @@ router.delete('/assign/:id', async (req, res) => {
       businessId: req.businessId,
     });
 
-    if (!assignment) {
-      return res.status(404).json({ error: 'Topilmadi' });
-    }
+    if (!assignment) return res.status(404).json({ error: 'Topilmadi' });
 
     const directionId = assignment.directionId;
     const date = assignment.date;
 
     await DailyAssignment.findByIdAndDelete(assignment._id);
 
-    // Recalculate
     await recalculateDirection(req.businessId, directionId, date);
 
     res.json({ success: true });
@@ -248,28 +222,14 @@ router.delete('/assign/:id', async (req, res) => {
 });
 
 /**
- * POST /api/daily-report/products
- * Mahsulot qo'shish - yo'nalish bilan
+ * Mahsulot qo'shish - endi directionId yo'q, umumiy!
  */
 router.post('/products', async (req, res) => {
   try {
-    const { productName, quantity, date, directionId } = req.body;
+    const { productName, quantity, date } = req.body;
 
     if (!productName || quantity === undefined) {
       return res.status(400).json({ error: 'Nom va soni kerak' });
-    }
-
-    if (!directionId) {
-      return res.status(400).json({ error: "Yo'nalish kerak" });
-    }
-
-    const direction = await Direction.findOne({
-      _id: directionId,
-      businessId: req.businessId,
-    });
-
-    if (!direction) {
-      return res.status(404).json({ error: "Yo'nalish topilmadi" });
     }
 
     let targetDate;
@@ -283,20 +243,15 @@ router.post('/products', async (req, res) => {
 
     const product = new DailyProduct({
       businessId: req.businessId,
-      directionId: direction._id,
       date: targetDate,
       productName: String(productName).trim(),
       quantity: Number(quantity),
-      directionSnapshot: {
-        name: direction.name,
-        price: direction.currentPrice,
-      },
     });
 
     await product.save();
 
-    // Recalculate - yangi mahsulot
-    await recalculateDirection(req.businessId, direction._id, targetDate);
+    // HAMMA yo'nalishlarni recalculate (chunki umumiy mahsulot o'zgardi)
+    await recalculateDay(req.businessId, targetDate);
 
     res.status(201).json(product);
   } catch (err) {
@@ -312,9 +267,7 @@ router.put('/products/:id', async (req, res) => {
       businessId: req.businessId,
     });
 
-    if (!product) {
-      return res.status(404).json({ error: 'Mahsulot topilmadi' });
-    }
+    if (!product) return res.status(404).json({ error: 'Mahsulot topilmadi' });
 
     const { productName, quantity } = req.body;
     if (productName) product.productName = String(productName).trim();
@@ -322,10 +275,8 @@ router.put('/products/:id', async (req, res) => {
 
     await product.save();
 
-    // Recalculate
-    if (product.directionId) {
-      await recalculateDirection(req.businessId, product.directionId, product.date);
-    }
+    // HAMMA yo'nalishlarni recalc
+    await recalculateDay(req.businessId, product.date);
 
     res.json(product);
   } catch (err) {
@@ -343,15 +294,11 @@ router.delete('/products/:id', async (req, res) => {
 
     if (!product) return res.status(404).json({ error: 'Topilmadi' });
 
-    const directionId = product.directionId;
     const date = product.date;
-
     await DailyProduct.findByIdAndDelete(product._id);
 
-    // Recalculate
-    if (directionId) {
-      await recalculateDirection(req.businessId, directionId, date);
-    }
+    // HAMMA yo'nalishlarni recalc
+    await recalculateDay(req.businessId, date);
 
     res.json({ success: true });
   } catch (err) {
@@ -360,15 +307,10 @@ router.delete('/products/:id', async (req, res) => {
   }
 });
 
-/**
- * POST /api/daily-report/recalculate
- * Qo'lda qayta hisoblash
- */
 router.post('/recalculate', async (req, res) => {
   try {
     const { date } = req.body;
     const targetDate = date ? new Date(date) : new Date();
-
     const results = await recalculateDay(req.businessId, targetDate);
     res.json({ success: true, results });
   } catch (err) {
