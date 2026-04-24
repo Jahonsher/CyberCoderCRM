@@ -1,5 +1,6 @@
 /**
  * CyberCoderCRM - DailyProduct Model
+ * Endi har mahsulot yo'nalishga bog'lanadi
  */
 
 const mongoose = require('mongoose');
@@ -10,6 +11,12 @@ const dailyProductSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Business',
       required: true,
+      index: true,
+    },
+    directionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Direction',
+      required: false,  // Eski data uchun optional
       index: true,
     },
     date: {
@@ -28,6 +35,11 @@ const dailyProductSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
+    // Snapshot (yo'nalish o'chirilsa ham)
+    directionSnapshot: {
+      name: String,
+      price: Number,
+    },
   },
   {
     timestamps: true,
@@ -35,5 +47,6 @@ const dailyProductSchema = new mongoose.Schema(
 );
 
 dailyProductSchema.index({ businessId: 1, date: -1 });
+dailyProductSchema.index({ businessId: 1, directionId: 1, date: 1 });
 
 module.exports = mongoose.models.DailyProduct || mongoose.model('DailyProduct', dailyProductSchema);

@@ -1100,7 +1100,15 @@ function renderDailyReport(data) {
   if (data.assigned.length === 0) {
     assignedEl.innerHTML = `<div class="text-center text-zinc-500 text-sm py-8">${t('daily.emptyAssigned')}</div>`;
   } else {
-    assignedEl.innerHTML = `<div class="space-y-2">${data.assigned.map(a => `
+    assignedEl.innerHTML = `<div class="space-y-2">${data.assigned.map(a => {
+      const bonus = a.bonus || 0;
+      const isManual = a.isManual;
+      const manualAmount = a.manualAmount;
+      const fairShare = a.fairShare || 0;
+      const deficit = isManual && manualAmount !== null && manualAmount < fairShare
+        ? fairShare - manualAmount : 0;
+
+      return `
       <div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-purple-500/5 border border-purple-500/10">
         <div class="flex-1 min-w-0">
           <div class="font-medium text-sm truncate">${escapeHtml(a.employeeSnapshot.firstName)}${a.employeeSnapshot.lastName && a.employeeSnapshot.lastName !== '-' ? ' ' + escapeHtml(a.employeeSnapshot.lastName) : ''}</div>
@@ -1113,6 +1121,8 @@ function renderDailyReport(data) {
         <div class="flex items-center gap-1 shrink-0">
           <div class="text-right mr-1">
             <div class="mono text-sm font-semibold text-emerald-400">${formatMoney(a.earning)}</div>
+            ${bonus > 0 ? `<div class="bonus-badge mt-1">+${formatMoney(bonus)}</div>` : ''}
+            ${deficit > 0 ? `<div class="deficit-badge mt-1">−${formatMoney(deficit)}</div>` : ''}
           </div>
           <button type="button" data-act="edit-earning" data-id="${a._id}" class="btn-icon" title="${t('daily.editEarning')}">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1128,7 +1138,7 @@ function renderDailyReport(data) {
           </button>
         </div>
       </div>
-    `).join('')}</div>`;
+    `;}).join('')}</div>`;
 
     assignedEl.querySelectorAll('[data-act="unassign"]').forEach(btn => {
       btn.addEventListener('click', () => unassignEmployee(btn.dataset.id));
@@ -1224,6 +1234,27 @@ async function unassignEmployee(assignmentId) {
     loadDailyReport(state.dailyDate);
   } catch (err) {
     toast(err.message || t('msg.error'), 'error');
+  }
+}
+
+
+async function loadAllDirectionsForProduct() {
+  const select = document.getElementById('productDirection');
+  if (!select) return;
+
+  try {
+    // Barcha yo'nalishlarni yuklash (department ko'rsatmasdan)
+    const directions = await api('/api/directions');
+    if (!directions) return;
+
+    select.innerHTML = '<option value="">—</option>' +
+      directions.map(d => {
+        const deptName = d.departmentId?.name || '';
+        const label = deptName ? `${escapeHtml(deptName)} › ${escapeHtml(d.name)}` : escapeHtml(d.name);
+        return `<option value="${d._id}">${label} — ${formatMoney(d.currentPrice)}</option>`;
+      }).join('');
+  } catch (err) {
+    console.error('Product directions load error:', err);
   }
 }
 
@@ -1377,6 +1408,7 @@ function setupDailyReportPage() {
       productName: document.getElementById('productName').value.trim(),
       quantity: Number(document.getElementById('productQty').value),
       date: state.dailyDate || undefined,
+      directionId: document.getElementById('productDirection').value,
     };
 
     btn.disabled = true;

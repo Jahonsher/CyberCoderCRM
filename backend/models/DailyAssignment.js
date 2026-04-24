@@ -1,5 +1,6 @@
 /**
  * CyberCoderCRM - DailyAssignment Model
+ * Endi fairShare, bonus, isManual bilan
  */
 
 const mongoose = require('mongoose');
@@ -37,9 +38,31 @@ const dailyAssignmentSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    // Asosiy - yakuniy daromad (barcha hisoblashlardan keyin)
     earning: {
       type: Number,
       required: true,
+      default: 0,
+    },
+    // Adolatli ulush (formuladan chiqadigan narx)
+    fairShare: {
+      type: Number,
+      default: 0,
+    },
+    // Qo'shimcha (yashil +X)
+    bonus: {
+      type: Number,
+      default: 0,
+    },
+    // Admin qo'lda o'zgartirganmi?
+    isManual: {
+      type: Boolean,
+      default: false,
+    },
+    // Admin qo'lda yozgan qiymat (isManual=true bo'lsa)
+    manualAmount: {
+      type: Number,
+      default: null,
     },
     employeeSnapshot: {
       firstName: String,
@@ -48,6 +71,7 @@ const dailyAssignmentSchema = new mongoose.Schema(
     },
     directionSnapshot: {
       name: String,
+      departmentName: String,
     },
   },
   {
@@ -55,11 +79,11 @@ const dailyAssignmentSchema = new mongoose.Schema(
   }
 );
 
-// Bir xodim bir kunda faqat bir marta
 dailyAssignmentSchema.index(
   { businessId: 1, employeeId: 1, date: 1 },
   { unique: true }
 );
 dailyAssignmentSchema.index({ businessId: 1, date: -1 });
+dailyAssignmentSchema.index({ businessId: 1, directionId: 1, date: 1 });
 
 module.exports = mongoose.models.DailyAssignment || mongoose.model('DailyAssignment', dailyAssignmentSchema);

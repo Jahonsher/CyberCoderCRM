@@ -737,6 +737,57 @@
       background: rgba(109, 40, 217, 0.04);
     }
 
+
+    /* Bonus/Deficit badges */
+    .bonus-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    [data-theme="light"] .bonus-badge {
+      background: rgba(4, 120, 87, 0.1);
+      color: #047857;
+      border-color: rgba(4, 120, 87, 0.35);
+    }
+    .deficit-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(185, 28, 28, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(185, 28, 28, 0.3);
+    }
+    [data-theme="light"] .deficit-badge {
+      background: rgba(185, 28, 28, 0.1);
+      color: #991b1b;
+      border-color: rgba(185, 28, 28, 0.35);
+    }
+
+    /* Product card - yo'nalish bilan */
+    .product-card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      transition: all 0.2s;
+    }
+    .product-card:hover {
+      border-color: rgba(139, 92, 246, 0.35);
+    }
+
     /* Monthly employee row */
     .emp-row {
       transition: all 0.2s;
