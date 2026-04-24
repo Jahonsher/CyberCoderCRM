@@ -1819,29 +1819,41 @@ async function submitPay() {
 }
 
 async function loadArchive() {
-  const container = document.getElementById('archiveContainer');
-  container.innerHTML = '<div class="p-6"><div class="skeleton h-32"></div></div>';
+  const container = document.getElementById('archiveResultsContainer');
+  container.innerHTML = '<div class="card p-10 text-center"><div class="skeleton h-32"></div></div>';
+
+  const month = document.getElementById('archiveMonth').value;
+  const code = document.getElementById('archiveCode').value.trim();
+
+  const params = new URLSearchParams();
+  if (month) params.append('month', month);
+  if (code) params.append('code', code);
 
   try {
-    const archives = await api('/api/archive');
-    if (!archives) return;
-    state.archives = archives;
-    renderArchive(archives);
+    const data = await api(`/api/archive?${params}`);
+    if (!data) return;
+    state.archives = data;
+    renderArchive(data);
   } catch (err) {
-    container.innerHTML = `<div class="p-6 text-center text-red-400">${escapeHtml(err.message)}</div>`;
+    container.innerHTML = `<div class="card p-6 text-center text-red-400">${escapeHtml(err.message)}</div>`;
   }
 }
 
-function renderArchive(archives) {
-  const container = document.getElementById('archiveContainer');
+function renderArchive(data) {
+  // Stats
+  document.getElementById('archiveStatPayments').textContent = data.stats.totalPayments || 0;
+  document.getElementById('archiveStatAmount').textContent = formatMoney(data.stats.totalAmount || 0);
+  document.getElementById('archiveStatEmployees').textContent = data.stats.uniqueEmployees || 0;
+  document.getElementById('archiveStatMonths').textContent = data.stats.monthsCount || 0;
 
-  if (archives.length === 0) {
+  const container = document.getElementById('archiveResultsContainer');
+
+  if (!data.months || data.months.length === 0) {
     container.innerHTML = `
-      <div class="p-12 text-center">
+      <div class="card p-12 text-center">
         <div class="inline-flex w-16 h-16 rounded-2xl bg-purple-500/10 border border-purple-500/20 items-center justify-center mb-4">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-purple-400">
-            <polyline points="21 8 21 21 3 21 3 8"/>
-            <rect x="1" y="3" width="22" height="5"/>
+            <path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
           </svg>
         </div>
         <h3 class="font-bold mb-1">${t('archive.empty')}</h3>
@@ -1850,30 +1862,106 @@ function renderArchive(archives) {
     return;
   }
 
-  container.innerHTML = `
-    <div class="table-wrap">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>${t('archive.period')}</th>
-            <th>${t('archive.archivedAt')}</th>
-            <th>${t('month.totalEarning')}</th>
-            <th>${t('nav.employees')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${archives.map(a => `
-            <tr>
-              <td class="font-medium">${escapeHtml(a.periodLabel)}</td>
-              <td class="mono text-xs text-zinc-400">${formatDate(a.archivedAt, { withTime: true })}</td>
-              <td class="mono font-semibold text-emerald-400">${formatMoney(a.stats?.totalEarnings || 0)}</td>
-              <td class="mono">${a.stats?.totalEmployeesWorked || 0}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
+  // Oy oy ko'rsatish
+  container.innerHTML = data.months.map(m => `
+    <div class="archive-month-card">
+      <div class="archive-month-header flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <div class="font-bold text-lg">${formatMonthLabel(m.periodMonth)}</div>
+          <div class="mono text-xs text-zinc-500 mt-1">
+            ${m.totalEmployees} ${t('nav.employees')} · ${m.payments.length} ${t('archive.totalPayments')}
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="mono text-xs text-zinc-500">${t('archive.monthlyTotal')}</div>
+          <div class="text-xl font-bold text-emerald-400">${formatMoney(m.totalAmount)}</div>
+        </div>
+      </div>
+      <div>
+        ${m.payments.map(p => {
+          const fullName = p.employeeSnapshot.firstName +
+            (p.employeeSnapshot.lastName && p.employeeSnapshot.lastName !== '-' ? ' ' + p.employeeSnapshot.lastName : '');
+          return `
+            <div class="archive-payment-row flex items-center justify-between gap-3 flex-wrap">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-sm truncate">${escapeHtml(fullName)}</div>
+                <div class="mono text-xs text-zinc-500 mt-1">
+                  <span class="text-purple-300">${escapeHtml(p.employeeSnapshot.code)}</span>
+                  · ${formatDate(p.paidAt, { withTime: true })}
+                </div>
+              </div>
+              <div class="flex items-center gap-3 shrink-0">
+                <div class="text-right">
+                  <div class="mono font-bold text-emerald-400">${formatMoney(p.amount)}</div>
+                </div>
+                <button type="button" data-act="archive-delete" data-id="${p._id}" data-name="${escapeHtml(fullName)}" class="btn-icon danger" title="${t('common.delete')}">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
     </div>
-  `;
+  `).join('');
+
+  // Delete button handlers
+  container.querySelectorAll('[data-act="archive-delete"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const name = btn.dataset.name;
+      confirmDeleteArchive(id, name);
+    });
+  });
+}
+
+function formatMonthLabel(periodMonth) {
+  // YYYY-MM format
+  const [year, month] = periodMonth.split('-');
+  const monthNames = {
+    'uz-lat': ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr'],
+    'uz-cyr': ['Январ', 'Феврал', 'Март', 'Апрел', 'Май', 'Июн', 'Июл', 'Август', 'Сентабр', 'Октабр', 'Ноябр', 'Декабр'],
+    'ru': ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'],
+  };
+  const lang = localStorage.getItem('cc_lang') || 'uz-lat';
+  const names = monthNames[lang] || monthNames['uz-lat'];
+  const monthName = names[parseInt(month, 10) - 1];
+  return `${monthName} ${year}`;
+}
+
+function confirmDeleteArchive(id, name) {
+  openConfirm(
+    t('archive.deleteConfirm'),
+    `"${name}" — ${t('archive.deleteWarn')}`,
+    async () => {
+      try {
+        await api(`/api/archive/${id}`, { method: 'DELETE' });
+        toast(t('msg.deleted'), 'success');
+        loadArchive();
+      } catch (err) {
+        toast(err.message || t('msg.error'), 'error');
+      }
+    }
+  );
+}
+
+function setupArchivePage() {
+  const loadBtn = document.getElementById('archiveLoadBtn');
+  if (loadBtn) {
+    loadBtn.addEventListener('click', loadArchive);
+  }
+
+  const resetBtn = document.getElementById('archiveResetBtn');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      document.getElementById('archiveMonth').value = '';
+      document.getElementById('archiveCode').value = '';
+      loadArchive();
+    });
+  }
 }
 
 // ============================================
@@ -2021,6 +2109,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupDirectionsPage();
   setupDailyReportPage();
   setupMonthlyReportPage();
+  setupArchivePage();
   setupEarningEdit();  // 3-talab
 
   applyStaticTranslations();

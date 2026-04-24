@@ -1,14 +1,15 @@
-const cron = require('node-cron');
+/**
+ * CyberCoderCRM - Daily Reset Job
+ *
+ * MUHIM: Endi ADMIN o'zi sanani tanlaydi va xatolarni tuzatadi.
+ * Avtomatik yangilanish OLIB TASHLANDI.
+ *
+ * Bu fayl faqat compatibility uchun qoldirilgan.
+ */
 
 function start() {
-  cron.schedule('0 3 * * *', async () => {
-    console.log('⏰ Kunlik reset cron bajarildi');
-  }, {
-    scheduled: true,
-    timezone: 'Asia/Tashkent',
-  });
-  
-  console.log('⏰ Kunlik Reset Cron faol: har kuni 03:00 (Asia/Tashkent)');
+  console.log('ℹ️  Kunlik reset: Admin qo\'lda boshqaradi (cron o\'chirilgan)');
+  // Hech narsa qilmaydi
 }
 
 module.exports = { start };

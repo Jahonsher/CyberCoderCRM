@@ -707,6 +707,36 @@
       opacity: 1;
     }
 
+
+    /* Archive month card */
+    .archive-month-card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .archive-month-header {
+      padding: 16px 20px;
+      background: rgba(139, 92, 246, 0.08);
+      border-bottom: 1px solid var(--glass-border);
+    }
+    [data-theme="light"] .archive-month-header {
+      background: rgba(109, 40, 217, 0.08);
+    }
+    .archive-payment-row {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--glass-border);
+      transition: background 0.15s;
+    }
+    .archive-payment-row:last-child { border-bottom: none; }
+    .archive-payment-row:hover {
+      background: rgba(139, 92, 246, 0.04);
+    }
+    [data-theme="light"] .archive-payment-row:hover {
+      background: rgba(109, 40, 217, 0.04);
+    }
+
     /* Monthly employee row */
     .emp-row {
       transition: all 0.2s;
@@ -1117,15 +1147,60 @@
           </div>
         </div>
 
-        <!-- PAGE: ARCHIVE -->
+        <!-- PAGE: ARCHIVE (To'lov tarixi) -->
         <div class="page" data-page="archive">
-          <div class="card overflow-hidden" id="archiveContainer">
-            <div class="p-6"><div class="skeleton h-32"></div></div>
+          <!-- Filters -->
+          <div class="card p-5 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="field-label" data-i18n="archive.month">Oy</label>
+                <input type="month" id="archiveMonth" class="input-field w-full px-4 py-3 rounded-xl text-sm" />
+              </div>
+              <div>
+                <label class="field-label" data-i18n="month.codeSearch">Kod qidirish</label>
+                <input type="text" id="archiveCode" class="input-field w-full px-4 py-3 rounded-xl text-sm mono" placeholder="001, 002..." />
+              </div>
+              <div class="flex items-end gap-2">
+                <button id="archiveLoadBtn" type="button" class="btn-primary flex-1 py-3 rounded-xl text-sm" data-i18n="common.search">Qidirish</button>
+                <button id="archiveResetBtn" type="button" class="btn-ghost py-3 px-4 rounded-xl text-sm" title="Tozalash">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="1 4 1 10 7 10"/>
+                    <path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stats -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            <div class="stat-card">
+              <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2" data-i18n="archive.totalPayments">Jami to'lovlar</div>
+              <div class="text-2xl font-bold text-purple-400" id="archiveStatPayments">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2" data-i18n="archive.totalAmount">Jami summa</div>
+              <div class="text-2xl font-bold text-emerald-400" id="archiveStatAmount">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2" data-i18n="archive.uniqueEmployees">Xodimlar</div>
+              <div class="text-2xl font-bold" id="archiveStatEmployees">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2" data-i18n="archive.months">Oylar</div>
+              <div class="text-2xl font-bold" id="archiveStatMonths">0</div>
+            </div>
+          </div>
+
+          <!-- Results -->
+          <div id="archiveResultsContainer">
+            <div class="card p-10 text-center text-zinc-500">
+              <p class="text-sm" data-i18n="archive.empty">Hali to'lovlar yo'q</p>
+            </div>
           </div>
         </div>
 
-      </div>
-    </main>
+        </main>
   </div>
 
   <!-- MODALS -->

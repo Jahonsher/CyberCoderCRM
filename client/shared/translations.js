@@ -171,6 +171,20 @@ const TRANSLATIONS = {
     'month.noEarning': 'Daromad yo\'q',
     'month.viewDetails': 'Batafsil',
     'month.dayDetails': 'Kunlik ma\'lumot',
+
+    // Archive (To'lov tarixi)
+    'archive.month': 'Oy',
+    'archive.totalPayments': "Jami to'lovlar",
+    'archive.totalAmount': 'Jami summa',
+    'archive.uniqueEmployees': 'Xodimlar',
+    'archive.months': 'Oylar',
+    'archive.empty': "Hali to'lovlar yo'q",
+    'archive.monthlyTotal': 'Oylik jami',
+    'archive.paidTo': "To'langan",
+    'archive.period': 'Davr',
+    'archive.paidAt': "To'lov vaqti",
+    'archive.deleteConfirm': "To'lovni bekor qilishni xohlaysizmi?",
+    'archive.deleteWarn': "Bu amal qaytarib bo'lmaydi. To'lov bekor qilinadi va xodim yana oylik olishi mumkin bo'ladi.",
   },
 
   'uz-cyr': {
@@ -337,6 +351,19 @@ const TRANSLATIONS = {
     'month.noEarning': 'Даромад йўқ',
     'month.viewDetails': 'Батафсил',
     'month.dayDetails': 'Кунлик маълумот',
+
+    'archive.month': 'Ой',
+    'archive.totalPayments': 'Жами тўловлар',
+    'archive.totalAmount': 'Жами сумма',
+    'archive.uniqueEmployees': 'Ходимлар',
+    'archive.months': 'Ойлар',
+    'archive.empty': 'Ҳали тўловлар йўқ',
+    'archive.monthlyTotal': 'Ойлик жами',
+    'archive.paidTo': 'Тўланган',
+    'archive.period': 'Давр',
+    'archive.paidAt': 'Тўлов вақти',
+    'archive.deleteConfirm': 'Тўловни бекор қилишни хоҳлайсизми?',
+    'archive.deleteWarn': 'Бу амални қайтариб бўлмайди. Тўлов бекор қилинади ва ходим яна ойлик олиши мумкин бўлади.',
   },
 
   'ru': {
@@ -503,6 +530,19 @@ const TRANSLATIONS = {
     'month.noEarning': 'Нет дохода',
     'month.viewDetails': 'Подробнее',
     'month.dayDetails': 'Детали по дням',
+
+    'archive.month': 'Месяц',
+    'archive.totalPayments': 'Всего выплат',
+    'archive.totalAmount': 'Общая сумма',
+    'archive.uniqueEmployees': 'Сотрудники',
+    'archive.months': 'Месяцы',
+    'archive.empty': 'Пока нет выплат',
+    'archive.monthlyTotal': 'Итог за месяц',
+    'archive.paidTo': 'Выплачено',
+    'archive.period': 'Период',
+    'archive.paidAt': 'Время выплаты',
+    'archive.deleteConfirm': 'Отменить выплату?',
+    'archive.deleteWarn': 'Это действие нельзя отменить. Выплата будет удалена, и сотрудник сможет снова получить зарплату.',
   },
 };
 
