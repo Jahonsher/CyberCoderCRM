@@ -194,6 +194,18 @@ const TRANSLATIONS = {
     'daily.dailyHint': "Kunlik xodim shu summani oladi (mahsulotga bog'liq emas)",
     'daily.dailyAmountRequired': 'Kunlik summa kiriting',
     'daily.futureNotAllowed': "Kelajakdagi kun mumkin emas",
+
+    // Yangi - kun bo'yicha to'lov
+    'month.given': 'Berilgan',
+    'month.remaining': 'Qolgan',
+    'month.paySelectedDays': "Tanlangan kunlar uchun to'lash",
+    'month.payRemaining': "Qolganini to'lash",
+    'month.payRemainingTitle': "Qolgan summalarni to'lash",
+    'month.undoPayConfirm': "To'lovni bekor qilish?",
+    'month.undoPayWarn': "Bu kunning to'lovi bekor qilinadi va xodim qayta to'lanishi mumkin bo'ladi.",
+    'month.paidStatus': '✓ Berilgan',
+    'month.daysSelected': 'kun tanlangan',
+    'month.selectUnpaidOnly': "Tanlash (faqat to'lanmaganlar)",
   },
 
   'uz-cyr': {
@@ -381,6 +393,17 @@ const TRANSLATIONS = {
     'daily.dailyHint': "Кунлик ходим шу суммани олади (маҳсулотга боғлиқ эмас)",
     'daily.dailyAmountRequired': 'Кунлик сумма киритинг',
     'daily.futureNotAllowed': 'Келажакдаги кун мумкин эмас',
+
+    'month.given': 'Берилган',
+    'month.remaining': 'Қолган',
+    'month.paySelectedDays': 'Танланган кунлар учун тўлаш',
+    'month.payRemaining': 'Қолганини тўлаш',
+    'month.payRemainingTitle': 'Қолган суммаларни тўлаш',
+    'month.undoPayConfirm': 'Тўловни бекор қилиш?',
+    'month.undoPayWarn': 'Бу куннинг тўлови бекор қилинади ва ходим қайта тўланиши мумкин бўлади.',
+    'month.paidStatus': '✓ Берилган',
+    'month.daysSelected': 'кун танланган',
+    'month.selectUnpaidOnly': 'Танлаш (фақат тўланмаганлар)',
   },
 
   'ru': {
@@ -568,6 +591,17 @@ const TRANSLATIONS = {
     'daily.dailyHint': 'Дневной работник получает эту сумму (не зависит от продукта)',
     'daily.dailyAmountRequired': 'Введите дневную сумму',
     'daily.futureNotAllowed': 'Будущий день недоступен',
+
+    'month.given': 'Выплачено',
+    'month.remaining': 'Остаток',
+    'month.paySelectedDays': 'Оплатить выбранные дни',
+    'month.payRemaining': 'Оплатить остаток',
+    'month.payRemainingTitle': 'Оплата остатков',
+    'month.undoPayConfirm': 'Отменить выплату?',
+    'month.undoPayWarn': 'Выплата за этот день будет отменена, и сотрудник сможет снова получить эту сумму.',
+    'month.paidStatus': '✓ Выплачено',
+    'month.daysSelected': 'дней выбрано',
+    'month.selectUnpaidOnly': 'Выбрать (только невыплаченные)',
   },
 };
 

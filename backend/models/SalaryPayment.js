@@ -1,6 +1,6 @@
 /**
- * CyberCoderCRM - Salary Payment Model
- * Oylik to'lovlar tarixi
+ * CyberCoderCRM - SalaryPayment Model
+ * Endi: assignmentId orqali aniq kunga bog'lanadi
  */
 
 const mongoose = require('mongoose');
@@ -19,26 +19,24 @@ const salaryPaymentSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    // Snapshot (xodim keyin o'chirilsa ham saqlanadi)
-    employeeSnapshot: {
-      firstName: String,
-      lastName: String,
-      code: String,
+    // Aynan qaysi kunga to'lov - DailyAssignment'dan
+    assignmentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'DailyAssignment',
+      required: true,
+      index: true,
     },
-    // Qaysi oy uchun (masalan 2026-04 — aprel 2026)
-    periodMonth: {
+    // Kun (qulaylik uchun)
+    dateString: {
       type: String,
       required: true,
       index: true,
     },
-    // Diapazon
-    periodStart: {
-      type: Date,
-      required: true,
-    },
-    periodEnd: {
-      type: Date,
-      required: true,
+    // Snapshot
+    employeeSnapshot: {
+      firstName: String,
+      lastName: String,
+      code: String,
     },
     amount: {
       type: Number,
@@ -59,11 +57,45 @@ const salaryPaymentSchema = new mongoose.Schema(
   }
 );
 
-// Bir xodim bitta oy uchun faqat bir marta olishi mumkin
+// Bir assignment uchun faqat bir to'lov
 salaryPaymentSchema.index(
-  { businessId: 1, employeeId: 1, periodMonth: 1 },
+  { businessId: 1, assignmentId: 1 },
   { unique: true }
 );
+salaryPaymentSchema.index({ businessId: 1, employeeId: 1, dateString: 1 });
 salaryPaymentSchema.index({ businessId: 1, paidAt: -1 });
 
-module.exports = mongoose.models.SalaryPayment || mongoose.model('SalaryPayment', salaryPaymentSchema);
+const SalaryPayment = mongoose.models.SalaryPayment || mongoose.model('SalaryPayment', salaryPaymentSchema);
+
+// MIGRATSIYA: eski periodMonth indexni o'chirish
+async function migrateOldIndexes() {
+  try {
+    const indexes = await SalaryPayment.collection.indexes();
+    for (const idx of indexes) {
+      // Eski periodMonth index o'chirish
+      if (idx.key && (idx.key.periodMonth !== undefined) && idx.unique) {
+        console.log(`🗑️  Eski SalaryPayment index o'chirilyapti: ${idx.name}`);
+        try {
+          await SalaryPayment.collection.dropIndex(idx.name);
+          console.log(`✅ O'chirildi: ${idx.name}`);
+        } catch (e) {
+          console.error(`Drop xato: ${idx.name}`, e.message);
+        }
+      }
+    }
+  } catch (err) {
+    if (err.code !== 26 && !err.message?.includes('ns does not exist')) {
+      console.error('SalaryPayment migratsiya xato:', err.message);
+    }
+  }
+}
+
+mongoose.connection.once('open', () => {
+  migrateOldIndexes();
+});
+
+if (mongoose.connection.readyState === 1) {
+  migrateOldIndexes();
+}
+
+module.exports = SalaryPayment;

@@ -49,7 +49,8 @@ const state = {
   dailyData: null,
   dailyDate: null,
   monthData: null,
-  monthSelected: new Set(),
+  monthSelected: new Set(),       // employee IDs
+  monthSelectedDays: new Set(),   // assignment IDs (kun bo'yicha to'lov)
   archives: [],
 
   editingEmpId: null,
@@ -1687,14 +1688,13 @@ function renderMonthlyReport(data) {
   // Stats
   document.getElementById('monthStatEarning').textContent = formatMoney(data.stats.totalEarning);
   document.getElementById('monthStatEmployees').textContent = data.stats.totalEmployees;
-  document.getElementById('monthStatPaid').textContent = data.stats.totalPaid || 0;
+  document.getElementById('monthStatPaid').textContent = formatMoney(data.stats.totalPaid || 0);
   document.getElementById('monthStatProducts').textContent = data.stats.totalProductCount;
 
   const container = document.getElementById('monthResultsContainer');
   const actionBar = document.getElementById('monthActionBar');
   const detailsContainer = document.getElementById('monthDetailsContainer');
 
-  // Agar xodimlar yo'q bo'lsa
   if (!data.employees || data.employees.length === 0) {
     container.innerHTML = `<div class="p-10 text-center text-zinc-500"><p class="text-sm">${t('month.empty')}</p></div>`;
     actionBar.classList.add('hidden');
@@ -1702,56 +1702,99 @@ function renderMonthlyReport(data) {
     return;
   }
 
-  // Agar bitta xodim (kod bo'yicha qidirilgan) - batafsil ko'rinish
+  // Reset selections
+  state.monthSelected.clear();
+  state.monthSelectedDays.clear();
+
   const isSingleEmployee = data.employees.length === 1 && document.getElementById('monthCode').value.trim();
 
+  // ========================================================
+  // SINGLE EMPLOYEE - kod qidirilganda
+  // ========================================================
   if (isSingleEmployee) {
     const emp = data.employees[0];
     const fullName = emp.firstName + (emp.lastName && emp.lastName !== '-' ? ' ' + emp.lastName : '');
 
-    // Summary (ro'yxat)
+    // Summary cards (3ta: jami, berilgan, qolgan)
     container.innerHTML = `
       <div class="p-5">
-        <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
-          <div>
-            <div class="font-bold text-lg">${escapeHtml(fullName)}</div>
-            <div class="mono text-xs text-zinc-500 mt-1">
-              <span class="text-purple-300">${escapeHtml(emp.code)}</span>
-              · ${emp.totalDays} kun · ${emp.totalShifts} smena
-              ${emp.isPaid ? `<span class="paid-badge ml-2">✓ ${t('month.paidBadge')}</span>` : ''}
-            </div>
+        <div class="mb-4">
+          <div class="font-bold text-lg">${escapeHtml(fullName)}</div>
+          <div class="mono text-xs text-zinc-500 mt-1">
+            <span class="text-purple-300">${escapeHtml(emp.code)}</span>
+            · ${emp.totalDays} kun · ${emp.totalShifts} smena
           </div>
-          <div class="text-right">
-            <div class="mono text-xs text-zinc-500">${t('month.totalEarning')}</div>
-            <div class="text-2xl font-bold text-emerald-400">${formatMoney(emp.totalEarning)}</div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div class="stat-card">
+            <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2">Jami</div>
+            <div class="text-2xl font-bold">${formatMoney(emp.totalEarning)}</div>
+            <div class="mono text-xs text-zinc-500 mt-1">${emp.totalDays} kun</div>
+          </div>
+          <div class="stat-card" style="border-color: rgba(16, 185, 129, 0.3)">
+            <div class="mono text-[10px] text-emerald-400 uppercase tracking-wider mb-2">Berilgan</div>
+            <div class="text-2xl font-bold text-emerald-400">${formatMoney(emp.paidAmount || 0)}</div>
+            <div class="mono text-xs text-zinc-500 mt-1">${emp.paidDays || 0} kun</div>
+          </div>
+          <div class="stat-card" style="border-color: rgba(245, 158, 11, 0.3)">
+            <div class="mono text-[10px] text-amber-400 uppercase tracking-wider mb-2">Qolgan</div>
+            <div class="text-2xl font-bold text-amber-400">${formatMoney(emp.remainingAmount || 0)}</div>
+            <div class="mono text-xs text-zinc-500 mt-1">${emp.remainingDays || 0} kun</div>
           </div>
         </div>
       </div>
     `;
 
-    // Details table - har kun alohida
+    // Details table - har kun checkbox bilan
     detailsContainer.classList.remove('hidden');
-    document.getElementById('monthDetailsSubtitle').textContent = `${escapeHtml(emp.code)} · ${emp.totalDays} ${t('common.days') || 'kun'}`;
+    document.getElementById('monthDetailsSubtitle').textContent = `${escapeHtml(emp.code)} · ${emp.totalDays} kun`;
+
     document.getElementById('monthDetailsTable').innerHTML = `
+      <div class="p-4 border-b border-purple-500/10 flex items-center justify-between flex-wrap gap-3" id="dayActionBar">
+        <div class="flex items-center gap-3">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="dayselectAll" class="w-5 h-5 rounded cursor-pointer accent-purple-600" />
+            <span class="text-sm font-medium">Tanlash (faqat to'lanmaganlar)</span>
+          </label>
+          <span class="mono text-xs text-zinc-500" id="daySelectedCount"></span>
+        </div>
+        <button id="dayPayBtn" type="button" class="btn-primary px-4 py-2 rounded-xl text-sm flex items-center gap-2" disabled>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+          </svg>
+          <span>Tanlangan kunlar uchun to'lash</span>
+        </button>
+      </div>
       <div class="table-wrap">
         <table class="data-table">
           <thead>
             <tr>
-              <th>${t('common.date') || 'Sana'}</th>
+              <th style="width: 50px"></th>
+              <th>Sana</th>
               <th>${t('dept.title')}</th>
               <th>${t('daily.direction')}</th>
-              <th class="text-center">${t('daily.shift') || 'Smena'}</th>
-              <th class="text-right">${t('daily.earning') || 'Daromad'}</th>
+              <th class="text-center">Smena</th>
+              <th class="text-right">Daromad</th>
+              <th class="text-center">Holat</th>
             </tr>
           </thead>
           <tbody>
             ${emp.days.map(day => `
-              <tr>
+              <tr class="day-row ${day.isPaid ? 'paid' : ''}" data-assignment-id="${day.assignmentId}" data-paid="${day.isPaid ? '1' : '0'}" data-payment-id="${day.paymentId || ''}">
+                <td>
+                  <input type="checkbox" class="day-checkbox" data-assignment-id="${day.assignmentId}" ${day.isPaid ? 'checked disabled' : ''} />
+                </td>
                 <td class="mono text-sm">${formatDate(day.date)}</td>
                 <td class="text-sm text-zinc-400">${escapeHtml(day.departmentName || '—')}</td>
                 <td class="text-sm">${escapeHtml(day.directionName)}</td>
                 <td class="mono text-sm text-center">${day.shift === 0.5 ? '½' : '1'}</td>
                 <td class="mono font-semibold text-emerald-400 text-right">${formatMoney(day.earning)}</td>
+                <td class="text-center">
+                  ${day.isPaid
+                    ? `<button type="button" data-act="undo-pay" data-payment-id="${day.paymentId}" class="paid-badge cursor-pointer hover:opacity-80" title="Bekor qilish">✓ Berilgan</button>`
+                    : `<span class="mono text-xs text-zinc-500">—</span>`}
+                </td>
               </tr>
             `).join('')}
           </tbody>
@@ -1759,15 +1802,59 @@ function renderMonthlyReport(data) {
       </div>
     `;
 
+    // Day checkbox handlers
+    detailsContainer.querySelectorAll('.day-checkbox').forEach(cb => {
+      cb.addEventListener('change', () => {
+        if (cb.disabled) return;
+        const aid = cb.dataset.assignmentId;
+        if (cb.checked) {
+          state.monthSelectedDays.add(aid);
+        } else {
+          state.monthSelectedDays.delete(aid);
+        }
+        updateDayActionBar();
+      });
+    });
+
+    // Select all (faqat to'lanmaganlar)
+    const selectAllDays = document.getElementById('dayselectAll');
+    if (selectAllDays) {
+      selectAllDays.addEventListener('change', () => {
+        const checked = selectAllDays.checked;
+        state.monthSelectedDays.clear();
+        detailsContainer.querySelectorAll('.day-checkbox').forEach(cb => {
+          if (cb.disabled) return;
+          cb.checked = checked;
+          if (checked) state.monthSelectedDays.add(cb.dataset.assignmentId);
+        });
+        updateDayActionBar();
+      });
+    }
+
+    // Pay button
+    const dayPayBtn = document.getElementById('dayPayBtn');
+    if (dayPayBtn) {
+      dayPayBtn.addEventListener('click', () => payDays(false));
+    }
+
+    // Undo pay (badge bosish)
+    detailsContainer.querySelectorAll('[data-act="undo-pay"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const pid = btn.dataset.paymentId;
+        confirmUndoPay(pid);
+      });
+    });
+
     actionBar.classList.add('hidden');
     return;
   }
 
-  // Oddiy ro'yxat (checkbox + pay)
+  // ========================================================
+  // KO'PCHILIK XODIM - oddiy ro'yxat
+  // ========================================================
   detailsContainer.classList.add('hidden');
   actionBar.classList.remove('hidden');
 
-  // Select all reset
   document.getElementById('monthSelectAll').checked = false;
 
   container.innerHTML = `
@@ -1778,30 +1865,27 @@ function renderMonthlyReport(data) {
             <th style="width: 50px"></th>
             <th>${t('emp.table.name')}</th>
             <th>${t('emp.table.code')}</th>
-            <th class="text-center">${t('common.days') || 'Kunlar'}</th>
-            <th class="text-center">${t('common.shifts') || 'Smena'}</th>
-            <th class="text-right">${t('month.totalEarning')}</th>
-            <th class="text-center">${t('common.status') || 'Holat'}</th>
+            <th class="text-center">Kunlar</th>
+            <th class="text-right">Jami</th>
+            <th class="text-right" style="color: #34d399">Berilgan</th>
+            <th class="text-right" style="color: #fbbf24">Qolgan</th>
           </tr>
         </thead>
         <tbody>
           ${data.employees.map(e => {
             const fullName = e.firstName + (e.lastName && e.lastName !== '-' ? ' ' + e.lastName : '');
+            const isFullyPaid = e.remainingAmount === 0 && e.totalEarning > 0;
             return `
-              <tr class="emp-row ${e.isPaid ? 'paid' : ''}" data-employee-id="${e.employeeId}">
+              <tr class="emp-row ${isFullyPaid ? 'paid' : ''}" data-employee-id="${e.employeeId}">
                 <td>
-                  <input type="checkbox" class="pay-checkbox" data-employee-id="${e.employeeId}" ${e.isPaid ? 'disabled' : ''} />
+                  <input type="checkbox" class="pay-checkbox" data-employee-id="${e.employeeId}" ${isFullyPaid ? 'disabled' : ''} />
                 </td>
                 <td class="font-medium">${escapeHtml(fullName)}</td>
                 <td><span class="mono text-xs px-2 py-1 rounded bg-purple-500/10 border border-purple-500/20 text-purple-300">${escapeHtml(e.code)}</span></td>
                 <td class="mono text-center">${e.totalDays}</td>
-                <td class="mono text-center">${e.totalShifts}</td>
-                <td class="mono font-semibold text-emerald-400 text-right">${formatMoney(e.totalEarning)}</td>
-                <td class="text-center">
-                  ${e.isPaid
-                    ? `<span class="paid-badge">✓ ${t('month.paidBadge')}</span>`
-                    : `<span class="mono text-xs text-zinc-500">${t('month.unpaidBadge')}</span>`}
-                </td>
+                <td class="mono font-semibold text-right">${formatMoney(e.totalEarning)}</td>
+                <td class="mono text-right" style="color: #34d399">${formatMoney(e.paidAmount || 0)}</td>
+                <td class="mono font-semibold text-right" style="color: ${e.remainingAmount > 0 ? '#fbbf24' : '#34d399'}">${formatMoney(e.remainingAmount || 0)}</td>
               </tr>
             `;
           }).join('')}
@@ -1810,7 +1894,7 @@ function renderMonthlyReport(data) {
     </div>
   `;
 
-  // Checkbox handlerlar
+  // Checkbox handlers
   container.querySelectorAll('.pay-checkbox').forEach(cb => {
     cb.addEventListener('change', () => {
       const empId = cb.dataset.employeeId;
@@ -1824,6 +1908,56 @@ function renderMonthlyReport(data) {
   });
 
   updateMonthActionBar();
+}
+
+function updateDayActionBar() {
+  const count = state.monthSelectedDays.size;
+  const countEl = document.getElementById('daySelectedCount');
+  const payBtn = document.getElementById('dayPayBtn');
+  if (countEl) countEl.textContent = count > 0 ? `(${count} kun)` : '';
+  if (payBtn) payBtn.disabled = count === 0;
+}
+
+async function payDays(skipConfirm) {
+  if (state.monthSelectedDays.size === 0) return;
+
+  const ids = Array.from(state.monthSelectedDays);
+
+  if (!skipConfirm) {
+    const ok = confirm(`${ids.length} kun uchun to'lash?`);
+    if (!ok) return;
+  }
+
+  try {
+    const result = await api('/api/monthly-report/pay-days', {
+      method: 'POST',
+      body: JSON.stringify({ assignmentIds: ids }),
+    });
+
+    if (result) {
+      toast(`${result.paidCount} kun uchun to'lov qilindi`, 'success');
+      state.monthSelectedDays.clear();
+      loadMonthlyReport();
+    }
+  } catch (err) {
+    toast(err.message || t('msg.error'), 'error');
+  }
+}
+
+function confirmUndoPay(paymentId) {
+  openConfirm(
+    "To'lovni bekor qilish?",
+    "Bu kunning to'lovi bekor qilinadi va xodim qayta to'lanishi mumkin bo'ladi.",
+    async () => {
+      try {
+        await api(`/api/monthly-report/pay/${paymentId}`, { method: 'DELETE' });
+        toast("To'lov bekor qilindi", 'success');
+        loadMonthlyReport();
+      } catch (err) {
+        toast(err.message || t('msg.error'), 'error');
+      }
+    }
+  );
 }
 
 function updateMonthActionBar() {
@@ -1875,13 +2009,14 @@ async function submitPay() {
   spinner.classList.remove('hidden');
 
   try {
-    const result = await api('/api/monthly-report/pay', {
+    // Yangi endpoint: pay-remaining (faqat to'lanmagan kunlar uchun)
+    const result = await api('/api/monthly-report/pay-remaining', {
       method: 'POST',
       body: JSON.stringify(body),
     });
 
     if (result) {
-      const msg = `${t('month.paySuccess')}: ${result.paidCount}` +
+      const msg = `Qolgani to'landi: ${result.paidCount} kun` +
         (result.errorsCount > 0 ? ` (${result.errorsCount} xato)` : '');
       toast(msg, result.paidCount > 0 ? 'success' : 'error');
 

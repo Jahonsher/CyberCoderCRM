@@ -1,6 +1,6 @@
 /**
- * CyberCoderCRM - Archive routes
- * Endi Arxiv = To'lov tarixi
+ * CyberCoderCRM - Archive (To'lov tarixi)
+ * Endi: SalaryPayment'lar kun bo'yicha
  */
 
 const express = require('express');
@@ -15,8 +15,7 @@ const requireModule = require('../middleware/requireModule');
 router.use(verifyToken, requireAdmin, businessScope, requireModule('archive'));
 
 /**
- * GET /api/archive
- * Filter: ?month=YYYY-MM, ?code=..., ?startDate=..., ?endDate=...
+ * GET /api/archive?month=YYYY-MM&code=...
  */
 router.get('/', async (req, res) => {
   try {
@@ -24,8 +23,15 @@ router.get('/', async (req, res) => {
 
     const filter = { businessId: req.businessId };
 
-    if (month) filter.periodMonth = month;
-    if (code) filter['employeeSnapshot.code'] = code.trim();
+    if (month) {
+      // dateString boshlanishi shu oy bilan
+      filter.dateString = { $regex: `^${month}` };
+    }
+
+    if (code) {
+      filter['employeeSnapshot.code'] = code.trim();
+    }
+
     if (startDate && endDate) {
       filter.paidAt = {
         $gte: new Date(startDate),
@@ -38,23 +44,27 @@ router.get('/', async (req, res) => {
     // Oy bo'yicha guruhlash
     const grouped = {};
     for (const p of payments) {
-      const key = p.periodMonth;
-      if (!grouped[key]) {
-        grouped[key] = {
-          periodMonth: key,
+      // dateString'dan oyni olish: "2026-04-15" → "2026-04"
+      const monthKey = p.dateString ? p.dateString.slice(0, 7) : 'unknown';
+      if (!grouped[monthKey]) {
+        grouped[monthKey] = {
+          periodMonth: monthKey,
           payments: [],
           totalAmount: 0,
-          totalEmployees: 0,
+          totalEmployees: new Set(),
         };
       }
-      grouped[key].payments.push(p);
-      grouped[key].totalAmount += p.amount;
-      grouped[key].totalEmployees++;
+      grouped[monthKey].payments.push(p);
+      grouped[monthKey].totalAmount += p.amount;
+      grouped[monthKey].totalEmployees.add(String(p.employeeId));
     }
 
-    const months = Object.values(grouped).sort((a, b) =>
-      b.periodMonth.localeCompare(a.periodMonth)
-    );
+    const months = Object.values(grouped)
+      .map(m => ({
+        ...m,
+        totalEmployees: m.totalEmployees.size,
+      }))
+      .sort((a, b) => b.periodMonth.localeCompare(a.periodMonth));
 
     const totalStats = {
       totalPayments: payments.length,
@@ -66,21 +76,6 @@ router.get('/', async (req, res) => {
     res.json({ months, stats: totalStats });
   } catch (err) {
     console.error('Archive GET xato:', err);
-    res.status(500).json({ error: 'Server xatosi' });
-  }
-});
-
-router.get('/:id', async (req, res) => {
-  try {
-    const payment = await SalaryPayment.findOne({
-      _id: req.params.id,
-      businessId: req.businessId,
-    });
-
-    if (!payment) return res.status(404).json({ error: "To'lov topilmadi" });
-    res.json(payment);
-  } catch (err) {
-    console.error('Archive detail xato:', err);
     res.status(500).json({ error: 'Server xatosi' });
   }
 });

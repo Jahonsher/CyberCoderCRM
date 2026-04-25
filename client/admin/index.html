@@ -761,6 +761,29 @@
       border-color: rgba(4, 120, 87, 0.4);
     }
 
+
+    /* Day row (kun bo'yicha) */
+    .day-row {
+      transition: all 0.2s;
+    }
+    .day-row.paid {
+      opacity: 0.5;
+    }
+    .day-row.paid td {
+      text-decoration: line-through;
+      text-decoration-color: rgba(255, 255, 255, 0.2);
+    }
+    .day-checkbox {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      cursor: pointer;
+      accent-color: #8b5cf6;
+    }
+    [data-theme="light"] .day-checkbox {
+      accent-color: #6d28d9;
+    }
+
     /* Bonus/Deficit badges */
     .bonus-badge {
       display: inline-flex;
@@ -1177,7 +1200,7 @@
               <div class="text-2xl font-bold" id="monthStatEmployees">0</div>
             </div>
             <div class="stat-card">
-              <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2" data-i18n="month.paidBadge">To'langan</div>
+              <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2">Berilgan</div>
               <div class="text-2xl font-bold text-emerald-400" id="monthStatPaid">0</div>
             </div>
             <div class="stat-card">
@@ -1200,7 +1223,7 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
                 </svg>
-                <span data-i18n="month.payBtn">Oylik berish</span>
+                <span>Qolganini to'lash</span>
               </button>
             </div>
           </div>
@@ -1542,7 +1565,7 @@
   <div id="payModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
     <div class="modal-content w-full max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
       <div class="p-6 border-b border-purple-500/10 flex items-center justify-between">
-        <h2 class="text-xl font-bold" data-i18n="month.payBtn">Oylik berish</h2>
+        <h2 class="text-xl font-bold">Qolgan summalarni to'lash</h2>
         <button type="button" data-close="payModal" class="btn-icon">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
