@@ -185,6 +185,15 @@ const TRANSLATIONS = {
     'archive.paidAt': "To'lov vaqti",
     'archive.deleteConfirm': "To'lovni bekor qilishni xohlaysizmi?",
     'archive.deleteWarn': "Bu amal qaytarib bo'lmaydi. To'lov bekor qilinadi va xodim yana oylik olishi mumkin bo'ladi.",
+
+    // Yangi - work type
+    'daily.workType': 'Ish turi',
+    'daily.piecework': 'Shtuk',
+    'daily.dailyWork': 'Kunlik',
+    'daily.dailyAmount': "Kunlik summa (so'm)",
+    'daily.dailyHint': "Kunlik xodim shu summani oladi (mahsulotga bog'liq emas)",
+    'daily.dailyAmountRequired': 'Kunlik summa kiriting',
+    'daily.futureNotAllowed': "Kelajakdagi kun mumkin emas",
   },
 
   'uz-cyr': {
@@ -364,6 +373,14 @@ const TRANSLATIONS = {
     'archive.paidAt': 'Тўлов вақти',
     'archive.deleteConfirm': 'Тўловни бекор қилишни хоҳлайсизми?',
     'archive.deleteWarn': 'Бу амални қайтариб бўлмайди. Тўлов бекор қилинади ва ходим яна ойлик олиши мумкин бўлади.',
+
+    'daily.workType': 'Иш тури',
+    'daily.piecework': 'Штук',
+    'daily.dailyWork': 'Кунлик',
+    'daily.dailyAmount': 'Кунлик сумма (сўм)',
+    'daily.dailyHint': "Кунлик ходим шу суммани олади (маҳсулотга боғлиқ эмас)",
+    'daily.dailyAmountRequired': 'Кунлик сумма киритинг',
+    'daily.futureNotAllowed': 'Келажакдаги кун мумкин эмас',
   },
 
   'ru': {
@@ -543,6 +560,14 @@ const TRANSLATIONS = {
     'archive.paidAt': 'Время выплаты',
     'archive.deleteConfirm': 'Отменить выплату?',
     'archive.deleteWarn': 'Это действие нельзя отменить. Выплата будет удалена, и сотрудник сможет снова получить зарплату.',
+
+    'daily.workType': 'Тип работы',
+    'daily.piecework': 'Штучно',
+    'daily.dailyWork': 'Дневная',
+    'daily.dailyAmount': 'Дневная сумма (сум)',
+    'daily.dailyHint': 'Дневной работник получает эту сумму (не зависит от продукта)',
+    'daily.dailyAmountRequired': 'Введите дневную сумму',
+    'daily.futureNotAllowed': 'Будущий день недоступен',
   },
 };
 

@@ -1105,15 +1105,19 @@ function renderDailyReport(data) {
       const isManual = a.isManual;
       const manualAmount = a.manualAmount;
       const fairShare = a.fairShare || 0;
-      const deficit = isManual && manualAmount !== null && manualAmount < fairShare
+      const isDaily = a.type === 'daily';
+      const deficit = !isDaily && isManual && manualAmount !== null && manualAmount < fairShare
         ? fairShare - manualAmount : 0;
 
       return `
-      <div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-purple-500/5 border border-purple-500/10">
+      <div class="flex items-center justify-between gap-3 p-3 rounded-xl ${isDaily ? 'bg-emerald-500/5 border border-emerald-500/15' : 'bg-purple-500/5 border border-purple-500/10'}">
         <div class="flex-1 min-w-0">
-          <div class="font-medium text-sm truncate">${escapeHtml(a.employeeSnapshot.firstName)}${a.employeeSnapshot.lastName && a.employeeSnapshot.lastName !== '-' ? ' ' + escapeHtml(a.employeeSnapshot.lastName) : ''}</div>
+          <div class="font-medium text-sm truncate flex items-center gap-2">
+            ${escapeHtml(a.employeeSnapshot.firstName)}${a.employeeSnapshot.lastName && a.employeeSnapshot.lastName !== '-' ? ' ' + escapeHtml(a.employeeSnapshot.lastName) : ''}
+            ${isDaily ? '<span class="daily-badge">KUNLIK</span>' : ''}
+          </div>
           <div class="mono text-xs text-zinc-500 mt-0.5 truncate">
-            <span class="text-purple-300">${escapeHtml(a.employeeSnapshot.code)}</span>
+            <span class="${isDaily ? 'text-emerald-300' : 'text-purple-300'}">${escapeHtml(a.employeeSnapshot.code)}</span>
             · ${escapeHtml(a.directionSnapshot.name)}
             · ${a.shift === 0.5 ? '½' : '1'}
           </div>
@@ -1121,8 +1125,8 @@ function renderDailyReport(data) {
         <div class="flex items-center gap-1 shrink-0">
           <div class="text-right mr-1">
             <div class="mono text-sm font-semibold text-emerald-400">${formatMoney(a.earning)}</div>
-            ${bonus > 0 ? `<div class="bonus-badge mt-1">+${formatMoney(bonus)}</div>` : ''}
-            ${deficit > 0 ? `<div class="deficit-badge mt-1">−${formatMoney(deficit)}</div>` : ''}
+            ${!isDaily && bonus > 0 ? `<div class="bonus-badge mt-1">+${formatMoney(bonus)}</div>` : ''}
+            ${!isDaily && deficit > 0 ? `<div class="deficit-badge mt-1">−${formatMoney(deficit)}</div>` : ''}
           </div>
           <button type="button" data-act="edit-earning" data-id="${a._id}" class="btn-icon" title="${t('daily.editEarning')}">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1250,16 +1254,26 @@ async function openAssignModal(employeeId, employeeName) {
     } catch (err) {}
   }
 
-  // Department select
   fillDepartmentSelect('assignDepartment', '');
 
-  // Direction select ni tozalash va disabled
   const dirSelect = document.getElementById('assignDirection');
   dirSelect.innerHTML = '<option value="">—</option>';
   dirSelect.disabled = true;
 
-  // Default shift
   document.querySelector('input[name="shift"][value="1"]').checked = true;
+
+  // Default work type = piecework
+  const pwRadio = document.querySelector('input[name="workType"][value="piecework"]');
+  if (pwRadio) pwRadio.checked = true;
+
+  // Daily amount yashirilsin va tozalansin
+  const wrap = document.getElementById('assignDailyAmountWrap');
+  if (wrap) wrap.classList.add('hidden');
+  const amtInput = document.getElementById('assignDailyAmount');
+  if (amtInput) {
+    amtInput.value = '';
+    amtInput.required = false;
+  }
 
   openModal('assignModal');
 }
@@ -1298,10 +1312,35 @@ function setupDailyReportPage() {
     });
   }
 
+  // Work type radio - dailyAmount maydonini ko'rsatish/yashirish
+  document.querySelectorAll('input[name="workType"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      const wrap = document.getElementById('assignDailyAmountWrap');
+      const dailyAmtInput = document.getElementById('assignDailyAmount');
+      if (radio.value === 'daily' && radio.checked) {
+        wrap.classList.remove('hidden');
+        dailyAmtInput.required = true;
+      } else if (radio.value === 'piecework' && radio.checked) {
+        wrap.classList.add('hidden');
+        dailyAmtInput.required = false;
+        dailyAmtInput.value = '';
+      }
+    });
+  });
+
   // Date controls
   const dateInput = document.getElementById('dailyDateInput');
   if (dateInput) {
+    // Maksimal sana - bugun (kelajakni cheklash)
+    dateInput.max = todayISO();
+
     dateInput.addEventListener('change', () => {
+      // Kelajak sanani rad qilish
+      if (dateInput.value > todayISO()) {
+        toast(t('daily.futureNotAllowed') || "Kelajakdagi kun mumkin emas", 'error');
+        dateInput.value = state.dailyDate || todayISO();
+        return;
+      }
       state.dailyDate = dateInput.value;
       loadDailyReport(state.dailyDate);
     });
@@ -1324,7 +1363,15 @@ function setupDailyReportPage() {
       if (!state.dailyDate) state.dailyDate = todayISO();
       const d = new Date(state.dailyDate);
       d.setDate(d.getDate() + 1);
-      state.dailyDate = d.toISOString().split('T')[0];
+      const newDate = d.toISOString().split('T')[0];
+
+      // Kelajak sanani rad qilish
+      if (newDate > todayISO()) {
+        toast(t('daily.futureNotAllowed') || "Kelajakdagi kun mumkin emas", 'error');
+        return;
+      }
+
+      state.dailyDate = newDate;
       loadDailyReport(state.dailyDate);
     });
   }

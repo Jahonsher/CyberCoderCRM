@@ -1,6 +1,8 @@
 /**
  * CyberCoderCRM - DailyAssignment Model
- * Endi fairShare, bonus, isManual bilan
+ * Endi 2 xil xodim:
+ *  - piecework (shtuk) - mahsulot soniga qarab oladi
+ *  - daily (kunlik) - alohida belgilangan summa oladi
  */
 
 const mongoose = require('mongoose');
@@ -34,32 +36,42 @@ const dailyAssignmentSchema = new mongoose.Schema(
       enum: [0.5, 1],
       default: 1,
     },
+    // YANGI: ish turi
+    type: {
+      type: String,
+      enum: ['piecework', 'daily'],
+      default: 'piecework',
+    },
+    // Kunlik xodim uchun belgilangan summa
+    dailyAmount: {
+      type: Number,
+      default: 0,
+    },
     priceSnapshot: {
       type: Number,
       required: true,
     },
-    // Asosiy - yakuniy daromad (barcha hisoblashlardan keyin)
+    // Yakuniy daromad
     earning: {
       type: Number,
       required: true,
       default: 0,
     },
-    // Adolatli ulush (formuladan chiqadigan narx)
+    // Adolatli ulush (faqat piecework uchun)
     fairShare: {
       type: Number,
       default: 0,
     },
-    // Qo'shimcha (yashil +X)
+    // Bonus (faqat piecework uchun)
     bonus: {
       type: Number,
       default: 0,
     },
-    // Admin qo'lda o'zgartirganmi?
+    // Manual o'zgartirilganmi?
     isManual: {
       type: Boolean,
       default: false,
     },
-    // Admin qo'lda yozgan qiymat (isManual=true bo'lsa)
     manualAmount: {
       type: Number,
       default: null,

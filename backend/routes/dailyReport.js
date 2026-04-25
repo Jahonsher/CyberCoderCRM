@@ -1,6 +1,7 @@
 /**
  * CyberCoderCRM - Daily Report routes
- * Sodda formula - umumiy mahsulot barcha yo'nalishlarga taaluqli
+ * Sana UTC bilan ishlaydi - timezone muammosi yo'q
+ * type: piecework | daily
  */
 
 const express = require('express');
@@ -19,19 +20,60 @@ const requireModule = require('../middleware/requireModule');
 
 router.use(verifyToken, requireAdmin, businessScope, requireModule('dailyReport'));
 
-function getDateRange(dateStr) {
-  let d;
-  if (dateStr) {
-    d = new Date(dateStr);
-    if (isNaN(d.getTime())) d = new Date();
-  } else {
-    d = new Date();
+/**
+ * Sana parserni - UTC bilan ishlaydi
+ * YYYY-MM-DD formatdagi stringdan UTC 00:00 sanani qaytaradi
+ */
+function parseDate(dateStr) {
+  if (!dateStr) {
+    const now = new Date();
+    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   }
-  const start = new Date(d);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(d);
-  end.setHours(23, 59, 59, 999);
-  return { start, end, dateStr: start.toISOString().split('T')[0] };
+
+  // YYYY-MM-DD format kutiladi
+  const parts = String(dateStr).split('-');
+  if (parts.length !== 3) {
+    const now = new Date();
+    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  }
+
+  const year = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10) - 1;
+  const day = parseInt(parts[2], 10);
+
+  if (isNaN(year) || isNaN(month) || isNaN(day)) {
+    const now = new Date();
+    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  }
+
+  return new Date(Date.UTC(year, month, day));
+}
+
+/**
+ * Bugungi UTC sana
+ */
+function todayUTC() {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+}
+
+/**
+ * Sana intervalini olish (start ... end)
+ */
+function getDateRange(dateStr) {
+  const start = parseDate(dateStr);
+  const end = new Date(start);
+  end.setUTCHours(23, 59, 59, 999);
+  const isoStr = `${start.getUTCFullYear()}-${String(start.getUTCMonth() + 1).padStart(2, '0')}-${String(start.getUTCDate()).padStart(2, '0')}`;
+  return { start, end, dateStr: isoStr };
+}
+
+/**
+ * Kelajak sana tekshiruvi
+ */
+function isFutureDate(date) {
+  const today = todayUTC();
+  return date.getTime() > today.getTime();
 }
 
 router.get('/', async (req, res) => {
@@ -84,7 +126,7 @@ router.get('/', async (req, res) => {
 
 router.post('/assign', async (req, res) => {
   try {
-    const { employeeId, directionId, shift, date } = req.body;
+    const { employeeId, directionId, shift, date, type, dailyAmount } = req.body;
 
     if (!employeeId || !directionId || !shift) {
       return res.status(400).json({ error: 'Barcha maydonlar kerak' });
@@ -93,6 +135,20 @@ router.post('/assign', async (req, res) => {
     const shiftNum = Number(shift);
     if (![0.5, 1].includes(shiftNum)) {
       return res.status(400).json({ error: "Smena 1 yoki 0.5 bo'lishi kerak" });
+    }
+
+    const assignType = type === 'daily' ? 'daily' : 'piecework';
+    const dailyAmt = assignType === 'daily' ? Number(dailyAmount || 0) : 0;
+
+    if (assignType === 'daily' && (isNaN(dailyAmt) || dailyAmt < 0)) {
+      return res.status(400).json({ error: "Kunlik summa noto'g'ri" });
+    }
+
+    const targetDate = parseDate(date);
+
+    // Kelajak sana tekshiruvi
+    if (isFutureDate(targetDate)) {
+      return res.status(400).json({ error: "Kelajakdagi kun uchun biriktirish mumkin emas" });
     }
 
     const [employee, direction] = await Promise.all([
@@ -111,15 +167,6 @@ router.post('/assign', async (req, res) => {
     if (!employee) return res.status(404).json({ error: 'Xodim topilmadi' });
     if (!direction) return res.status(404).json({ error: "Yo'nalish topilmadi" });
 
-    let targetDate;
-    if (date) {
-      targetDate = new Date(date);
-      if (isNaN(targetDate.getTime())) targetDate = new Date();
-    } else {
-      targetDate = new Date();
-    }
-    targetDate.setHours(0, 0, 0, 0);
-
     const existing = await DailyAssignment.findOne({
       businessId: req.businessId,
       employeeId: employee._id,
@@ -136,6 +183,8 @@ router.post('/assign', async (req, res) => {
       directionId: direction._id,
       date: targetDate,
       shift: shiftNum,
+      type: assignType,
+      dailyAmount: dailyAmt,
       priceSnapshot: direction.currentPrice,
       earning: 0,
       fairShare: 0,
@@ -154,7 +203,6 @@ router.post('/assign', async (req, res) => {
 
     await assignment.save();
 
-    // Shu yo'nalish uchun recalculate
     await recalculateDirection(req.businessId, direction._id, targetDate);
 
     const updated = await DailyAssignment.findById(assignment._id);
@@ -211,7 +259,6 @@ router.delete('/assign/:id', async (req, res) => {
     const date = assignment.date;
 
     await DailyAssignment.findByIdAndDelete(assignment._id);
-
     await recalculateDirection(req.businessId, directionId, date);
 
     res.json({ success: true });
@@ -221,9 +268,6 @@ router.delete('/assign/:id', async (req, res) => {
   }
 });
 
-/**
- * Mahsulot qo'shish - endi directionId yo'q, umumiy!
- */
 router.post('/products', async (req, res) => {
   try {
     const { productName, quantity, date } = req.body;
@@ -232,14 +276,11 @@ router.post('/products', async (req, res) => {
       return res.status(400).json({ error: 'Nom va soni kerak' });
     }
 
-    let targetDate;
-    if (date) {
-      targetDate = new Date(date);
-      if (isNaN(targetDate.getTime())) targetDate = new Date();
-    } else {
-      targetDate = new Date();
+    const targetDate = parseDate(date);
+
+    if (isFutureDate(targetDate)) {
+      return res.status(400).json({ error: "Kelajakdagi kun uchun mahsulot qo'shish mumkin emas" });
     }
-    targetDate.setHours(0, 0, 0, 0);
 
     const product = new DailyProduct({
       businessId: req.businessId,
@@ -250,7 +291,6 @@ router.post('/products', async (req, res) => {
 
     await product.save();
 
-    // HAMMA yo'nalishlarni recalculate (chunki umumiy mahsulot o'zgardi)
     await recalculateDay(req.businessId, targetDate);
 
     res.status(201).json(product);
@@ -274,8 +314,6 @@ router.put('/products/:id', async (req, res) => {
     if (quantity !== undefined) product.quantity = Number(quantity);
 
     await product.save();
-
-    // HAMMA yo'nalishlarni recalc
     await recalculateDay(req.businessId, product.date);
 
     res.json(product);
@@ -296,8 +334,6 @@ router.delete('/products/:id', async (req, res) => {
 
     const date = product.date;
     await DailyProduct.findByIdAndDelete(product._id);
-
-    // HAMMA yo'nalishlarni recalc
     await recalculateDay(req.businessId, date);
 
     res.json({ success: true });
@@ -310,7 +346,7 @@ router.delete('/products/:id', async (req, res) => {
 router.post('/recalculate', async (req, res) => {
   try {
     const { date } = req.body;
-    const targetDate = date ? new Date(date) : new Date();
+    const targetDate = parseDate(date);
     const results = await recalculateDay(req.businessId, targetDate);
     res.json({ success: true, results });
   } catch (err) {
