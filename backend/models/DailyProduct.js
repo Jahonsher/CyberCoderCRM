@@ -1,6 +1,6 @@
 /**
  * CyberCoderCRM - DailyProduct Model
- * Umumiy mahsulot - barcha yo'nalishlar shu sonni ishlatadi
+ * dateString (YYYY-MM-DD) bilan timezone safe
  */
 
 const mongoose = require('mongoose');
@@ -13,11 +13,15 @@ const dailyProductSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    // directionId - qoladi (eski data uchun), lekin ishlatilmaydi
     directionId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Direction',
       required: false,
+      index: true,
+    },
+    dateString: {
+      type: String,
+      required: true,
       index: true,
     },
     date: {
@@ -46,6 +50,48 @@ const dailyProductSchema = new mongoose.Schema(
   }
 );
 
-dailyProductSchema.index({ businessId: 1, date: -1 });
+dailyProductSchema.index({ businessId: 1, dateString: -1 });
 
-module.exports = mongoose.models.DailyProduct || mongoose.model('DailyProduct', dailyProductSchema);
+const DailyProduct = mongoose.models.DailyProduct || mongoose.model('DailyProduct', dailyProductSchema);
+
+// Migratsiya - eski productlarga dateString qo'shish
+async function migrateProducts() {
+  try {
+    const docs = await DailyProduct.find({
+      $or: [
+        { dateString: null },
+        { dateString: { $exists: false } },
+        { dateString: '' },
+      ]
+    });
+
+    if (docs.length > 0) {
+      console.log(`🔄 ${docs.length} ta eski mahsulotga dateString qo'shilyapti...`);
+      for (const doc of docs) {
+        if (doc.date) {
+          const d = new Date(doc.date);
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          doc.dateString = `${y}-${m}-${day}`;
+          await doc.save();
+        }
+      }
+      console.log(`✅ DailyProduct migratsiya tugadi`);
+    }
+  } catch (err) {
+    if (err.code !== 26 && !err.message?.includes('ns does not exist')) {
+      console.error('DailyProduct migratsiya xato:', err.message);
+    }
+  }
+}
+
+mongoose.connection.once('open', () => {
+  migrateProducts();
+});
+
+if (mongoose.connection.readyState === 1) {
+  migrateProducts();
+}
+
+module.exports = DailyProduct;

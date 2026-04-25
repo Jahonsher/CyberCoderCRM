@@ -1,33 +1,26 @@
 /**
  * CyberCoderCRM - Recalculate Service
- *
- * SODDA ALGORITM:
- * 1. UMUMIY mahsulot sonini olish
- * 2. Har yo'nalish uchun:
- *    - FAQAT piecework (shtuk) xodimlarni hisoblash
- *    - Kunlik xodim shtuk hisobiga aralashmaydi
- * 3. Kunlik xodim daromadi = dailyAmount × shift
+ * dateString (YYYY-MM-DD) bilan ishlaydi
  */
 
 const DailyAssignment = require('../models/DailyAssignment');
 const DailyProduct = require('../models/DailyProduct');
 
-async function recalculateDirection(businessId, directionId, date) {
-  const day = new Date(date);
-  day.setUTCHours(0, 0, 0, 0);
-  const dayEnd = new Date(day);
-  dayEnd.setUTCHours(23, 59, 59, 999);
-
-  // 1. Shu yo'nalishdagi BARCHA xodimlar (piecework + daily)
+/**
+ * Yo'nalish + sana uchun qayta hisoblash
+ * dateStr - "YYYY-MM-DD" string
+ */
+async function recalculateDirection(businessId, directionId, dateStr) {
+  // 1. Shu yo'nalishdagi BARCHA xodimlar
   const allAssignments = await DailyAssignment.find({
     businessId,
     directionId,
-    date: { $gte: day, $lte: dayEnd },
+    dateString: dateStr,
   });
 
   if (allAssignments.length === 0) return;
 
-  // 2. Kunlik xodimlarni darhol hisoblash (alohida)
+  // 2. Kunlik xodimlarni alohida hisoblash
   const dailyAssignments = allAssignments.filter(a => a.type === 'daily');
   for (const a of dailyAssignments) {
     const baseAmount = (a.dailyAmount || 0) * a.shift;
@@ -41,14 +34,14 @@ async function recalculateDirection(businessId, directionId, date) {
     await a.save();
   }
 
-  // 3. Piecework xodimlar (asosiy logika)
+  // 3. Piecework xodimlar
   const pieceworkAssignments = allAssignments.filter(a => a.type !== 'daily');
   if (pieceworkAssignments.length === 0) return;
 
-  // 4. Umumiy mahsulot
+  // 4. Umumiy mahsulot (shu kun uchun)
   const products = await DailyProduct.find({
     businessId,
-    date: { $gte: day, $lte: dayEnd },
+    dateString: dateStr,
   });
 
   const totalQuantity = products.reduce((sum, p) => sum + p.quantity, 0);
@@ -57,7 +50,7 @@ async function recalculateDirection(businessId, directionId, date) {
   // 5. Umumiy summa
   const totalAmount = totalQuantity * price;
 
-  // 6. 1 smena narxi (faqat piecework xodimlar soniga bo'linadi)
+  // 6. 1 smena narxi
   const employeeCount = pieceworkAssignments.length;
   const oneShiftPrice = employeeCount > 0 ? totalAmount / employeeCount : 0;
 
@@ -106,20 +99,18 @@ async function recalculateDirection(businessId, directionId, date) {
   };
 }
 
-async function recalculateDay(businessId, date) {
-  const day = new Date(date);
-  day.setUTCHours(0, 0, 0, 0);
-  const dayEnd = new Date(day);
-  dayEnd.setUTCHours(23, 59, 59, 999);
-
+/**
+ * Butun kun uchun
+ */
+async function recalculateDay(businessId, dateStr) {
   const directionIds = await DailyAssignment.find({
     businessId,
-    date: { $gte: day, $lte: dayEnd },
+    dateString: dateStr,
   }).distinct('directionId');
 
   const results = [];
   for (const directionId of directionIds) {
-    const result = await recalculateDirection(businessId, directionId, date);
+    const result = await recalculateDirection(businessId, directionId, dateStr);
     if (result) results.push({ directionId, ...result });
   }
 

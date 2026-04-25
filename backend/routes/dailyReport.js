@@ -1,7 +1,6 @@
 /**
  * CyberCoderCRM - Daily Report routes
- * Sana UTC bilan ishlaydi - timezone muammosi yo'q
- * type: piecework | daily
+ * dateString (YYYY-MM-DD) bilan ishlaydi - timezone safe
  */
 
 const express = require('express');
@@ -21,69 +20,67 @@ const requireModule = require('../middleware/requireModule');
 router.use(verifyToken, requireAdmin, businessScope, requireModule('dailyReport'));
 
 /**
- * Sana parserni - UTC bilan ishlaydi
- * YYYY-MM-DD formatdagi stringdan UTC 00:00 sanani qaytaradi
+ * "YYYY-MM-DD" stringga aylantirish (lokal sana asosida)
  */
-function parseDate(dateStr) {
-  if (!dateStr) {
+function toDateString(input) {
+  if (!input) {
     const now = new Date();
-    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
 
-  // YYYY-MM-DD format kutiladi
-  const parts = String(dateStr).split('-');
-  if (parts.length !== 3) {
-    const now = new Date();
-    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  // Agar string bo'lsa va to'g'ri formatda - to'g'ridan-to'g'ri qaytarish
+  if (typeof input === 'string') {
+    const match = input.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      return `${match[1]}-${match[2]}-${match[3]}`;
+    }
   }
 
-  const year = parseInt(parts[0], 10);
-  const month = parseInt(parts[1], 10) - 1;
-  const day = parseInt(parts[2], 10);
-
-  if (isNaN(year) || isNaN(month) || isNaN(day)) {
-    const now = new Date();
-    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  }
-
-  return new Date(Date.UTC(year, month, day));
+  // Date object'dan
+  const d = input instanceof Date ? input : new Date(input);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 /**
- * Bugungi UTC sana
+ * dateString'dan Date object yaratish (UTC midnight)
  */
-function todayUTC() {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+function dateStringToDate(dateString) {
+  const parts = dateString.split('-');
+  return new Date(Date.UTC(
+    parseInt(parts[0], 10),
+    parseInt(parts[1], 10) - 1,
+    parseInt(parts[2], 10)
+  ));
 }
 
 /**
- * Sana intervalini olish (start ... end)
+ * Bugungi sana - YYYY-MM-DD
  */
-function getDateRange(dateStr) {
-  const start = parseDate(dateStr);
-  const end = new Date(start);
-  end.setUTCHours(23, 59, 59, 999);
-  const isoStr = `${start.getUTCFullYear()}-${String(start.getUTCMonth() + 1).padStart(2, '0')}-${String(start.getUTCDate()).padStart(2, '0')}`;
-  return { start, end, dateStr: isoStr };
+function todayString() {
+  return toDateString(new Date());
 }
 
 /**
  * Kelajak sana tekshiruvi
  */
-function isFutureDate(date) {
-  const today = todayUTC();
-  return date.getTime() > today.getTime();
+function isFutureDateString(dateString) {
+  return dateString > todayString();
 }
 
 router.get('/', async (req, res) => {
   try {
-    const { start, end, dateStr } = getDateRange(req.query.date);
+    const dateStr = toDateString(req.query.date);
 
     const [assigned, allEmployees, products] = await Promise.all([
       DailyAssignment.find({
         businessId: req.businessId,
-        date: { $gte: start, $lte: end },
+        dateString: dateStr,
       }).sort('-createdAt'),
       Employee.find({
         businessId: req.businessId,
@@ -91,7 +88,7 @@ router.get('/', async (req, res) => {
       }).sort('firstName'),
       DailyProduct.find({
         businessId: req.businessId,
-        date: { $gte: start, $lte: end },
+        dateString: dateStr,
       }).sort('-createdAt'),
     ]);
 
@@ -106,7 +103,7 @@ router.get('/', async (req, res) => {
     const totalProducts = products.reduce((sum, p) => sum + (p.quantity || 0), 0);
 
     res.json({
-      date: start,
+      date: dateStringToDate(dateStr),
       dateStr,
       assigned,
       unassigned,
@@ -144,10 +141,9 @@ router.post('/assign', async (req, res) => {
       return res.status(400).json({ error: "Kunlik summa noto'g'ri" });
     }
 
-    const targetDate = parseDate(date);
+    const dateStr = toDateString(date);
 
-    // Kelajak sana tekshiruvi
-    if (isFutureDate(targetDate)) {
+    if (isFutureDateString(dateStr)) {
       return res.status(400).json({ error: "Kelajakdagi kun uchun biriktirish mumkin emas" });
     }
 
@@ -167,20 +163,24 @@ router.post('/assign', async (req, res) => {
     if (!employee) return res.status(404).json({ error: 'Xodim topilmadi' });
     if (!direction) return res.status(404).json({ error: "Yo'nalish topilmadi" });
 
+    // Tekshirish - dateString bo'yicha
     const existing = await DailyAssignment.findOne({
       businessId: req.businessId,
       employeeId: employee._id,
-      date: targetDate,
+      dateString: dateStr,
     });
 
     if (existing) {
       return res.status(400).json({ error: 'Bu xodim bu kun uchun allaqachon biriktirilgan' });
     }
 
+    const targetDate = dateStringToDate(dateStr);
+
     const assignment = new DailyAssignment({
       businessId: req.businessId,
       employeeId: employee._id,
       directionId: direction._id,
+      dateString: dateStr,
       date: targetDate,
       shift: shiftNum,
       type: assignType,
@@ -203,7 +203,7 @@ router.post('/assign', async (req, res) => {
 
     await assignment.save();
 
-    await recalculateDirection(req.businessId, direction._id, targetDate);
+    await recalculateDirection(req.businessId, direction._id, dateStr);
 
     const updated = await DailyAssignment.findById(assignment._id);
     res.status(201).json(updated);
@@ -236,7 +236,7 @@ router.put('/assign/:id/earning', async (req, res) => {
     assignment.manualAmount = earningNum;
     await assignment.save();
 
-    await recalculateDirection(req.businessId, assignment.directionId, assignment.date);
+    await recalculateDirection(req.businessId, assignment.directionId, assignment.dateString);
 
     const updated = await DailyAssignment.findById(assignment._id);
     res.json(updated);
@@ -256,10 +256,10 @@ router.delete('/assign/:id', async (req, res) => {
     if (!assignment) return res.status(404).json({ error: 'Topilmadi' });
 
     const directionId = assignment.directionId;
-    const date = assignment.date;
+    const dateStr = assignment.dateString;
 
     await DailyAssignment.findByIdAndDelete(assignment._id);
-    await recalculateDirection(req.businessId, directionId, date);
+    await recalculateDirection(req.businessId, directionId, dateStr);
 
     res.json({ success: true });
   } catch (err) {
@@ -276,22 +276,22 @@ router.post('/products', async (req, res) => {
       return res.status(400).json({ error: 'Nom va soni kerak' });
     }
 
-    const targetDate = parseDate(date);
+    const dateStr = toDateString(date);
 
-    if (isFutureDate(targetDate)) {
+    if (isFutureDateString(dateStr)) {
       return res.status(400).json({ error: "Kelajakdagi kun uchun mahsulot qo'shish mumkin emas" });
     }
 
     const product = new DailyProduct({
       businessId: req.businessId,
-      date: targetDate,
+      dateString: dateStr,
+      date: dateStringToDate(dateStr),
       productName: String(productName).trim(),
       quantity: Number(quantity),
     });
 
     await product.save();
-
-    await recalculateDay(req.businessId, targetDate);
+    await recalculateDay(req.businessId, dateStr);
 
     res.status(201).json(product);
   } catch (err) {
@@ -314,7 +314,7 @@ router.put('/products/:id', async (req, res) => {
     if (quantity !== undefined) product.quantity = Number(quantity);
 
     await product.save();
-    await recalculateDay(req.businessId, product.date);
+    await recalculateDay(req.businessId, product.dateString || toDateString(product.date));
 
     res.json(product);
   } catch (err) {
@@ -332,9 +332,9 @@ router.delete('/products/:id', async (req, res) => {
 
     if (!product) return res.status(404).json({ error: 'Topilmadi' });
 
-    const date = product.date;
+    const dateStr = product.dateString || toDateString(product.date);
     await DailyProduct.findByIdAndDelete(product._id);
-    await recalculateDay(req.businessId, date);
+    await recalculateDay(req.businessId, dateStr);
 
     res.json({ success: true });
   } catch (err) {
@@ -346,8 +346,8 @@ router.delete('/products/:id', async (req, res) => {
 router.post('/recalculate', async (req, res) => {
   try {
     const { date } = req.body;
-    const targetDate = parseDate(date);
-    const results = await recalculateDay(req.businessId, targetDate);
+    const dateStr = toDateString(date);
+    const results = await recalculateDay(req.businessId, dateStr);
     res.json({ success: true, results });
   } catch (err) {
     console.error('Recalculate xato:', err);
