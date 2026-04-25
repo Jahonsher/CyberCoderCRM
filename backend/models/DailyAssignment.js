@@ -1,8 +1,6 @@
 /**
  * CyberCoderCRM - DailyAssignment Model
- * Endi 2 xil xodim:
- *  - piecework (shtuk) - mahsulot soniga qarab oladi
- *  - daily (kunlik) - alohida belgilangan summa oladi
+ * Migratsiya: eski dateString index'ni o'chirish
  */
 
 const mongoose = require('mongoose');
@@ -36,13 +34,11 @@ const dailyAssignmentSchema = new mongoose.Schema(
       enum: [0.5, 1],
       default: 1,
     },
-    // YANGI: ish turi
     type: {
       type: String,
       enum: ['piecework', 'daily'],
       default: 'piecework',
     },
-    // Kunlik xodim uchun belgilangan summa
     dailyAmount: {
       type: Number,
       default: 0,
@@ -51,23 +47,19 @@ const dailyAssignmentSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
-    // Yakuniy daromad
     earning: {
       type: Number,
       required: true,
       default: 0,
     },
-    // Adolatli ulush (faqat piecework uchun)
     fairShare: {
       type: Number,
       default: 0,
     },
-    // Bonus (faqat piecework uchun)
     bonus: {
       type: Number,
       default: 0,
     },
-    // Manual o'zgartirilganmi?
     isManual: {
       type: Boolean,
       default: false,
@@ -98,4 +90,41 @@ dailyAssignmentSchema.index(
 dailyAssignmentSchema.index({ businessId: 1, date: -1 });
 dailyAssignmentSchema.index({ businessId: 1, directionId: 1, date: 1 });
 
-module.exports = mongoose.models.DailyAssignment || mongoose.model('DailyAssignment', dailyAssignmentSchema);
+const DailyAssignment = mongoose.models.DailyAssignment || mongoose.model('DailyAssignment', dailyAssignmentSchema);
+
+// MIGRATSIYA: eski dateString index'ni o'chirish
+// Faqat birinchi marta serverga ulanganda ishlaydi
+async function dropOldIndexes() {
+  try {
+    const indexes = await DailyAssignment.collection.indexes();
+    for (const idx of indexes) {
+      // dateString bilan bog'liq eski indexlarni topish
+      if (idx.name && (idx.name.includes('dateString') || idx.key?.dateString !== undefined)) {
+        console.log(`🗑️  Eski index o'chirilyapti: ${idx.name}`);
+        try {
+          await DailyAssignment.collection.dropIndex(idx.name);
+          console.log(`✅ Index o'chirildi: ${idx.name}`);
+        } catch (err) {
+          console.error(`❌ Index o'chirib bo'lmadi: ${idx.name}`, err.message);
+        }
+      }
+    }
+  } catch (err) {
+    // Collection hali yo'q bo'lsa - muammo emas
+    if (err.code !== 26 && !err.message?.includes('ns does not exist')) {
+      console.error('Index drop xato:', err.message);
+    }
+  }
+}
+
+// MongoDB ulangandan keyin migratsiya
+mongoose.connection.once('open', () => {
+  dropOldIndexes();
+});
+
+// Agar allaqachon ulangan bo'lsa
+if (mongoose.connection.readyState === 1) {
+  dropOldIndexes();
+}
+
+module.exports = DailyAssignment;
