@@ -1390,16 +1390,34 @@ function setupDailyReportPage() {
     const btn = document.getElementById('assignSubmitBtn');
     const spinner = document.getElementById('assignSubmitSpinner');
 
+    const workType = document.querySelector('input[name="workType"]:checked')?.value || 'piecework';
+    const dailyAmount = workType === 'daily'
+      ? Number(document.getElementById('assignDailyAmount').value || 0)
+      : 0;
+
+    if (workType === 'daily' && (isNaN(dailyAmount) || dailyAmount <= 0)) {
+      toast(t('daily.dailyAmountRequired') || "Kunlik summa kiriting", 'error');
+      return;
+    }
+
+    // MUHIM: state.dailyDate har doim to'g'ri sana bilan bo'lsin
+    const currentDate = state.dailyDate || todayISO();
+
     const body = {
       employeeId: document.getElementById('assignEmployeeId').value,
       directionId: document.getElementById('assignDirection').value,
       shift: document.querySelector('input[name="shift"]:checked').value,
+      date: currentDate,  // ALWAYS send the date
+      type: workType,
+      dailyAmount: dailyAmount,
     };
 
     if (!body.directionId) {
       toast(t('daily.direction'), 'error');
       return;
     }
+
+    console.log('📤 Assign yuborilyapti:', { date: body.date, type: body.type, dailyAmount: body.dailyAmount });
 
     btn.disabled = true;
     spinner.classList.remove('hidden');
@@ -1431,11 +1449,14 @@ function setupDailyReportPage() {
     const btn = document.getElementById('productSubmitBtn');
     const spinner = document.getElementById('productSubmitSpinner');
 
+    const currentDate = state.dailyDate || todayISO();
     const body = {
       productName: document.getElementById('productName').value.trim(),
       quantity: Number(document.getElementById('productQty').value),
-      date: state.dailyDate || undefined,
+      date: currentDate,
     };
+
+    console.log('📤 Product yuborilyapti:', { date: body.date });
 
     btn.disabled = true;
     spinner.classList.remove('hidden');
