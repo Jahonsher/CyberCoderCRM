@@ -323,7 +323,8 @@
       font-family: 'Space Grotesk', sans-serif;
       background: var(--bg-primary);
       color: var(--text-primary);
-      min-height: 100vh;
+      height: 100vh;
+      overflow: hidden;
       transition: background 0.3s ease, color 0.3s ease;
     }
 
@@ -366,12 +367,6 @@
       -webkit-backdrop-filter: blur(20px) saturate(1.4);
       border-right: 1px solid var(--glass-border);
       transition: background 0.3s ease;
-      /* Desktop: fixed o'zaro scroll */
-      position: sticky;
-      top: 0;
-      height: 100vh;
-      max-height: 100vh;
-      overflow-y: auto;
     }
     .sidebar::-webkit-scrollbar { width: 4px; }
 
@@ -944,9 +939,9 @@
   <!-- ============================================== -->
   <!-- APP VIEW (SPA) -->
   <!-- ============================================== -->
-  <div id="appView" class="hidden relative z-10 flex w-full max-w-full" style="min-height: 100vh;">
+  <div id="appView" class="hidden relative z-10 flex w-full max-w-full h-screen overflow-hidden">
 
-    <aside id="sidebar" class="sidebar w-64 shrink-0 flex flex-col p-5">
+    <aside id="sidebar" class="sidebar w-64 shrink-0 flex flex-col p-5 h-screen overflow-y-auto">
       <div class="flex items-center gap-3 px-2 mb-8">
         <div id="businessLogo" class="w-10 h-10 rounded-xl overflow-hidden shrink-0">
           <div class="logo-placeholder w-full h-full">L</div>
@@ -991,7 +986,7 @@
 
     <div id="sidebarBackdrop" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden"></div>
 
-    <main class="flex-1 min-w-0 overflow-x-hidden">
+    <main class="flex-1 min-w-0 overflow-x-hidden overflow-y-auto h-screen" id="mainContent">
       <header class="sticky top-0 z-30 glass border-b border-purple-500/10 px-4 sm:px-6 lg:px-10 py-4 sm:py-5">
         <div class="flex items-center justify-between gap-3">
           <div class="flex items-center gap-3 min-w-0">
