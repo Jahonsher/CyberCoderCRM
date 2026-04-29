@@ -1580,6 +1580,16 @@ function initMonthlyReport() {
 }
 
 function setupMonthlyReportPage() {
+  // Excel export tugmasi
+  const exportBtn = document.getElementById('monthExportBtn');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', exportMonthlyToExcel);
+  }
+  const exportDetailBtn = document.getElementById('monthExportDetailBtn');
+  if (exportDetailBtn) {
+    exportDetailBtn.addEventListener('click', exportEmployeeDetailToExcel);
+  }
+
   const today = todayISO();
   const d = new Date();
   d.setDate(1);
@@ -1685,6 +1695,9 @@ async function loadMonthlyReport() {
 }
 
 function renderMonthlyReport(data) {
+  // State'da saqlash (Excel export uchun)
+  state.monthlyData = data;
+
   // Stats
   document.getElementById('monthStatEarning').textContent = formatMoney(data.stats.totalEarning);
   document.getElementById('monthStatEmployees').textContent = data.stats.totalEmployees;
@@ -2311,6 +2324,223 @@ async function initApp() {
     logout();
   }
 }
+
+
+// ============================================================
+// EXCEL EXPORT
+// ============================================================
+
+function exportMonthlyToExcel() {
+  if (!state.monthlyData || !state.monthlyData.employees || state.monthlyData.employees.length === 0) {
+    toast(t('msg.error'), 'error');
+    return;
+  }
+
+  const lang = state.lang || localStorage.getItem('cc_lang') || 'uz-lat';
+  const data = state.monthlyData;
+
+  // Excel sarlavhalari (tildan olamiz)
+  const headers = {
+    'uz-lat': {
+      no: '№', name: 'Xodim', code: 'Kod', days: 'Kunlar',
+      total: 'Jami', paid: 'Berilgan', remaining: 'Qolgan',
+      sheetName: 'Oylik hisobot',
+    },
+    'uz-cyr': {
+      no: '№', name: 'Ходим', code: 'Код', days: 'Кунлар',
+      total: 'Жами', paid: 'Берилган', remaining: 'Қолган',
+      sheetName: 'Ойлик ҳисобот',
+    },
+    'ru': {
+      no: '№', name: 'Сотрудник', code: 'Код', days: 'Дни',
+      total: 'Всего', paid: 'Выплачено', remaining: 'Остаток',
+      sheetName: 'Месячный отчёт',
+    },
+  };
+  const h = headers[lang] || headers['uz-lat'];
+
+  // Asosiy sheet - xodimlar ro'yxati
+  const rows = [
+    [h.no, h.name, h.code, h.days, h.total, h.paid, h.remaining]
+  ];
+
+  data.employees.forEach((e, i) => {
+    const fullName = e.firstName + (e.lastName && e.lastName !== '-' ? ' ' + e.lastName : '');
+    rows.push([
+      i + 1,
+      fullName,
+      e.code,
+      e.totalDays,
+      e.totalEarning,
+      e.paidAmount || 0,
+      e.remainingAmount || 0,
+    ]);
+  });
+
+  // Yakuniy qator - jami
+  const totals = {
+    'uz-lat': 'JAMI',
+    'uz-cyr': 'ЖАМИ',
+    'ru': 'ИТОГО',
+  };
+  rows.push([
+    '',
+    totals[lang] || 'JAMI',
+    '',
+    data.employees.reduce((s, e) => s + e.totalDays, 0),
+    data.stats.totalEarning,
+    data.stats.totalPaid || 0,
+    data.stats.totalRemaining || 0,
+  ]);
+
+  // SheetJS bilan workbook
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+
+  // Ustun kengliklari
+  ws['!cols'] = [
+    { wch: 5 },   // №
+    { wch: 25 },  // Xodim
+    { wch: 10 },  // Kod
+    { wch: 10 },  // Kunlar
+    { wch: 15 },  // Jami
+    { wch: 15 },  // Berilgan
+    { wch: 15 },  // Qolgan
+  ];
+
+  // Sarlavha qatorini bold qilish (style cheklangan, lekin ishlaydi)
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for (let C = range.s.c; C <= range.e.c; ++C) {
+    const cellAddr = XLSX.utils.encode_cell({ r: 0, c: C });
+    if (ws[cellAddr]) {
+      ws[cellAddr].s = {
+        font: { bold: true, color: { rgb: 'FFFFFF' } },
+        fill: { fgColor: { rgb: '6D28D9' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+      };
+    }
+  }
+
+  // Pul ustunlarini number format
+  for (let R = 1; R <= range.e.r; ++R) {
+    for (const C of [4, 5, 6]) {
+      const cellAddr = XLSX.utils.encode_cell({ r: R, c: C });
+      if (ws[cellAddr]) {
+        ws[cellAddr].t = 'n';
+        ws[cellAddr].z = '#,##0';
+      }
+    }
+  }
+
+  XLSX.utils.book_append_sheet(wb, ws, h.sheetName.slice(0, 31));
+
+  // Fayl nomi
+  const period = data.period;
+  const fileName = `${h.sheetName}_${period.startDate}_${period.endDate}.xlsx`;
+
+  XLSX.writeFile(wb, fileName);
+
+  toast(t('msg.exportSuccess') || "Excel fayl yuklandi", 'success');
+}
+
+function exportEmployeeDetailToExcel() {
+  if (!state.monthlyData || !state.monthlyData.employees || state.monthlyData.employees.length !== 1) {
+    toast(t('msg.error'), 'error');
+    return;
+  }
+
+  const lang = state.lang || localStorage.getItem('cc_lang') || 'uz-lat';
+  const emp = state.monthlyData.employees[0];
+
+  const headers = {
+    'uz-lat': {
+      date: 'Sana', dept: "Bo'lim", direction: "Yo'nalish",
+      shift: 'Smena', earning: 'Daromad', status: 'Holat',
+      paid: 'Berilgan', notPaid: '—',
+      sheetName: 'Kunlik malumot',
+      totalLabel: 'Jami', paidLabel: 'Berilgan', remainingLabel: 'Qolgan',
+    },
+    'uz-cyr': {
+      date: 'Сана', dept: 'Бўлим', direction: 'Йўналиш',
+      shift: 'Смена', earning: 'Даромад', status: 'Ҳолат',
+      paid: 'Берилган', notPaid: '—',
+      sheetName: 'Кунлик маълумот',
+      totalLabel: 'Жами', paidLabel: 'Берилган', remainingLabel: 'Қолган',
+    },
+    'ru': {
+      date: 'Дата', dept: 'Отдел', direction: 'Направление',
+      shift: 'Смена', earning: 'Доход', status: 'Статус',
+      paid: 'Выплачено', notPaid: '—',
+      sheetName: 'Детально',
+      totalLabel: 'Всего', paidLabel: 'Выплачено', remainingLabel: 'Остаток',
+    },
+  };
+  const h = headers[lang] || headers['uz-lat'];
+
+  const fullName = emp.firstName + (emp.lastName && emp.lastName !== '-' ? ' ' + emp.lastName : '');
+
+  // Header info (yuqorida)
+  const rows = [
+    [fullName, '', emp.code],
+    [],
+    [h.totalLabel, h.paidLabel, h.remainingLabel],
+    [emp.totalEarning, emp.paidAmount || 0, emp.remainingAmount || 0],
+    [],
+    [h.date, h.dept, h.direction, h.shift, h.earning, h.status],
+  ];
+
+  emp.days.forEach(day => {
+    const dateStr = day.dateString || (day.date ? new Date(day.date).toISOString().split('T')[0] : '');
+    rows.push([
+      dateStr,
+      day.departmentName || '—',
+      day.directionName || '',
+      day.shift,
+      day.earning,
+      day.isPaid ? h.paid : h.notPaid,
+    ]);
+  });
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+
+  ws['!cols'] = [
+    { wch: 12 },   // Sana
+    { wch: 18 },   // Bo'lim
+    { wch: 18 },   // Yo'nalish
+    { wch: 8 },    // Smena
+    { wch: 15 },   // Daromad
+    { wch: 14 },   // Holat
+  ];
+
+  // Pul format - earning ustun
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for (let R = 6; R <= range.e.r; ++R) {
+    const cellAddr = XLSX.utils.encode_cell({ r: R, c: 4 });
+    if (ws[cellAddr]) {
+      ws[cellAddr].t = 'n';
+      ws[cellAddr].z = '#,##0';
+    }
+  }
+  // Stats row pul format
+  for (const C of [0, 1, 2]) {
+    const cellAddr = XLSX.utils.encode_cell({ r: 3, c: C });
+    if (ws[cellAddr]) {
+      ws[cellAddr].t = 'n';
+      ws[cellAddr].z = '#,##0';
+    }
+  }
+
+  XLSX.utils.book_append_sheet(wb, ws, h.sheetName.slice(0, 31));
+
+  const period = state.monthlyData.period;
+  const fileName = `${fullName}_${period.startDate}_${period.endDate}.xlsx`;
+
+  XLSX.writeFile(wb, fileName);
+
+  toast(t('msg.exportSuccess') || "Excel fayl yuklandi", 'success');
+}
+
 
 document.addEventListener('DOMContentLoaded', () => {
   setupThemeToggle();  // Theme birinchi navbatda

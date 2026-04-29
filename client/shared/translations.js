@@ -206,6 +206,8 @@ const TRANSLATIONS = {
     'month.paidStatus': '✓ Berilgan',
     'month.daysSelected': 'kun tanlangan',
     'month.selectUnpaidOnly': "Tanlash (faqat to'lanmaganlar)",
+    'month.exportExcel': "Excel'ga yuklab olish",
+    'msg.exportSuccess': "Excel fayl yuklab olindi",
   },
 
   'uz-cyr': {
@@ -404,6 +406,8 @@ const TRANSLATIONS = {
     'month.paidStatus': '✓ Берилган',
     'month.daysSelected': 'кун танланган',
     'month.selectUnpaidOnly': 'Танлаш (фақат тўланмаганлар)',
+    'month.exportExcel': 'Excelга юклаб олиш',
+    'msg.exportSuccess': 'Excel файл юклаб олинди',
   },
 
   'ru': {
@@ -602,6 +606,8 @@ const TRANSLATIONS = {
     'month.paidStatus': '✓ Выплачено',
     'month.daysSelected': 'дней выбрано',
     'month.selectUnpaidOnly': 'Выбрать (только невыплаченные)',
+    'month.exportExcel': 'Скачать в Excel',
+    'msg.exportSuccess': 'Excel файл скачан',
   },
 };
 

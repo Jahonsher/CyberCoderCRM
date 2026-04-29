@@ -6,6 +6,7 @@
   <title>CyberCoderCRM</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -1214,12 +1215,22 @@
                 </label>
                 <span class="mono text-xs text-zinc-500" id="monthSelectedCount">0</span>
               </div>
-              <button id="monthPayBtn" type="button" class="btn-primary px-5 py-2.5 rounded-xl text-sm flex items-center gap-2" disabled>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
-                </svg>
-                <span>Qolganini to'lash</span>
-              </button>
+              <div class="flex items-center gap-2">
+                <button id="monthExportBtn" type="button" class="btn-ghost px-4 py-2.5 rounded-xl text-sm flex items-center gap-2">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  <span data-i18n="month.exportExcel">Excel</span>
+                </button>
+                <button id="monthPayBtn" type="button" class="btn-primary px-5 py-2.5 rounded-xl text-sm flex items-center gap-2" disabled>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+                  </svg>
+                  <span>Qolganini to'lash</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1232,9 +1243,19 @@
 
           <!-- Details (bir xodim qidirilganda) -->
           <div class="card overflow-hidden mt-6 hidden" id="monthDetailsContainer">
-            <div class="p-5 border-b border-purple-500/10">
-              <h3 class="font-bold" data-i18n="month.dayDetails">Kunlik ma'lumot</h3>
-              <p class="mono text-xs text-zinc-500 mt-0.5" id="monthDetailsSubtitle">—</p>
+            <div class="p-5 border-b border-purple-500/10 flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <h3 class="font-bold" data-i18n="month.dayDetails">Kunlik ma'lumot</h3>
+                <p class="mono text-xs text-zinc-500 mt-0.5" id="monthDetailsSubtitle">—</p>
+              </div>
+              <button id="monthExportDetailBtn" type="button" class="btn-ghost px-4 py-2 rounded-xl text-sm flex items-center gap-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <span data-i18n="month.exportExcel">Excel</span>
+              </button>
             </div>
             <div id="monthDetailsTable"></div>
           </div>
