@@ -1878,7 +1878,7 @@ function renderMonthlyReport(data) {
             <th style="width: 50px"></th>
             <th>${t('emp.table.name')}</th>
             <th>${t('emp.table.code')}</th>
-            <th class="text-center">Kunlar</th>
+            <th class="text-right">Kunlar</th>
             <th class="text-right">Jami</th>
             <th class="text-right" style="color: #34d399">Berilgan</th>
             <th class="text-right" style="color: #fbbf24">Qolgan</th>
@@ -1895,7 +1895,7 @@ function renderMonthlyReport(data) {
                 </td>
                 <td class="font-medium">${escapeHtml(fullName)}</td>
                 <td><span class="mono text-xs px-2 py-1 rounded bg-purple-500/10 border border-purple-500/20 text-purple-300">${escapeHtml(e.code)}</span></td>
-                <td class="mono text-center">${e.totalDays}</td>
+                <td class="mono text-right">${e.totalDays}</td>
                 <td class="mono font-semibold text-right">${formatMoney(e.totalEarning)}</td>
                 <td class="mono text-right" style="color: #34d399">${formatMoney(e.paidAmount || 0)}</td>
                 <td class="mono font-semibold text-right" style="color: ${e.remainingAmount > 0 ? '#fbbf24' : '#34d399'}">${formatMoney(e.remainingAmount || 0)}</td>
