@@ -114,19 +114,28 @@ router.get('/', async (req, res) => {
 
     const employees = Object.values(grouped);
 
-    const products = await DailyProduct.find({
+    const productsData = await DailyProduct.find({
       businessId: req.businessId,
       dateString: { $gte: startStr, $lte: endStr },
-    });
+    }).sort('dateString');
 
     const totalEarning = assignments.reduce((s, a) => s + (a.earning || 0), 0);
     const totalPaid = payments.reduce((s, p) => s + p.amount, 0);
     const totalRemaining = totalEarning - totalPaid;
-    const totalProductCount = products.reduce((s, p) => s + (p.quantity || 0), 0);
+    const totalProductCount = productsData.reduce((s, p) => s + (p.quantity || 0), 0);
+
+    // Products ro'yxati - frontend uchun
+    const products = productsData.map(p => ({
+      _id: p._id,
+      dateString: p.dateString,
+      productName: p.productName,
+      quantity: p.quantity,
+    }));
 
     res.json({
       period: { startDate: startStr, endDate: endStr },
       employees,
+      products,
       stats: {
         totalEarning,
         totalPaid,

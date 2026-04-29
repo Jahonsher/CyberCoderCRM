@@ -1706,11 +1706,13 @@ function renderMonthlyReport(data) {
 
   const container = document.getElementById('monthResultsContainer');
   const actionBar = document.getElementById('monthActionBar');
+  const exportBar = document.getElementById('monthExportBar');
   const detailsContainer = document.getElementById('monthDetailsContainer');
 
   if (!data.employees || data.employees.length === 0) {
     container.innerHTML = `<div class="p-10 text-center text-zinc-500"><p class="text-sm">${t('month.empty')}</p></div>`;
     actionBar.classList.add('hidden');
+    if (exportBar) exportBar.classList.add('hidden');
     detailsContainer.classList.add('hidden');
     return;
   }
@@ -1859,6 +1861,7 @@ function renderMonthlyReport(data) {
     });
 
     actionBar.classList.add('hidden');
+    if (exportBar) exportBar.classList.add('hidden');
     return;
   }
 
@@ -1867,6 +1870,7 @@ function renderMonthlyReport(data) {
   // ========================================================
   detailsContainer.classList.add('hidden');
   actionBar.classList.remove('hidden');
+  if (exportBar) exportBar.classList.remove('hidden');
 
   document.getElementById('monthSelectAll').checked = false;
 
@@ -2354,19 +2358,36 @@ function exportMonthlyToExcel() {
       no: '№', name: 'Xodim', code: 'Kod', days: 'Kunlar',
       total: 'Jami', paid: 'Berilgan', remaining: 'Qolgan',
       sheetName: 'Oylik hisobot',
+      productsTitle: "KUNLIK MAHSULOTLAR",
+      date: 'Sana', productName: 'Mahsulot nomi', quantity: 'Soni',
+      productsTotal: 'JAMI MAHSULOT',
     },
     'uz-cyr': {
       no: '№', name: 'Ходим', code: 'Код', days: 'Кунлар',
       total: 'Жами', paid: 'Берилган', remaining: 'Қолган',
       sheetName: 'Ойлик ҳисобот',
+      productsTitle: 'КУНЛИК МАҲСУЛОТЛАР',
+      date: 'Сана', productName: 'Маҳсулот номи', quantity: 'Сони',
+      productsTotal: 'ЖАМИ МАҲСУЛОТ',
     },
     'ru': {
       no: '№', name: 'Сотрудник', code: 'Код', days: 'Дни',
       total: 'Всего', paid: 'Выплачено', remaining: 'Остаток',
       sheetName: 'Месячный отчёт',
+      productsTitle: 'ДНЕВНЫЕ ПРОДУКТЫ',
+      date: 'Дата', productName: 'Название продукта', quantity: 'Количество',
+      productsTotal: 'ВСЕГО ПРОДУКТОВ',
     },
   };
   const h = headers[lang] || headers['uz-lat'];
+
+  // Sana formatlash
+  function fmtDate(dateStr) {
+    if (!dateStr) return '';
+    const parts = String(dateStr).split('-');
+    if (parts.length === 3) return `${parts[2]}.${parts[1]}.${parts[0]}`;
+    return dateStr;
+  }
 
   // Asosiy sheet - xodimlar ro'yxati
   const rows = [
@@ -2402,6 +2423,46 @@ function exportMonthlyToExcel() {
     data.stats.totalRemaining || 0,
   ]);
 
+  // Mahsulotlar uchun pozitsiyani saqlab qolamiz
+  const employeesEndRow = rows.length;  // jami qator + 1
+
+  // Bo'sh qator (xodim ro'yxati va mahsulotlar oralig'i)
+  rows.push(['']);
+  rows.push(['']);
+
+  // Mahsulotlar sarlavhasi (merge bo'ladi)
+  const productsTitleRow = rows.length;
+  rows.push([h.productsTitle, '', '', '', '', '', '']);
+  rows.push(['']);
+
+  // Mahsulotlar jadval header
+  const productsHeaderRow = rows.length;
+  rows.push([h.no, h.date, h.productName, h.quantity, '', '', '']);
+
+  // Mahsulotlar
+  const productsList = data.products || [];
+  if (productsList.length > 0) {
+    productsList.forEach((p, i) => {
+      rows.push([
+        i + 1,
+        fmtDate(p.dateString),
+        p.productName,
+        p.quantity,
+        '', '', ''
+      ]);
+    });
+
+    // Jami mahsulot
+    const totalProducts = productsList.reduce((s, p) => s + (p.quantity || 0), 0);
+    rows.push([
+      '',
+      h.productsTotal,
+      '',
+      totalProducts,
+      '', '', ''
+    ]);
+  }
+
   // SheetJS bilan workbook
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(rows);
@@ -2409,34 +2470,130 @@ function exportMonthlyToExcel() {
   // Ustun kengliklari
   ws['!cols'] = [
     { wch: 5 },   // №
-    { wch: 25 },  // Xodim
-    { wch: 10 },  // Kod
-    { wch: 10 },  // Kunlar
+    { wch: 25 },  // Xodim/Sana
+    { wch: 22 },  // Kod/Mahsulot nomi
+    { wch: 12 },  // Kunlar/Soni
     { wch: 15 },  // Jami
     { wch: 15 },  // Berilgan
     { wch: 15 },  // Qolgan
   ];
 
-  // Sarlavha qatorini bold qilish (style cheklangan, lekin ishlaydi)
   const range = XLSX.utils.decode_range(ws['!ref']);
-  for (let C = range.s.c; C <= range.e.c; ++C) {
+
+  // ===== Xodimlar sarlavhasi (1-qator) - bold + binafsha =====
+  for (let C = 0; C <= 6; C++) {
     const cellAddr = XLSX.utils.encode_cell({ r: 0, c: C });
     if (ws[cellAddr]) {
       ws[cellAddr].s = {
-        font: { bold: true, color: { rgb: 'FFFFFF' } },
+        font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 },
         fill: { fgColor: { rgb: '6D28D9' } },
         alignment: { horizontal: 'center', vertical: 'center' },
       };
     }
   }
 
-  // Pul ustunlarini number format
-  for (let R = 1; R <= range.e.r; ++R) {
+  // Xodim qatorlari pul format
+  for (let R = 1; R <= employeesEndRow - 1; R++) {
     for (const C of [4, 5, 6]) {
       const cellAddr = XLSX.utils.encode_cell({ r: R, c: C });
       if (ws[cellAddr]) {
         ws[cellAddr].t = 'n';
         ws[cellAddr].z = '#,##0';
+      }
+    }
+  }
+
+  // JAMI qatori (oxirgi xodim qatori) - bold
+  const totalRowIdx = employeesEndRow - 1;
+  for (let C = 0; C <= 6; C++) {
+    const cellAddr = XLSX.utils.encode_cell({ r: totalRowIdx, c: C });
+    if (ws[cellAddr]) {
+      ws[cellAddr].s = {
+        font: { bold: true, sz: 11 },
+        fill: { fgColor: { rgb: 'F3E8FF' } },
+        alignment: { horizontal: C === 1 ? 'left' : 'center', vertical: 'center' },
+      };
+      if ([4, 5, 6].includes(C)) {
+        ws[cellAddr].t = 'n';
+        ws[cellAddr].z = '#,##0';
+      }
+    }
+  }
+
+  // ===== MAHSULOTLAR QISMI =====
+  if (productsList.length > 0) {
+    // Title - merge va styling
+    if (!ws['!merges']) ws['!merges'] = [];
+    ws['!merges'].push({
+      s: { r: productsTitleRow, c: 0 },
+      e: { r: productsTitleRow, c: 6 }
+    });
+
+    const titleAddr = XLSX.utils.encode_cell({ r: productsTitleRow, c: 0 });
+    if (ws[titleAddr]) {
+      ws[titleAddr].s = {
+        font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 12 },
+        fill: { fgColor: { rgb: '7C3AED' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+      };
+    }
+
+    // Mahsulotlar header (№, Sana, Mahsulot nomi, Soni)
+    for (let C = 0; C <= 3; C++) {
+      const cellAddr = XLSX.utils.encode_cell({ r: productsHeaderRow, c: C });
+      if (ws[cellAddr]) {
+        ws[cellAddr].s = {
+          font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 },
+          fill: { fgColor: { rgb: '8B5CF6' } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+        };
+      }
+    }
+
+    // Mahsulotlar qatorlari - oddiy stil + zebra
+    productsList.forEach((p, i) => {
+      const r = productsHeaderRow + 1 + i;
+      const isAlt = i % 2 === 1;
+      const bgColor = isAlt ? 'F8FAFC' : 'FFFFFF';
+
+      for (let C = 0; C <= 3; C++) {
+        const cellAddr = XLSX.utils.encode_cell({ r, c: C });
+        if (ws[cellAddr]) {
+          ws[cellAddr].s = {
+            font: { sz: 11 },
+            alignment: {
+              horizontal: C === 2 ? 'left' : 'center',
+              vertical: 'center'
+            },
+            fill: { fgColor: { rgb: bgColor } },
+            border: { bottom: { style: 'thin', color: { rgb: 'E2E8F0' } } },
+          };
+        }
+      }
+
+      // Soni - number format va bold
+      const qtyAddr = XLSX.utils.encode_cell({ r, c: 3 });
+      if (ws[qtyAddr]) {
+        ws[qtyAddr].t = 'n';
+        ws[qtyAddr].z = '#,##0';
+        ws[qtyAddr].s.font = { sz: 11, bold: true, color: { rgb: '6D28D9' } };
+      }
+    });
+
+    // Jami mahsulot qatori
+    const totalProductsRow = productsHeaderRow + 1 + productsList.length;
+    for (let C = 0; C <= 3; C++) {
+      const cellAddr = XLSX.utils.encode_cell({ r: totalProductsRow, c: C });
+      if (ws[cellAddr]) {
+        ws[cellAddr].s = {
+          font: { bold: true, sz: 12, color: { rgb: '6D28D9' } },
+          fill: { fgColor: { rgb: 'F3E8FF' } },
+          alignment: { horizontal: C === 3 ? 'center' : 'left', vertical: 'center', indent: 1 },
+        };
+        if (C === 3) {
+          ws[cellAddr].t = 'n';
+          ws[cellAddr].z = '#,##0';
+        }
       }
     }
   }
