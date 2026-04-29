@@ -61,9 +61,16 @@ function dateStringToDate(dateString) {
 
 /**
  * Bugungi sana - YYYY-MM-DD
+ * Tashkent timezone (UTC+5) bilan hisoblaymiz
  */
 function todayString() {
-  return toDateString(new Date());
+  // UTC vaqtga +5 soat qo'shib, Tashkent vaqtini olamiz
+  const now = new Date();
+  const tashkentTime = new Date(now.getTime() + 5 * 60 * 60 * 1000);
+  const y = tashkentTime.getUTCFullYear();
+  const m = String(tashkentTime.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(tashkentTime.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 /**
