@@ -2452,93 +2452,367 @@ function exportEmployeeDetailToExcel() {
   const lang = state.lang || localStorage.getItem('cc_lang') || 'uz-lat';
   const emp = state.monthlyData.employees[0];
 
-  const headers = {
+  const labels = {
     'uz-lat': {
-      date: 'Sana', dept: "Bo'lim", direction: "Yo'nalish",
-      shift: 'Smena', earning: 'Daromad', status: 'Holat',
-      paid: 'Berilgan', notPaid: '—',
-      sheetName: 'Kunlik malumot',
-      totalLabel: 'Jami', paidLabel: 'Berilgan', remainingLabel: 'Qolgan',
+      // Header
+      title: "XODIM MA'LUMOTI",
+      name: 'Ism',
+      code: 'Kod',
+      period: 'Davr',
+      // Stats
+      total: 'Jami',
+      paid: 'Berilgan',
+      remaining: 'Qolgan',
+      days: 'kun',
+      // Detail header
+      detailTitle: "KUNLIK MA'LUMOT",
+      // Table headers
+      date: 'Sana',
+      dept: "Bo'lim",
+      direction: "Yo'nalish",
+      shift: 'Smena',
+      earning: 'Daromad',
+      status: 'Holat',
+      // Status values
+      paidStatus: '✓ Berilgan',
+      notPaidStatus: '—',
+      sheetName: 'Hisobot',
     },
     'uz-cyr': {
-      date: 'Сана', dept: 'Бўлим', direction: 'Йўналиш',
-      shift: 'Смена', earning: 'Даромад', status: 'Ҳолат',
-      paid: 'Берилган', notPaid: '—',
-      sheetName: 'Кунлик маълумот',
-      totalLabel: 'Жами', paidLabel: 'Берилган', remainingLabel: 'Қолган',
+      title: 'ХОДИМ МАЪЛУМОТИ',
+      name: 'Исм',
+      code: 'Код',
+      period: 'Давр',
+      total: 'Жами',
+      paid: 'Берилган',
+      remaining: 'Қолган',
+      days: 'кун',
+      detailTitle: 'КУНЛИК МАЪЛУМОТ',
+      date: 'Сана',
+      dept: 'Бўлим',
+      direction: 'Йўналиш',
+      shift: 'Смена',
+      earning: 'Даромад',
+      status: 'Ҳолат',
+      paidStatus: '✓ Берилган',
+      notPaidStatus: '—',
+      sheetName: 'Ҳисобот',
     },
     'ru': {
-      date: 'Дата', dept: 'Отдел', direction: 'Направление',
-      shift: 'Смена', earning: 'Доход', status: 'Статус',
-      paid: 'Выплачено', notPaid: '—',
-      sheetName: 'Детально',
-      totalLabel: 'Всего', paidLabel: 'Выплачено', remainingLabel: 'Остаток',
+      title: 'ИНФОРМАЦИЯ О СОТРУДНИКЕ',
+      name: 'Имя',
+      code: 'Код',
+      period: 'Период',
+      total: 'Всего',
+      paid: 'Выплачено',
+      remaining: 'Остаток',
+      days: 'дн.',
+      detailTitle: 'ДЕТАЛЬНАЯ ИНФОРМАЦИЯ',
+      date: 'Дата',
+      dept: 'Отдел',
+      direction: 'Направление',
+      shift: 'Смена',
+      earning: 'Доход',
+      status: 'Статус',
+      paidStatus: '✓ Выплачено',
+      notPaidStatus: '—',
+      sheetName: 'Отчёт',
     },
   };
-  const h = headers[lang] || headers['uz-lat'];
+  const L = labels[lang] || labels['uz-lat'];
 
   const fullName = emp.firstName + (emp.lastName && emp.lastName !== '-' ? ' ' + emp.lastName : '');
+  const period = state.monthlyData.period;
 
-  // Header info (yuqorida)
-  const rows = [
-    [fullName, '', emp.code],
-    [],
-    [h.totalLabel, h.paidLabel, h.remainingLabel],
-    [emp.totalEarning, emp.paidAmount || 0, emp.remainingAmount || 0],
-    [],
-    [h.date, h.dept, h.direction, h.shift, h.earning, h.status],
-  ];
+  // Sana formatlash funksiyasi
+  function fmtDate(dateInput) {
+    if (!dateInput) return '';
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return String(dateInput);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}.${month}.${year}`;
+  }
 
+  // Worksheet yaratish - 6 ustun (A-F)
+  const rows = [];
+
+  // ===== HEADER QISMI =====
+  // 1-qator: Asosiy sarlavha (merge A1:F1)
+  rows.push([L.title, '', '', '', '', '']);
+  // 2-qator: bo'sh
+  rows.push(['', '', '', '', '', '']);
+  // 3-qator: Ism
+  rows.push([L.name + ':', fullName, '', '', '', '']);
+  // 4-qator: Kod
+  rows.push([L.code + ':', emp.code, '', '', '', '']);
+  // 5-qator: Davr
+  rows.push([L.period + ':', `${fmtDate(period.startDate)} — ${fmtDate(period.endDate)}`, '', '', '', '']);
+  // 6-qator: bo'sh
+  rows.push(['', '', '', '', '', '']);
+
+  // ===== STATS QISMI =====
+  // 7-qator: Stats sarlavhalar (3 ustun, har biri 2 ustunni egallaydi)
+  rows.push([L.total, '', L.paid, '', L.remaining, '']);
+  // 8-qator: Stats qiymatlar
+  rows.push([
+    emp.totalEarning, '',
+    emp.paidAmount || 0, '',
+    emp.remainingAmount || 0, ''
+  ]);
+  // 9-qator: Stats sub-info (kunlar)
+  rows.push([
+    `${emp.totalDays} ${L.days}`, '',
+    `${emp.paidDays || 0} ${L.days}`, '',
+    `${emp.remainingDays || 0} ${L.days}`, ''
+  ]);
+  // 10-qator: bo'sh
+  rows.push(['', '', '', '', '', '']);
+
+  // ===== DETAIL TITLE =====
+  rows.push([L.detailTitle, '', '', '', '', '']);
+  // 12-qator: bo'sh
+  rows.push(['', '', '', '', '', '']);
+
+  // ===== JADVAL SARLAVHALARI =====
+  rows.push([L.date, L.dept, L.direction, L.shift, L.earning, L.status]);
+
+  // ===== KUNLAR =====
   emp.days.forEach(day => {
-    const dateStr = day.dateString || (day.date ? new Date(day.date).toISOString().split('T')[0] : '');
     rows.push([
-      dateStr,
+      fmtDate(day.dateString || day.date),
       day.departmentName || '—',
       day.directionName || '',
-      day.shift,
+      day.shift === 0.5 ? '½' : day.shift,
       day.earning,
-      day.isPaid ? h.paid : h.notPaid,
+      day.isPaid ? L.paidStatus : L.notPaidStatus,
     ]);
   });
 
+  // Workbook va worksheet
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(rows);
 
+  // Ustun kengliklari
   ws['!cols'] = [
-    { wch: 12 },   // Sana
-    { wch: 18 },   // Bo'lim
-    { wch: 18 },   // Yo'nalish
-    { wch: 8 },    // Smena
-    { wch: 15 },   // Daromad
-    { wch: 14 },   // Holat
+    { wch: 14 },   // A - Sana
+    { wch: 22 },   // B - Bo'lim / Ism qiymati
+    { wch: 18 },   // C - Yo'nalish
+    { wch: 10 },   // D - Smena
+    { wch: 16 },   // E - Daromad
+    { wch: 16 },   // F - Holat
   ];
 
-  // Pul format - earning ustun
-  const range = XLSX.utils.decode_range(ws['!ref']);
-  for (let R = 6; R <= range.e.r; ++R) {
-    const cellAddr = XLSX.utils.encode_cell({ r: R, c: 4 });
-    if (ws[cellAddr]) {
-      ws[cellAddr].t = 'n';
-      ws[cellAddr].z = '#,##0';
-    }
+  // Qator balandliklari
+  ws['!rows'] = [
+    { hpt: 28 },   // 1 - asosiy sarlavha (katta)
+    { hpt: 8 },    // 2 - bo'sh
+    { hpt: 20 },   // 3 - Ism
+    { hpt: 20 },   // 4 - Kod
+    { hpt: 20 },   // 5 - Davr
+    { hpt: 8 },    // 6 - bo'sh
+    { hpt: 22 },   // 7 - Stats label
+    { hpt: 32 },   // 8 - Stats value (katta)
+    { hpt: 18 },   // 9 - Stats sub
+    { hpt: 12 },   // 10 - bo'sh
+    { hpt: 24 },   // 11 - Detail title
+    { hpt: 8 },    // 12 - bo'sh
+    { hpt: 24 },   // 13 - Jadval header
+  ];
+
+  // Merge cells
+  ws['!merges'] = [
+    // Header
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },  // Title row
+    { s: { r: 2, c: 1 }, e: { r: 2, c: 5 } },  // Ism qiymati
+    { s: { r: 3, c: 1 }, e: { r: 3, c: 5 } },  // Kod qiymati
+    { s: { r: 4, c: 1 }, e: { r: 4, c: 5 } },  // Davr qiymati
+
+    // Stats - har biri 2 ustun
+    { s: { r: 6, c: 0 }, e: { r: 6, c: 1 } },  // Jami label
+    { s: { r: 6, c: 2 }, e: { r: 6, c: 3 } },  // Berilgan label
+    { s: { r: 6, c: 4 }, e: { r: 6, c: 5 } },  // Qolgan label
+
+    { s: { r: 7, c: 0 }, e: { r: 7, c: 1 } },  // Jami value
+    { s: { r: 7, c: 2 }, e: { r: 7, c: 3 } },  // Berilgan value
+    { s: { r: 7, c: 4 }, e: { r: 7, c: 5 } },  // Qolgan value
+
+    { s: { r: 8, c: 0 }, e: { r: 8, c: 1 } },  // Jami sub
+    { s: { r: 8, c: 2 }, e: { r: 8, c: 3 } },  // Berilgan sub
+    { s: { r: 8, c: 4 }, e: { r: 8, c: 5 } },  // Qolgan sub
+
+    // Detail title
+    { s: { r: 10, c: 0 }, e: { r: 10, c: 5 } },
+  ];
+
+  // ===== STYLES =====
+  // 1. Title (A1) - katta, qora fon, oq matn
+  if (ws['A1']) {
+    ws['A1'].s = {
+      font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 14 },
+      fill: { fgColor: { rgb: '6D28D9' } },
+      alignment: { horizontal: 'center', vertical: 'center' },
+    };
   }
-  // Stats row pul format
-  for (const C of [0, 1, 2]) {
-    const cellAddr = XLSX.utils.encode_cell({ r: 3, c: C });
-    if (ws[cellAddr]) {
-      ws[cellAddr].t = 'n';
-      ws[cellAddr].z = '#,##0';
+
+  // 3-5 qatorlar - Ism, Kod, Davr label
+  for (let r = 2; r <= 4; r++) {
+    const labelCell = XLSX.utils.encode_cell({ r, c: 0 });
+    if (ws[labelCell]) {
+      ws[labelCell].s = {
+        font: { bold: true, sz: 11, color: { rgb: '6D28D9' } },
+        alignment: { horizontal: 'left', vertical: 'center' },
+        fill: { fgColor: { rgb: 'F3E8FF' } },
+      };
+    }
+    const valueCell = XLSX.utils.encode_cell({ r, c: 1 });
+    if (ws[valueCell]) {
+      ws[valueCell].s = {
+        font: { sz: 11 },
+        alignment: { horizontal: 'left', vertical: 'center' },
+      };
     }
   }
 
-  XLSX.utils.book_append_sheet(wb, ws, h.sheetName.slice(0, 31));
+  // 7-qator: Stats labels
+  for (let c = 0; c <= 5; c += 2) {
+    const cellAddr = XLSX.utils.encode_cell({ r: 6, c });
+    if (ws[cellAddr]) {
+      ws[cellAddr].s = {
+        font: { bold: true, sz: 10, color: { rgb: '64748B' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        fill: { fgColor: { rgb: 'F8FAFC' } },
+      };
+    }
+  }
 
-  const period = state.monthlyData.period;
+  // 8-qator: Stats values - katta sonlar
+  const statColors = ['1E293B', '059669', 'D97706']; // Jami: qora, Berilgan: yashil, Qolgan: sariq
+  for (let i = 0; i < 3; i++) {
+    const c = i * 2;
+    const cellAddr = XLSX.utils.encode_cell({ r: 7, c });
+    if (ws[cellAddr]) {
+      ws[cellAddr].t = 'n';
+      ws[cellAddr].z = '#,##0';
+      ws[cellAddr].s = {
+        font: { bold: true, sz: 16, color: { rgb: statColors[i] } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        fill: { fgColor: { rgb: 'FFFFFF' } },
+      };
+    }
+  }
+
+  // 9-qator: Stats sub (kunlar)
+  for (let c = 0; c <= 5; c += 2) {
+    const cellAddr = XLSX.utils.encode_cell({ r: 8, c });
+    if (ws[cellAddr]) {
+      ws[cellAddr].s = {
+        font: { sz: 9, color: { rgb: '94A3B8' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+      };
+    }
+  }
+
+  // 11-qator: Detail title
+  if (ws['A11']) {
+    ws['A11'].s = {
+      font: { bold: true, sz: 12, color: { rgb: 'FFFFFF' } },
+      fill: { fgColor: { rgb: '6D28D9' } },
+      alignment: { horizontal: 'left', vertical: 'center', indent: 1 },
+    };
+  }
+
+  // 13-qator: Jadval sarlavhalari
+  for (let c = 0; c <= 5; c++) {
+    const cellAddr = XLSX.utils.encode_cell({ r: 12, c });
+    if (ws[cellAddr]) {
+      ws[cellAddr].s = {
+        font: { bold: true, sz: 11, color: { rgb: 'FFFFFF' } },
+        fill: { fgColor: { rgb: '7C3AED' } },
+        alignment: {
+          horizontal: c === 0 || c === 1 || c === 2 ? 'left' : 'center',
+          vertical: 'center'
+        },
+        border: {
+          top: { style: 'thin', color: { rgb: 'C4B5FD' } },
+          bottom: { style: 'thin', color: { rgb: 'C4B5FD' } },
+        },
+      };
+    }
+  }
+
+  // Kun qatorlari (13'dan boshlab)
+  emp.days.forEach((day, i) => {
+    const r = 13 + i;
+    const isAlt = i % 2 === 1;
+    const bgColor = isAlt ? 'F8FAFC' : 'FFFFFF';
+
+    // A - Sana
+    if (ws[XLSX.utils.encode_cell({ r, c: 0 })]) {
+      ws[XLSX.utils.encode_cell({ r, c: 0 })].s = {
+        font: { sz: 11 },
+        alignment: { horizontal: 'left', vertical: 'center', indent: 1 },
+        fill: { fgColor: { rgb: bgColor } },
+        border: { bottom: { style: 'thin', color: { rgb: 'E2E8F0' } } },
+      };
+    }
+    // B - Bo'lim
+    if (ws[XLSX.utils.encode_cell({ r, c: 1 })]) {
+      ws[XLSX.utils.encode_cell({ r, c: 1 })].s = {
+        font: { sz: 11 },
+        alignment: { horizontal: 'left', vertical: 'center' },
+        fill: { fgColor: { rgb: bgColor } },
+        border: { bottom: { style: 'thin', color: { rgb: 'E2E8F0' } } },
+      };
+    }
+    // C - Yo'nalish
+    if (ws[XLSX.utils.encode_cell({ r, c: 2 })]) {
+      ws[XLSX.utils.encode_cell({ r, c: 2 })].s = {
+        font: { sz: 11 },
+        alignment: { horizontal: 'left', vertical: 'center' },
+        fill: { fgColor: { rgb: bgColor } },
+        border: { bottom: { style: 'thin', color: { rgb: 'E2E8F0' } } },
+      };
+    }
+    // D - Smena
+    if (ws[XLSX.utils.encode_cell({ r, c: 3 })]) {
+      ws[XLSX.utils.encode_cell({ r, c: 3 })].s = {
+        font: { sz: 11, bold: true },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        fill: { fgColor: { rgb: bgColor } },
+        border: { bottom: { style: 'thin', color: { rgb: 'E2E8F0' } } },
+      };
+    }
+    // E - Daromad (number format)
+    const earnAddr = XLSX.utils.encode_cell({ r, c: 4 });
+    if (ws[earnAddr]) {
+      ws[earnAddr].t = 'n';
+      ws[earnAddr].z = '#,##0';
+      ws[earnAddr].s = {
+        font: { sz: 11, bold: true, color: { rgb: '059669' } },
+        alignment: { horizontal: 'right', vertical: 'center', indent: 1 },
+        fill: { fgColor: { rgb: bgColor } },
+        border: { bottom: { style: 'thin', color: { rgb: 'E2E8F0' } } },
+      };
+    }
+    // F - Holat
+    if (ws[XLSX.utils.encode_cell({ r, c: 5 })]) {
+      ws[XLSX.utils.encode_cell({ r, c: 5 })].s = {
+        font: { sz: 11, color: { rgb: day.isPaid ? '059669' : '94A3B8' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        fill: { fgColor: { rgb: bgColor } },
+        border: { bottom: { style: 'thin', color: { rgb: 'E2E8F0' } } },
+      };
+    }
+  });
+
+  XLSX.utils.book_append_sheet(wb, ws, L.sheetName.slice(0, 31));
+
   const fileName = `${fullName}_${period.startDate}_${period.endDate}.xlsx`;
-
   XLSX.writeFile(wb, fileName);
 
-  toast(t('msg.exportSuccess') || "Excel fayl yuklandi", 'success');
+  toast(t('msg.exportSuccess') || "Excel fayl yuklab olindi", 'success');
 }
 
 
