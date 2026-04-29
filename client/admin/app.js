@@ -1872,16 +1872,25 @@ function renderMonthlyReport(data) {
 
   container.innerHTML = `
     <div class="table-wrap">
-      <table class="data-table">
+      <table class="data-table" style="table-layout: fixed; width: 100%;">
+        <colgroup>
+          <col style="width: 50px" />
+          <col style="width: auto" />
+          <col style="width: 120px" />
+          <col style="width: 90px" />
+          <col style="width: 130px" />
+          <col style="width: 130px" />
+          <col style="width: 130px" />
+        </colgroup>
         <thead>
           <tr>
-            <th style="width: 50px"></th>
-            <th>${t('emp.table.name')}</th>
-            <th>${t('emp.table.code')}</th>
-            <th class="text-right">Kunlar</th>
-            <th class="text-right">Jami</th>
-            <th class="text-right" style="color: #34d399">Berilgan</th>
-            <th class="text-right" style="color: #fbbf24">Qolgan</th>
+            <th></th>
+            <th style="text-align: left">${t('emp.table.name')}</th>
+            <th style="text-align: left">${t('emp.table.code')}</th>
+            <th style="text-align: right">Kunlar</th>
+            <th style="text-align: right">Jami</th>
+            <th style="text-align: right; color: #34d399">Berilgan</th>
+            <th style="text-align: right; color: #fbbf24">Qolgan</th>
           </tr>
         </thead>
         <tbody>
@@ -1893,12 +1902,12 @@ function renderMonthlyReport(data) {
                 <td>
                   <input type="checkbox" class="pay-checkbox" data-employee-id="${e.employeeId}" ${isFullyPaid ? 'disabled' : ''} />
                 </td>
-                <td class="font-medium">${escapeHtml(fullName)}</td>
-                <td><span class="mono text-xs px-2 py-1 rounded bg-purple-500/10 border border-purple-500/20 text-purple-300">${escapeHtml(e.code)}</span></td>
-                <td class="mono text-right">${e.totalDays}</td>
-                <td class="mono font-semibold text-right">${formatMoney(e.totalEarning)}</td>
-                <td class="mono text-right" style="color: #34d399">${formatMoney(e.paidAmount || 0)}</td>
-                <td class="mono font-semibold text-right" style="color: ${e.remainingAmount > 0 ? '#fbbf24' : '#34d399'}">${formatMoney(e.remainingAmount || 0)}</td>
+                <td class="font-medium" style="text-align: left">${escapeHtml(fullName)}</td>
+                <td style="text-align: left"><span class="mono text-xs px-2 py-1 rounded bg-purple-500/10 border border-purple-500/20 text-purple-300">${escapeHtml(e.code)}</span></td>
+                <td class="mono" style="text-align: right">${e.totalDays}</td>
+                <td class="mono font-semibold" style="text-align: right">${formatMoney(e.totalEarning)}</td>
+                <td class="mono" style="text-align: right; color: #34d399">${formatMoney(e.paidAmount || 0)}</td>
+                <td class="mono font-semibold" style="text-align: right; color: ${e.remainingAmount > 0 ? '#fbbf24' : '#34d399'}">${formatMoney(e.remainingAmount || 0)}</td>
               </tr>
             `;
           }).join('')}
