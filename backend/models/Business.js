@@ -1,5 +1,8 @@
 /**
  * CyberCoderCRM - Business Model
+ * YANGI: enabledWorkTypes - biznes qaysi ish turlarini ishlatadi
+ *  - piecework: shtuk (mahsulot soniga qarab)
+ *  - daily: kunlik (smenaga belgilangan summa)
  */
 
 const mongoose = require('mongoose');
@@ -21,7 +24,7 @@ const businessSchema = new mongoose.Schema(
     login: {
       type: String,
       required: true,
-      unique: true,  // unique o'zi index yaratadi
+      unique: true,
       trim: true,
       lowercase: true,
       minlength: 3,
@@ -49,6 +52,11 @@ const businessSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    // YANGI: Ish turlari (default: ikkalasi yoqilgan)
+    enabledWorkTypes: {
+      piecework: { type: Boolean, default: true },
+      daily: { type: Boolean, default: true },
+    },
     status: {
       type: String,
       enum: ['active', 'suspended'],
@@ -60,9 +68,7 @@ const businessSchema = new mongoose.Schema(
   }
 );
 
-// FAQAT QO'SHIMCHA indexes (login yo'q — u unique orqali qo'shiladi)
 businessSchema.index({ status: 1 });
 businessSchema.index({ createdAt: -1 });
 
-// OverwriteModelError ni oldini olish (hot-reload uchun)
 module.exports = mongoose.models.Business || mongoose.model('Business', businessSchema);

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SuperAdmin · CyberCoderCRM</title>
+  <title>CyberCoderCRM · SuperAdmin</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
 
@@ -38,233 +38,27 @@
       --input-border: rgba(71, 85, 105, 0.35);
     }
 
-    [data-theme="light"] .bg-mesh {
-      background:
-        radial-gradient(circle at 15% 20%, rgba(124, 58, 237, 0.06) 0%, transparent 40%),
-        radial-gradient(circle at 85% 80%, rgba(168, 85, 247, 0.05) 0%, transparent 40%) !important;
-    }
-
-    [data-theme="light"] .bg-grid {
-      background-image:
-        linear-gradient(rgba(124, 58, 237, 0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(124, 58, 237, 0.04) 1px, transparent 1px) !important;
-    }
-
-    /* Nav items */
-    [data-theme="light"] .nav-item {
-      color: #1e293b;
-      font-weight: 500;
-    }
-    [data-theme="light"] .nav-item:hover {
-      color: #0f172a;
-      background: rgba(109, 40, 217, 0.1);
-    }
-    [data-theme="light"] .nav-item.active {
-      background: linear-gradient(135deg, rgba(109, 40, 217, 0.18), rgba(109, 40, 217, 0.08));
-      color: #6d28d9;
-      border: 1px solid rgba(109, 40, 217, 0.35);
-      font-weight: 600;
-    }
-
-    /* Modal */
+    [data-theme="light"] .bg-mesh,
+    [data-theme="light"] .bg-grid { opacity: 0.5; }
     [data-theme="light"] .modal-content {
       background: #ffffff !important;
       color: var(--text-primary);
       border: 1px solid rgba(71, 85, 105, 0.25) !important;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     }
-
-    [data-theme="light"] .modal-backdrop {
-      background: rgba(15, 23, 42, 0.5) !important;
-    }
-
-    /* Business cards */
+    [data-theme="light"] .modal-backdrop { background: rgba(15, 23, 42, 0.5) !important; }
     [data-theme="light"] .biz-card {
       background: #ffffff;
       border: 1px solid rgba(71, 85, 105, 0.22);
-      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
     }
-    [data-theme="light"] .biz-card:hover {
-      border-color: #6d28d9;
-      box-shadow: 0 10px 25px rgba(109, 40, 217, 0.15);
-    }
-
-    [data-theme="light"] .logo-placeholder {
-      background: linear-gradient(135deg, #6d28d9, #4f46e5);
-    }
-
-    /* Field labels */
-    [data-theme="light"] .field-label {
-      color: #1e293b;
-      font-weight: 700;
-    }
-
-    /* Inputs */
-    [data-theme="light"] .input-field {
-      color: #0f172a;
-      font-weight: 500;
-    }
-    [data-theme="light"] .input-field:focus {
-      border-color: #6d28d9;
-      box-shadow: 0 0 0 4px rgba(109, 40, 217, 0.12);
-    }
-    [data-theme="light"] .input-field::placeholder {
-      color: #64748b;
-    }
-
-    /* Cards */
-    [data-theme="light"] .card,
-    [data-theme="light"] .stat-card,
-    [data-theme="light"] .glass {
-      border-color: rgba(71, 85, 105, 0.2);
-      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
-    }
-
-    /* Sidebar */
-    [data-theme="light"] .sidebar {
-      border-right: 1px solid rgba(71, 85, 105, 0.2);
-      box-shadow: 2px 0 10px rgba(15, 23, 42, 0.04);
-    }
-
-    /* Zinc tekstlar */
+    [data-theme="light"] .field-label { color: #1e293b; font-weight: 700; }
+    [data-theme="light"] .input-field { color: #0f172a; }
     [data-theme="light"] .text-zinc-400 { color: #475569 !important; }
-    [data-theme="light"] .text-zinc-500 { color: #334155 !important; font-weight: 500; }
-    [data-theme="light"] .text-zinc-600 { color: #1e293b !important; }
-    [data-theme="light"] .text-zinc-300 { color: #0f172a !important; }
-
-    /* Purple */
+    [data-theme="light"] .text-zinc-500 { color: #334155 !important; }
     [data-theme="light"] .text-purple-300 { color: #6d28d9 !important; font-weight: 600; }
-    [data-theme="light"] .text-purple-400 { color: #5b21b6 !important; }
-
-    /* Other colors */
     [data-theme="light"] .text-emerald-400 { color: #047857 !important; font-weight: 700; }
-    [data-theme="light"] .text-amber-400 { color: #b45309 !important; font-weight: 600; }
-    [data-theme="light"] .text-red-400 { color: #991b1b !important; }
-
-    /* Purple backgrounds */
-    [data-theme="light"] .bg-purple-500\/5 { background-color: rgba(109, 40, 217, 0.05) !important; }
-    [data-theme="light"] .bg-purple-500\/10 { background-color: rgba(109, 40, 217, 0.1) !important; }
-    [data-theme="light"] .bg-purple-500\/20 { background-color: rgba(109, 40, 217, 0.15) !important; }
-    [data-theme="light"] .border-purple-500\/10 { border-color: rgba(71, 85, 105, 0.22) !important; }
-    [data-theme="light"] .border-purple-500\/20 { border-color: rgba(109, 40, 217, 0.3) !important; }
-
-    /* Headers */
-    [data-theme="light"] h1, [data-theme="light"] h2, [data-theme="light"] h3 {
-      color: #0f172a;
-    }
-
-    /* Buttons */
-    [data-theme="light"] .btn-icon {
-      background: rgba(109, 40, 217, 0.08);
-      border: 1px solid rgba(71, 85, 105, 0.25);
-      color: #1e293b;
-    }
-    [data-theme="light"] .btn-icon:hover {
-      background: rgba(109, 40, 217, 0.15);
-      color: #6d28d9;
-      border-color: #6d28d9;
-    }
-    [data-theme="light"] .btn-icon.danger:hover {
-      background: rgba(185, 28, 28, 0.1);
-      color: #991b1b;
-      border-color: #991b1b;
-    }
-
-    [data-theme="light"] .btn-ghost {
-      background: rgba(109, 40, 217, 0.1);
-      color: #5b21b6;
-      border: 1px solid rgba(71, 85, 105, 0.25);
-      font-weight: 600;
-    }
-    [data-theme="light"] .btn-ghost:hover {
-      background: rgba(109, 40, 217, 0.2);
-      border-color: #6d28d9;
-    }
-
-    [data-theme="light"] .btn-danger {
-      background: rgba(185, 28, 28, 0.1);
-      color: #991b1b;
-      border: 1px solid rgba(185, 28, 28, 0.3);
-      font-weight: 600;
-    }
-
-    /* Badges */
-    [data-theme="light"] .badge-active {
-      background: rgba(4, 120, 87, 0.1);
-      color: #047857;
-      border: 1px solid rgba(4, 120, 87, 0.35);
-    }
-    [data-theme="light"] .badge-suspended {
-      background: rgba(180, 83, 9, 0.1);
-      color: #b45309;
-      border: 1px solid rgba(180, 83, 9, 0.35);
-    }
-
-    /* Toast */
-    [data-theme="light"] .toast-success {
-      background: #ffffff;
-      border: 2px solid #047857;
-      color: #047857;
-      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
-    }
-    [data-theme="light"] .toast-error {
-      background: #ffffff;
-      border: 2px solid #991b1b;
-      color: #991b1b;
-      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
-    }
-
-    /* Module toggle */
-    [data-theme="light"] .module-toggle {
-      background: #ffffff;
-      border: 1px solid rgba(71, 85, 105, 0.25);
-    }
-    [data-theme="light"] .module-toggle:hover {
-      background: rgba(109, 40, 217, 0.05);
-      border-color: #6d28d9;
-    }
-    [data-theme="light"] .module-toggle.enabled {
-      background: rgba(109, 40, 217, 0.08);
-      border-color: #6d28d9;
-    }
-
-    /* Logo preview */
-    [data-theme="light"] .logo-preview-box {
-      background: rgba(109, 40, 217, 0.05);
-      border-color: rgba(109, 40, 217, 0.35);
-    }
-
-    /* Theme toggle button */
-    [data-theme="light"] #themeToggle {
-      color: #1e293b;
-      border-color: rgba(71, 85, 105, 0.25) !important;
-    }
-    [data-theme="light"] #themeToggle:hover {
-      background: rgba(109, 40, 217, 0.1) !important;
-      color: #6d28d9 !important;
-      border-color: #6d28d9 !important;
-    }
-
-    /* Logout */
-    [data-theme="light"] #logoutBtn {
-      color: #1e293b;
-    }
-
-    /* Login error */
-    [data-theme="light"] #loginError {
-      background: #fef2f2;
-      border: 1px solid #dc2626;
-      color: #991b1b;
-    }
 
     * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-
-    html, body {
-      margin: 0;
-      padding: 0;
-      overflow-x: hidden;
-      max-width: 100vw;
-    }
+    html, body { margin: 0; padding: 0; overflow-x: hidden; max-width: 100vw; }
 
     body {
       font-family: 'Space Grotesk', sans-serif;
@@ -295,24 +89,18 @@
     }
 
     ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
     ::-webkit-scrollbar-thumb { background: rgba(139, 92, 246, 0.3); border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.5); }
 
     .glass {
       background: var(--glass-bg);
       backdrop-filter: blur(20px) saturate(1.4);
-      -webkit-backdrop-filter: blur(20px) saturate(1.4);
       border: 1px solid var(--glass-border);
-      transition: background 0.3s ease, border-color 0.3s ease;
     }
 
     .sidebar {
       background: var(--sidebar-bg);
       backdrop-filter: blur(20px) saturate(1.4);
-      -webkit-backdrop-filter: blur(20px) saturate(1.4);
       border-right: 1px solid var(--glass-border);
-      transition: background 0.3s ease;
     }
 
     .nav-item {
@@ -335,41 +123,18 @@
       border: 1px solid var(--glass-border);
       border-radius: 16px;
       padding: 20px;
-      transition: all 0.3s;
-      position: relative;
-      overflow: hidden;
+      position: relative; overflow: hidden;
     }
-    .stat-card::before {
-      content: ''; position: absolute;
-      top: 0; left: 0; right: 0; height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.5), transparent);
-    }
-
-    .biz-card {
-      background: var(--glass-bg);
-      backdrop-filter: blur(20px);
-      border: 1px solid var(--glass-border);
-      border-radius: 20px;
-      padding: 24px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .biz-card:hover {
-      border-color: rgba(139, 92, 246, 0.35);
-      transform: translateY(-4px);
-    }
-    .biz-card.suspended { opacity: 0.6; }
 
     .input-field {
       background: var(--input-bg);
       border: 1px solid var(--input-border);
       color: var(--text-primary);
-      font-family: 'Space Grotesk', sans-serif;
       transition: all 0.2s;
     }
     .input-field:focus {
       outline: none;
       border-color: var(--accent);
-      background: rgba(10, 10, 15, 0.8);
       box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
     }
     .input-field::placeholder { color: #71717a; }
@@ -388,46 +153,38 @@
     .btn-primary {
       background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
       color: white; font-weight: 600;
-      transition: all 0.2s;
-      border: none; cursor: pointer;
+      transition: all 0.2s; border: none; cursor: pointer;
     }
-    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.4); }
-    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.4);
+    }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
     .btn-ghost {
       background: rgba(139, 92, 246, 0.08);
       color: #a78bfa;
       border: 1px solid rgba(139, 92, 246, 0.2);
-      transition: all 0.2s;
-      cursor: pointer;
+      cursor: pointer; transition: all 0.2s;
     }
-    .btn-ghost:hover {
-      background: rgba(139, 92, 246, 0.15);
-      border-color: rgba(139, 92, 246, 0.4);
-    }
+    .btn-ghost:hover { background: rgba(139, 92, 246, 0.15); }
 
     .btn-danger {
       background: rgba(239, 68, 68, 0.1);
       color: #fca5a5;
       border: 1px solid rgba(239, 68, 68, 0.2);
-      transition: all 0.2s;
       cursor: pointer;
     }
-    .btn-danger:hover {
-      background: rgba(239, 68, 68, 0.2);
-      border-color: rgba(239, 68, 68, 0.4);
-    }
+    .btn-danger:hover { background: rgba(239, 68, 68, 0.2); }
 
     .btn-icon {
-      width: 36px; height: 36px;
-      display: inline-flex;
-      align-items: center; justify-content: center;
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 0 12px; height: 36px;
       border-radius: 10px;
       background: rgba(139, 92, 246, 0.08);
       color: var(--text-secondary);
       border: 1px solid rgba(139, 92, 246, 0.15);
-      transition: all 0.2s; cursor: pointer;
-      flex-shrink: 0;
+      cursor: pointer; transition: all 0.2s;
     }
     .btn-icon:hover {
       background: rgba(139, 92, 246, 0.15);
@@ -462,7 +219,7 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    .shake { animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+    .shake { animation: shake 0.5s; }
     @keyframes shake {
       0%, 100% { transform: translateX(0); }
       20%, 60% { transform: translateX(-8px); }
@@ -471,12 +228,8 @@
 
     .logo-placeholder {
       background: linear-gradient(135deg, #8b5cf6, #6366f1);
-      color: white;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      color: white; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
     }
 
     .logo-pulse { animation: logoPulse 3s ease-in-out infinite; }
@@ -506,12 +259,19 @@
       padding: 4px 10px;
       border-radius: 999px;
       font-size: 11px; font-weight: 600;
-      letter-spacing: 0.05em;
       font-family: 'JetBrains Mono', monospace;
     }
-    .badge-active { background: rgba(16, 185, 129, 0.12); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.25); }
-    .badge-suspended { background: rgba(245, 158, 11, 0.12); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.25); }
-    .badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .badge .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: currentColor;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .badge-active { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-suspended { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
 
     .toast {
       position: fixed; bottom: 24px; right: 24px;
@@ -520,8 +280,7 @@
       font-size: 14px; font-weight: 500;
       z-index: 9999;
       backdrop-filter: blur(20px);
-      animation: toastIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      max-width: calc(100vw - 48px);
+      animation: toastIn 0.3s ease;
     }
     .toast-success { background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #6ee7b7; }
     .toast-error { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; }
@@ -530,92 +289,69 @@
       to { opacity: 1; transform: translateX(0); }
     }
 
-    @media (max-width: 1023px) {
-      .sidebar {
-        position: fixed; left: 0; top: 0; bottom: 0;
-        width: 280px; z-index: 50;
-        transform: translateX(-100%);
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-      .sidebar.open { transform: translateX(0); }
-    }
-
-    .skeleton {
-      background: linear-gradient(90deg,
-        rgba(139, 92, 246, 0.05) 0%,
-        rgba(139, 92, 246, 0.1) 50%,
-        rgba(139, 92, 246, 0.05) 100%);
-      background-size: 200% 100%;
-      animation: shimmer 1.5s infinite;
-      border-radius: 12px;
-    }
-    @keyframes shimmer { to { background-position: -200% 0; } }
-
-    .logo-preview-box {
-      width: 96px; height: 96px;
+    .biz-card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
       border-radius: 16px;
-      background: rgba(139, 92, 246, 0.08);
-      border: 2px dashed rgba(139, 92, 246, 0.25);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.2s;
-      overflow: hidden;
+      padding: 24px;
+      transition: all 0.25s;
     }
-    .logo-preview-box:hover {
-      border-color: rgba(139, 92, 246, 0.5);
-      background: rgba(139, 92, 246, 0.12);
+    .biz-card:hover {
+      border-color: rgba(139, 92, 246, 0.35);
+      transform: translateY(-2px);
     }
-    .logo-preview-box img { width: 100%; height: 100%; object-fit: cover; }
+    .biz-card.suspended { opacity: 0.7; }
 
     .module-toggle {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 16px;
-      border-radius: 12px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 14px;
+      border-radius: 10px;
       background: rgba(139, 92, 246, 0.05);
-      border: 1px solid rgba(139, 92, 246, 0.12);
-      cursor: pointer;
-      transition: all 0.2s;
+      border: 1px solid rgba(139, 92, 246, 0.15);
+      cursor: pointer; transition: all 0.2s;
     }
-    .module-toggle:hover {
-      background: rgba(139, 92, 246, 0.1);
-      border-color: rgba(139, 92, 246, 0.25);
-    }
+    .module-toggle:hover { border-color: rgba(139, 92, 246, 0.3); }
     .module-toggle.enabled {
-      background: rgba(139, 92, 246, 0.12);
-      border-color: rgba(139, 92, 246, 0.35);
+      background: rgba(139, 92, 246, 0.15);
+      border-color: rgba(139, 92, 246, 0.4);
     }
 
     .switch {
-      position: relative;
-      width: 40px; height: 22px;
+      width: 36px; height: 20px;
       background: rgba(139, 92, 246, 0.2);
       border-radius: 999px;
+      position: relative;
       transition: all 0.2s;
       flex-shrink: 0;
     }
     .switch::after {
       content: '';
-      position: absolute;
-      top: 2px; left: 2px;
-      width: 18px; height: 18px;
-      border-radius: 50%;
+      width: 14px; height: 14px;
       background: white;
+      border-radius: 50%;
+      position: absolute;
+      top: 3px; left: 3px;
       transition: all 0.2s;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
-    .switch.on { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
-    .switch.on::after { transform: translateX(18px); }
+    .switch.on { background: #8b5cf6; }
+    .switch.on::after { left: 19px; }
+
+    @media (max-width: 1023px) {
+      .sidebar {
+        position: fixed; left: 0; top: 0; bottom: 0;
+        width: 280px; z-index: 50;
+        transform: translateX(-100%);
+        transition: transform 0.3s;
+      }
+      .sidebar.open { transform: translateX(0); }
+    }
   </style>
 </head>
 <body>
   <div class="bg-mesh"></div>
   <div class="bg-grid"></div>
 
-  <!-- LOGIN -->
+  <!-- LOGIN VIEW -->
   <div id="loginView" class="relative z-10 min-h-screen flex items-center justify-center px-4 py-12">
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
@@ -624,29 +360,33 @@
       <div class="text-center mb-8 fade-in">
         <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 mono text-xs text-purple-300">
           <span class="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>
-          <span>SUPER ADMIN ACCESS</span>
+          <span>SUPER ADMIN</span>
         </div>
       </div>
 
       <div class="glass rounded-3xl p-10 fade-in" id="loginCard">
         <div class="flex flex-col items-center mb-10">
           <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500 via-purple-600 to-indigo-600 flex items-center justify-center logo-pulse mb-5">
-            <span class="text-4xl font-bold text-white">L</span>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+              <path d="M2 17l10 5 10-5"/>
+              <path d="M2 12l10 5 10-5"/>
+            </svg>
           </div>
           <h1 class="text-2xl font-bold">CyberCoderCRM</h1>
-          <p class="mono text-xs text-zinc-500 mt-2">v1.0 · Management Platform</p>
+          <p class="mono text-xs text-zinc-500 mt-2">SuperAdmin Panel · v1.0</p>
         </div>
 
         <div id="loginError" class="hidden mb-6 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm"></div>
 
         <form id="loginForm" class="space-y-5">
           <div>
-            <label class="field-label" for="loginUsername">Username</label>
-            <input type="text" id="loginUsername" class="input-field w-full px-4 py-3.5 rounded-xl" placeholder="superadmin" autocomplete="username" required />
+            <label class="field-label">Username</label>
+            <input type="text" id="loginUsername" class="input-field w-full px-4 py-3.5 rounded-xl" autocomplete="username" required />
           </div>
 
           <div>
-            <label class="field-label" for="loginPassword">Password</label>
+            <label class="field-label">Password</label>
             <div class="relative">
               <input type="password" id="loginPassword" class="input-field w-full px-4 py-3.5 pr-12 rounded-xl" placeholder="••••••••••" autocomplete="current-password" required />
               <button type="button" id="togglePassword" class="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-zinc-500 hover:text-purple-400 transition" tabindex="-1">
@@ -673,14 +413,19 @@
     </div>
   </div>
 
-  <!-- APP -->
-  <div id="appView" class="hidden relative z-10 min-h-screen flex w-full max-w-full">
+  <!-- APP VIEW -->
+  <div id="appView" class="hidden relative z-10 flex min-h-screen">
     <aside id="sidebar" class="sidebar w-64 shrink-0 flex flex-col p-5">
       <div class="flex items-center gap-3 px-2 mb-8">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white font-bold text-lg">L</div>
-        <div>
-          <div class="text-sm font-bold leading-tight">CyberCoderCRM</div>
-          <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider">Super Admin</div>
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+            <path d="M2 17l10 5 10-5"/>
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <div class="text-sm font-bold leading-tight truncate">SuperAdmin</div>
+          <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider" id="userName">—</div>
         </div>
       </div>
 
@@ -688,22 +433,14 @@
         <div class="mono text-[10px] text-zinc-500 px-3 mb-2 uppercase tracking-widest">Management</div>
         <a href="#" class="nav-item active">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/>
+            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
           </svg>
           <span>Bizneslar</span>
         </a>
       </nav>
 
       <div class="mt-auto pt-4 border-t border-purple-500/10">
-        <div class="flex items-center gap-3 px-2 py-2">
-          <div class="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold">S</div>
-          <div class="flex-1 min-w-0">
-            <div class="text-sm font-medium truncate" id="userName">superadmin</div>
-            <div class="mono text-[10px] text-zinc-500">SUPER ADMIN</div>
-          </div>
-        </div>
-        <!-- Theme Toggle -->
-        <button type="button" id="themeToggle" class="w-full mt-2 mb-2 px-3 py-2.5 rounded-lg text-sm text-zinc-400 hover:text-purple-400 hover:bg-purple-500/10 transition flex items-center justify-center gap-2 border border-purple-500/10 hover:border-purple-500/30">
+        <button type="button" id="themeToggle" class="w-full mb-3 px-3 py-2.5 rounded-lg text-sm text-zinc-400 hover:text-purple-400 hover:bg-purple-500/10 transition flex items-center justify-center gap-2 border border-purple-500/10 hover:border-purple-500/30">
           <svg id="themeIconDark" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="4"/>
             <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
@@ -714,7 +451,7 @@
           <span id="themeText">Light Mode</span>
         </button>
 
-        <button type="button" id="logoutBtn" class="w-full px-3 py-2.5 rounded-lg text-sm text-zinc-400 hover:text-red-300 hover:bg-red-500/10 transition flex items-center gap-2 border border-transparent hover:border-red-500/20">
+        <button id="logoutBtn" type="button" class="w-full px-3 py-2.5 rounded-lg text-sm text-zinc-400 hover:text-red-300 hover:bg-red-500/10 transition flex items-center gap-2 border border-transparent hover:border-red-500/20">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
           </svg>
@@ -725,11 +462,11 @@
 
     <div id="sidebarBackdrop" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden"></div>
 
-    <main class="flex-1 min-w-0 overflow-x-hidden">
+    <main class="flex-1 min-w-0">
       <header class="sticky top-0 z-30 glass border-b border-purple-500/10 px-4 sm:px-6 lg:px-10 py-4 sm:py-5">
         <div class="flex items-center justify-between gap-3">
           <div class="flex items-center gap-3 min-w-0">
-            <button type="button" id="menuToggle" class="lg:hidden btn-icon">
+            <button id="menuToggle" type="button" class="lg:hidden btn-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <line x1="3" y1="6" x2="21" y2="6"/>
                 <line x1="3" y1="12" x2="21" y2="12"/>
@@ -738,160 +475,199 @@
             </button>
             <div class="min-w-0">
               <h1 class="text-lg sm:text-xl lg:text-2xl font-bold truncate">Bizneslar</h1>
-              <p class="mono text-xs text-zinc-500 mt-0.5">Barcha tenants</p>
+              <p class="mono text-xs text-zinc-500 mt-0.5">Tenantlar boshqaruvi</p>
             </div>
           </div>
 
-          <button type="button" id="createBtn" class="btn-primary px-4 lg:px-6 py-2.5 rounded-xl flex items-center gap-2 text-sm shrink-0">
+          <button id="createBtn" type="button" class="btn-primary px-4 py-2.5 rounded-xl text-sm flex items-center gap-2 shrink-0">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <line x1="12" y1="5" x2="12" y2="19"/>
               <line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
-            <span class="hidden sm:inline">Qo'shish</span>
+            <span class="hidden sm:inline">Yangi biznes</span>
           </button>
         </div>
       </header>
 
-      <div class="px-4 sm:px-6 lg:px-10 py-6 max-w-full overflow-x-hidden">
+      <div class="px-4 sm:px-6 lg:px-10 py-6">
+        <!-- STATS -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
-          <div class="stat-card fade-in">
-            <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2">Jami Bizneslar</div>
-            <div class="text-2xl sm:text-3xl font-bold" id="statTotal">—</div>
+          <div class="stat-card">
+            <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2">Jami</div>
+            <div class="text-2xl font-bold" id="statTotal">0</div>
           </div>
-          <div class="stat-card fade-in" style="animation-delay: 0.05s;">
+          <div class="stat-card">
             <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2">Aktiv</div>
-            <div class="text-2xl sm:text-3xl font-bold text-emerald-400" id="statActive">—</div>
+            <div class="text-2xl font-bold text-emerald-400" id="statActive">0</div>
           </div>
-          <div class="stat-card fade-in" style="animation-delay: 0.1s;">
+          <div class="stat-card">
             <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2">To'xtatilgan</div>
-            <div class="text-2xl sm:text-3xl font-bold text-amber-400" id="statSuspended">—</div>
+            <div class="text-2xl font-bold text-amber-400" id="statSuspended">0</div>
           </div>
-          <div class="stat-card fade-in" style="animation-delay: 0.15s;">
-            <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2">Jami Xodimlar</div>
-            <div class="text-2xl sm:text-3xl font-bold text-purple-400" id="statEmployees">—</div>
+          <div class="stat-card">
+            <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2">Xodimlar</div>
+            <div class="text-2xl font-bold text-purple-400" id="statEmployees">0</div>
           </div>
         </div>
 
+        <!-- SEARCH -->
         <div class="mb-6">
           <div class="relative max-w-md">
             <svg class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="11" cy="11" r="8"/>
               <line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
-            <input type="text" id="searchInput" placeholder="Qidirish..." class="input-field w-full pl-11 pr-4 py-3 rounded-xl text-sm" />
+            <input type="text" id="searchInput" class="input-field w-full pl-11 pr-4 py-3 rounded-xl text-sm" placeholder="Qidirish..." />
           </div>
         </div>
 
-        <div id="loadingState" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          <div class="skeleton h-48"></div>
-          <div class="skeleton h-48"></div>
-          <div class="skeleton h-48"></div>
+        <!-- LOADING -->
+        <div id="loadingState" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div class="biz-card"><div class="h-24 rounded-xl" style="background: rgba(139, 92, 246, 0.05);"></div></div>
+          <div class="biz-card"><div class="h-24 rounded-xl" style="background: rgba(139, 92, 246, 0.05);"></div></div>
+          <div class="biz-card"><div class="h-24 rounded-xl" style="background: rgba(139, 92, 246, 0.05);"></div></div>
         </div>
 
-        <div id="emptyState" class="hidden text-center py-20">
-          <div class="inline-flex w-20 h-20 rounded-2xl bg-purple-500/10 border border-purple-500/20 items-center justify-center mb-5">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-purple-400">
-              <path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/>
+        <!-- EMPTY STATE -->
+        <div id="emptyState" class="hidden text-center py-16">
+          <div class="inline-flex w-16 h-16 rounded-2xl bg-purple-500/10 border border-purple-500/20 items-center justify-center mb-4">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-purple-400">
+              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
             </svg>
           </div>
-          <h3 class="text-xl font-bold mb-2">Hech qanday biznes yo'q</h3>
-          <p class="text-zinc-500 mb-6">Birinchi biznesni qo'shib boshlang</p>
-          <button type="button" id="emptyCreateBtn" class="btn-primary px-6 py-3 rounded-xl inline-flex items-center gap-2">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <line x1="12" y1="5" x2="12" y2="19"/>
-              <line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            <span>Yangi biznes qo'shish</span>
+          <h3 class="font-bold mb-2">Bizneslar yo'q</h3>
+          <p class="text-sm text-zinc-500 mb-5">Birinchi biznesni yarating</p>
+          <button id="emptyCreateBtn" type="button" class="btn-primary px-5 py-2.5 rounded-xl text-sm">
+            Biznes yaratish
           </button>
         </div>
 
-        <div id="businessesGrid" class="hidden grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"></div>
+        <!-- BUSINESSES GRID -->
+        <div id="businessesGrid" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
       </div>
     </main>
   </div>
 
-  <!-- MODAL: CREATE/EDIT -->
+  <!-- BUSINESS MODAL -->
   <div id="businessModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
-    <div class="modal-content w-full max-w-xl rounded-2xl max-h-[90vh] overflow-y-auto">
-      <div class="sticky top-0 bg-inherit p-6 border-b border-purple-500/10 flex items-center justify-between z-10">
-        <div>
-          <h2 id="modalTitle" class="text-xl font-bold">Yangi biznes</h2>
-          <p class="mono text-xs text-zinc-500 mt-1">Create new tenant</p>
-        </div>
-        <button type="button" id="closeModalBtn" class="btn-icon">
+    <div class="modal-content w-full max-w-2xl rounded-2xl max-h-[90vh] overflow-y-auto">
+      <div class="p-6 border-b border-purple-500/10 flex items-center justify-between sticky top-0 modal-content z-10">
+        <h2 id="modalTitle" class="text-xl font-bold">Yangi biznes</h2>
+        <button id="closeModalBtn" type="button" class="btn-icon">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <line x1="18" y1="6" x2="6" y2="18"/>
-            <line x1="6" y1="6" x2="18" y2="18"/>
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
         </button>
       </div>
 
       <form id="businessForm" class="p-6 space-y-5">
-        <input type="hidden" id="editingId" value="" />
+        <input type="hidden" id="editingId" />
 
+        <!-- Logo -->
         <div>
-          <label class="field-label">Logo (max 2MB)</label>
+          <label class="field-label">Logo (ixtiyoriy)</label>
           <div class="flex items-center gap-4">
-            <label for="logoInput" class="logo-preview-box shrink-0" id="logoPreview">
+            <div id="logoPreview" class="w-20 h-20 rounded-2xl border-2 border-dashed border-purple-500/30 flex items-center justify-center bg-purple-500/5 overflow-hidden">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-purple-400">
                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                 <circle cx="8.5" cy="8.5" r="1.5"/>
                 <polyline points="21 15 16 10 5 21"/>
               </svg>
+            </div>
+            <label class="flex-1">
+              <input type="file" id="logoInput" accept="image/png,image/jpeg,image/jpg,image/webp" class="hidden" />
+              <div class="px-4 py-3 rounded-xl bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/15 cursor-pointer text-center text-sm">
+                Fayl tanlash (PNG, JPG, WEBP — max 2MB)
+              </div>
             </label>
-            <div class="flex-1 text-sm text-zinc-400">
-              <p class="font-medium text-zinc-300">PNG, JPG, WEBP</p>
-              <p class="mono text-xs text-zinc-500 mt-1">Logo bo'lmasa birinchi harf</p>
+          </div>
+        </div>
+
+        <!-- Nomi & Telefon -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="field-label">Nomi *</label>
+            <input type="text" id="f_name" required maxlength="100" class="input-field w-full px-4 py-3 rounded-xl" />
+          </div>
+          <div>
+            <label class="field-label">Telefon *</label>
+            <input type="text" id="f_phone" required maxlength="20" class="input-field w-full px-4 py-3 rounded-xl" placeholder="+998..." />
+          </div>
+        </div>
+
+        <!-- Login & Parol -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="field-label">Login *</label>
+            <input type="text" id="f_login" required minlength="3" maxlength="50" class="input-field w-full px-4 py-3 rounded-xl mono" />
+          </div>
+          <div>
+            <label id="passwordLabel" class="field-label">Parol *</label>
+            <input type="text" id="f_password" minlength="6" class="input-field w-full px-4 py-3 rounded-xl mono" />
+            <p id="passwordHint" class="mono text-xs text-zinc-500 mt-1.5 hidden">Bo'sh qoldirsangiz parol o'zgarmaydi</p>
+          </div>
+        </div>
+
+        <!-- Til & Izoh -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="field-label">Standart til</label>
+            <select id="f_language" class="input-field w-full px-4 py-3 rounded-xl">
+              <option value="uz-lat">O'zbek (Lotin)</option>
+              <option value="uz-cyr">Ўзбек (Кирилл)</option>
+              <option value="ru">Русский</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Izoh</label>
+            <input type="text" id="f_note" maxlength="500" class="input-field w-full px-4 py-3 rounded-xl" />
+          </div>
+        </div>
+
+        <!-- Modullar -->
+        <div>
+          <label class="field-label">Modullar</label>
+          <p class="text-xs text-zinc-500 mb-3">Biznes ko'rishi va boshqarishi mumkin bo'lgan bo'limlar</p>
+          <div id="modulesContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+        </div>
+
+        <!-- ===== YANGI: ISH TURLARI ===== -->
+        <div class="pt-2 border-t border-purple-500/10">
+          <label class="field-label">Ish turlari</label>
+          <p class="text-xs text-zinc-500 mb-3">
+            Biznes qaysi ish turlarini ishlatishi mumkinligini tanlang. Admin shu turlarda yo'nalish yaratadi.
+          </p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <!-- SHTUK -->
+            <div id="wt_pieceworkCard" class="module-toggle enabled" data-wt="piecework">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-sm">Shtuk turi</div>
+                <div class="mono text-[10px] text-zinc-500 mt-0.5">narx × mahsulot</div>
+              </div>
+              <div id="wt_pieceworkSwitch" class="switch on"></div>
+            </div>
+
+            <!-- KUNLIK -->
+            <div id="wt_dailyCard" class="module-toggle enabled" data-wt="daily">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-sm">Kunlik turi</div>
+                <div class="mono text-[10px] text-zinc-500 mt-0.5">smenaga belgilangan summa</div>
+              </div>
+              <div id="wt_dailySwitch" class="switch on"></div>
             </div>
           </div>
-          <input type="file" id="logoInput" accept="image/png,image/jpeg,image/jpg,image/webp" class="hidden" />
+
+          <p class="text-[10px] text-amber-400/80 mt-2 mono">
+            ⚠ Kamida bittasi yoqilgan bo'lishi shart
+          </p>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="field-label" for="f_name">Biznes nomi *</label>
-            <input type="text" id="f_name" required maxlength="100" class="input-field w-full px-4 py-3 rounded-xl" placeholder="Gavali Shoes" />
-          </div>
-          <div>
-            <label class="field-label" for="f_phone">Telefon *</label>
-            <input type="text" id="f_phone" required maxlength="20" class="input-field w-full px-4 py-3 rounded-xl" placeholder="+998 90 123 45 67" />
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="field-label" for="f_login">Login *</label>
-            <input type="text" id="f_login" required minlength="3" maxlength="50" class="input-field w-full px-4 py-3 rounded-xl mono" placeholder="gavali_admin" />
-          </div>
-          <div>
-            <label class="field-label" for="f_password"><span id="passwordLabel">Parol *</span></label>
-            <input type="text" id="f_password" minlength="6" class="input-field w-full px-4 py-3 rounded-xl mono" placeholder="kuchli parol" />
-            <p id="passwordHint" class="mono text-xs text-zinc-500 mt-1.5 hidden">Bo'sh qoldiring o'zgartirmaslik uchun</p>
-          </div>
-        </div>
-
-        <div>
-          <label class="field-label" for="f_language">Default til</label>
-          <select id="f_language" class="input-field w-full px-4 py-3 rounded-xl">
-            <option value="uz-lat">O'zbek (Lotin)</option>
-            <option value="uz-cyr">Ўзбек (Кирилл)</option>
-            <option value="ru">Русский</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="field-label">Yoqilgan modullar</label>
-          <p class="mono text-xs text-zinc-500 mb-3">Bu biznes qaysi bo'limlarni ko'radi?</p>
-          <div class="space-y-2" id="modulesContainer"></div>
-        </div>
-
-        <div>
-          <label class="field-label" for="f_note">Eslatma</label>
-          <textarea id="f_note" maxlength="500" rows="2" class="input-field w-full px-4 py-3 rounded-xl resize-none"></textarea>
-        </div>
-
-        <div class="flex gap-3 pt-2">
-          <button type="button" id="cancelModalBtn" class="flex-1 btn-ghost py-3 rounded-xl font-medium">Bekor qilish</button>
+        <!-- Tugmalar -->
+        <div class="flex gap-3 pt-4 border-t border-purple-500/10">
+          <button type="button" id="cancelModalBtn" class="flex-1 btn-ghost py-3 rounded-xl">
+            Bekor qilish
+          </button>
           <button type="submit" id="submitModalBtn" class="flex-1 btn-primary py-3 rounded-xl flex items-center justify-center gap-2">
             <span id="submitModalText">Yaratish</span>
             <span id="submitModalSpinner" class="spinner hidden"></span>
@@ -901,7 +677,7 @@
     </div>
   </div>
 
-  <!-- MODAL: CONFIRM -->
+  <!-- CONFIRM DELETE MODAL -->
   <div id="confirmModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
     <div class="modal-content w-full max-w-md rounded-2xl p-6">
       <div class="flex items-start gap-4 mb-4">
@@ -913,13 +689,15 @@
           </svg>
         </div>
         <div class="flex-1">
-          <h3 class="text-lg font-bold">Biznesni o'chirish?</h3>
+          <h3 class="text-lg font-bold">O'chirishni tasdiqlaysizmi?</h3>
           <p class="text-sm text-zinc-400 mt-1" id="confirmText"></p>
         </div>
       </div>
       <div class="flex gap-3 mt-6">
-        <button type="button" id="cancelConfirmBtn" class="flex-1 btn-ghost py-2.5 rounded-xl font-medium">Bekor qilish</button>
-        <button type="button" id="confirmDeleteBtn" class="flex-1 btn-danger py-2.5 rounded-xl font-medium flex items-center justify-center gap-2">
+        <button type="button" id="cancelConfirmBtn" class="flex-1 btn-ghost py-2.5 rounded-xl font-medium">
+          Bekor qilish
+        </button>
+        <button id="confirmDeleteBtn" type="button" class="flex-1 btn-danger py-2.5 rounded-xl font-medium flex items-center justify-center gap-2">
           <span id="confirmDeleteText">O'chirish</span>
           <span id="confirmDeleteSpinner" class="spinner hidden"></span>
         </button>
@@ -927,7 +705,6 @@
     </div>
   </div>
 
-  <!-- API_BASE (MUHIM: Railway URL) -->
   <script>
     window.API_BASE = 'https://cybercodercrm-production.up.railway.app';
   </script>

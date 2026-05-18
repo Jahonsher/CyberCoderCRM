@@ -1,4 +1,5 @@
 const API_BASE = window.API_BASE || "";
+
 function apiUrl(path) {
   if (!API_BASE) return path;
   return API_BASE.replace(/\/$/, "") + path;
@@ -6,20 +7,14 @@ function apiUrl(path) {
 
 /**
  * CyberCoderCRM - SuperAdmin Application
- * Barcha logika: login, bizneslar CRUD, modullar toggle, suspend
+ * YANGI: enabledWorkTypes (piecework + daily) qo'shildi
  */
 
-// ============================================
-// STORAGE KEYS
-// ============================================
 const STORAGE = {
   token: 'cc_sa_token',
   user: 'cc_sa_user',
 };
 
-// ============================================
-// APP STATE
-// ============================================
 const state = {
   token: localStorage.getItem(STORAGE.token) || null,
   user: null,
@@ -29,11 +24,14 @@ const state = {
   deleteTargetId: null,
   logoFile: null,
   selectedModules: new Set(),
+  // YANGI: ish turlari (default ikkalasi yoqilgan)
+  workTypes: { piecework: true, daily: true },
 };
 
 // ============================================
-// THEME MANAGEMENT (Dark/Light)
+// THEME
 // ============================================
+
 const THEME_KEY = 'cc_theme';
 
 function getCurrentTheme() {
@@ -47,8 +45,7 @@ function setTheme(theme) {
 }
 
 function toggleTheme() {
-  const current = getCurrentTheme();
-  setTheme(current === 'dark' ? 'light' : 'dark');
+  setTheme(getCurrentTheme() === 'dark' ? 'light' : 'dark');
 }
 
 function updateThemeButton() {
@@ -56,9 +53,7 @@ function updateThemeButton() {
   const iconDark = document.getElementById('themeIconDark');
   const iconLight = document.getElementById('themeIconLight');
   const text = document.getElementById('themeText');
-
   if (!iconDark || !iconLight || !text) return;
-
   if (theme === 'dark') {
     iconDark.classList.remove('hidden');
     iconLight.classList.add('hidden');
@@ -72,39 +67,28 @@ function updateThemeButton() {
 
 function setupThemeToggle() {
   const btn = document.getElementById('themeToggle');
-  if (btn) {
-    btn.addEventListener('click', toggleTheme);
-  }
+  if (btn) btn.addEventListener('click', toggleTheme);
   setTheme(getCurrentTheme());
 }
-
-
 
 // ============================================
 // UTILS
 // ============================================
 
-/** HTML escaping (XSS himoyasi) */
 function escapeHtml(str) {
   if (!str) return '';
   return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
 
-/** Toast notification */
 function toast(message, type = 'success') {
   const existing = document.querySelector('.toast');
   if (existing) existing.remove();
-
   const el = document.createElement('div');
   el.className = `toast toast-${type}`;
   el.textContent = message;
   document.body.appendChild(el);
-
   setTimeout(() => {
     el.style.transition = 'opacity 0.3s, transform 0.3s';
     el.style.opacity = '0';
@@ -113,40 +97,30 @@ function toast(message, type = 'success') {
   }, 3500);
 }
 
-/** API request helper */
 async function api(endpoint, options = {}) {
   const headers = {
     Authorization: `Bearer ${state.token}`,
     ...(options.headers || {}),
   };
-
   if (!(options.body instanceof FormData) && options.body) {
     headers['Content-Type'] = 'application/json';
   }
-
   try {
     const res = await fetch(apiUrl(endpoint), { ...options, headers });
     const data = await res.json().catch(() => ({}));
-
     if (res.status === 401) {
       logout();
       return null;
     }
-
     if (!res.ok) {
       throw new Error(data.error || `HTTP ${res.status}`);
     }
-
     return data;
   } catch (err) {
     console.error(`API error [${endpoint}]:`, err);
     throw err;
   }
 }
-
-// ============================================
-// VIEW SWITCHER
-// ============================================
 
 function showLogin() {
   document.getElementById('loginView').classList.remove('hidden');
@@ -159,11 +133,10 @@ function showApp() {
 }
 
 // ============================================
-// LOGIN FLOW
+// LOGIN
 // ============================================
 
 function setupLogin() {
-  // Password toggle
   const togglePwBtn = document.getElementById('togglePassword');
   const pwInput = document.getElementById('loginPassword');
   const eyeIcon = document.getElementById('eyeIcon');
@@ -176,7 +149,6 @@ function setupLogin() {
       : '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>';
   });
 
-  // Submit
   const form = document.getElementById('loginForm');
   const errorEl = document.getElementById('loginError');
   const btn = document.getElementById('loginBtn');
@@ -186,10 +158,8 @@ function setupLogin() {
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-
     const username = document.getElementById('loginUsername').value.trim();
     const password = document.getElementById('loginPassword').value;
-
     errorEl.classList.add('hidden');
 
     if (!username || !password) {
@@ -210,13 +180,11 @@ function setupLogin() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
-
       const data = await res.json();
 
       if (!res.ok || !data.success) {
         throw new Error(data.error || "Login yoki parol noto'g'ri");
       }
-
       if (data.user.role !== 'superadmin') {
         throw new Error("Faqat SuperAdmin uchun. Admin panelga o'ting.");
       }
@@ -241,10 +209,6 @@ function setupLogin() {
   });
 }
 
-// ============================================
-// LOGOUT
-// ============================================
-
 function logout() {
   localStorage.removeItem(STORAGE.token);
   localStorage.removeItem(STORAGE.user);
@@ -254,7 +218,7 @@ function logout() {
 }
 
 // ============================================
-// SIDEBAR (mobile)
+// SIDEBAR
 // ============================================
 
 function setupSidebar() {
@@ -315,8 +279,8 @@ async function loadBusinesses() {
   try {
     const businesses = await api('/api/superadmin/businesses');
     if (!businesses) return;
-
     state.businesses = businesses;
+
     loadingEl.classList.add('hidden');
 
     if (businesses.length === 0) {
@@ -338,7 +302,6 @@ async function loadBusinesses() {
 
 function renderBusinesses(businesses) {
   const gridEl = document.getElementById('businessesGrid');
-
   if (businesses.length === 0) {
     gridEl.innerHTML = '<div class="col-span-full text-center py-12 text-zinc-500">Topilmadi</div>';
     return;
@@ -346,14 +309,12 @@ function renderBusinesses(businesses) {
 
   gridEl.innerHTML = businesses.map((b, idx) => renderBusinessCard(b, idx)).join('');
 
-  // Event delegation for card buttons
   gridEl.querySelectorAll('[data-action]').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const action = btn.dataset.action;
       const id = btn.dataset.id;
       const name = btn.dataset.name;
-
       if (action === 'edit') openEditModal(id);
       else if (action === 'suspend') toggleSuspend(id);
       else if (action === 'delete') confirmDelete(id, name);
@@ -373,6 +334,16 @@ function renderBusinessCard(b, idx) {
 
   const moduleCount = (b.enabledModules || []).length;
 
+  // YANGI: Ish turlari badge
+  const wt = b.enabledWorkTypes || { piecework: true, daily: true };
+  const workTypeBadges = [];
+  if (wt.piecework) {
+    workTypeBadges.push(`<span class="mono text-[10px] px-2 py-1 rounded bg-purple-500/15 border border-purple-500/30 text-purple-300">Shtuk</span>`);
+  }
+  if (wt.daily) {
+    workTypeBadges.push(`<span class="mono text-[10px] px-2 py-1 rounded" style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); color: #34d399;">Kunlik</span>`);
+  }
+
   const suspendIcon = b.status === 'active'
     ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>'
     : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
@@ -388,13 +359,14 @@ function renderBusinessCard(b, idx) {
         </div>
       </div>
 
-      <div class="space-y-2 mb-5 pt-4 border-t border-purple-500/10">
+      <div class="space-y-2 mb-3 pt-4 border-t border-purple-500/10">
         <div class="flex items-center gap-2 text-sm text-zinc-400">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-zinc-500">
             <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>
           </svg>
           <span class="mono text-xs truncate">${escapeHtml(b.phone)}</span>
         </div>
+
         <div class="flex items-center gap-4 flex-wrap">
           <div class="flex items-center gap-2 text-sm">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-zinc-500">
@@ -413,9 +385,14 @@ function renderBusinessCard(b, idx) {
             <span class="mono text-xs text-zinc-400">${moduleCount} modul</span>
           </div>
         </div>
+
+        <!-- YANGI: Ish turlari -->
+        <div class="flex items-center gap-1.5 flex-wrap pt-1">
+          ${workTypeBadges.join('')}
+        </div>
       </div>
 
-      <div class="flex gap-2">
+      <div class="flex gap-2 pt-3 border-t border-purple-500/10">
         <button data-action="edit" data-id="${b._id}" class="btn-icon flex-1" title="Tahrirlash">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
@@ -458,7 +435,7 @@ function setupSearch() {
 }
 
 // ============================================
-// MODULES IN FORM
+// MODULES
 // ============================================
 
 function renderModulesInForm() {
@@ -490,6 +467,54 @@ function renderModulesInForm() {
 }
 
 // ============================================
+// YANGI: WORK TYPES TOGGLE
+// ============================================
+
+function renderWorkTypes() {
+  const pwCard = document.getElementById('wt_pieceworkCard');
+  const pwSwitch = document.getElementById('wt_pieceworkSwitch');
+  const dCard = document.getElementById('wt_dailyCard');
+  const dSwitch = document.getElementById('wt_dailySwitch');
+
+  if (pwCard) {
+    pwCard.classList.toggle('enabled', state.workTypes.piecework);
+    pwSwitch.classList.toggle('on', state.workTypes.piecework);
+  }
+  if (dCard) {
+    dCard.classList.toggle('enabled', state.workTypes.daily);
+    dSwitch.classList.toggle('on', state.workTypes.daily);
+  }
+}
+
+function setupWorkTypeToggles() {
+  const pwCard = document.getElementById('wt_pieceworkCard');
+  const dCard = document.getElementById('wt_dailyCard');
+
+  if (pwCard) {
+    pwCard.addEventListener('click', () => {
+      state.workTypes.piecework = !state.workTypes.piecework;
+      // Kamida bittasi yoqilgan bo'lishi kerak
+      if (!state.workTypes.piecework && !state.workTypes.daily) {
+        state.workTypes.piecework = true;
+        toast("Kamida bitta ish turi yoqilgan bo'lishi kerak", 'error');
+      }
+      renderWorkTypes();
+    });
+  }
+
+  if (dCard) {
+    dCard.addEventListener('click', () => {
+      state.workTypes.daily = !state.workTypes.daily;
+      if (!state.workTypes.piecework && !state.workTypes.daily) {
+        state.workTypes.daily = true;
+        toast("Kamida bitta ish turi yoqilgan bo'lishi kerak", 'error');
+      }
+      renderWorkTypes();
+    });
+  }
+}
+
+// ============================================
 // MODAL: CREATE/EDIT
 // ============================================
 
@@ -499,6 +524,8 @@ function openCreateModal() {
   state.selectedModules = new Set(
     state.allModules.filter(m => m.default).map(m => m.key)
   );
+  // YANGI: default ikkalasi yoqilgan
+  state.workTypes = { piecework: true, daily: true };
 
   document.getElementById('businessForm').reset();
   document.getElementById('editingId').value = '';
@@ -510,12 +537,12 @@ function openCreateModal() {
 
   resetLogoPreview();
   renderModulesInForm();
+  renderWorkTypes();
 
   const modal = document.getElementById('businessModal');
   modal.classList.remove('hidden');
   modal.classList.add('flex');
   document.body.style.overflow = 'hidden';
-
   setTimeout(() => document.getElementById('f_name').focus(), 100);
 }
 
@@ -526,6 +553,11 @@ function openEditModal(id) {
   state.editingId = id;
   state.logoFile = null;
   state.selectedModules = new Set(biz.enabledModules || []);
+  // YANGI: biznes ish turlarini olamiz
+  state.workTypes = {
+    piecework: biz.enabledWorkTypes?.piecework !== false,
+    daily: biz.enabledWorkTypes?.daily !== false,
+  };
 
   document.getElementById('editingId').value = id;
   document.getElementById('modalTitle').textContent = 'Biznesni tahrirlash';
@@ -543,12 +575,13 @@ function openEditModal(id) {
 
   const preview = document.getElementById('logoPreview');
   if (biz.logo) {
-    preview.innerHTML = `<img src="${apiUrl('/uploads/' + escapeHtml(biz.logo))}" alt="logo" />`;
+    preview.innerHTML = `<img src="${apiUrl('/uploads/' + escapeHtml(biz.logo))}" alt="logo" class="w-full h-full object-cover" />`;
   } else {
     resetLogoPreview();
   }
 
   renderModulesInForm();
+  renderWorkTypes();
 
   const modal = document.getElementById('businessModal');
   modal.classList.remove('hidden');
@@ -578,46 +611,38 @@ function resetLogoPreview() {
 function setupBusinessModal() {
   const modal = document.getElementById('businessModal');
 
-  // Open buttons
   document.getElementById('createBtn').addEventListener('click', openCreateModal);
   document.getElementById('emptyCreateBtn').addEventListener('click', openCreateModal);
 
-  // Close buttons
   document.getElementById('closeModalBtn').addEventListener('click', closeBusinessModal);
   document.getElementById('cancelModalBtn').addEventListener('click', closeBusinessModal);
 
-  // Backdrop click
   modal.addEventListener('click', (e) => {
     if (e.target === modal) closeBusinessModal();
   });
 
-  // Logo upload
   document.getElementById('logoInput').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     if (file.size > 2 * 1024 * 1024) {
       toast('Fayl 2MB dan oshmasligi kerak', 'error');
       e.target.value = '';
       return;
     }
-
     if (!['image/png', 'image/jpeg', 'image/jpg', 'image/webp'].includes(file.type)) {
       toast('Faqat PNG, JPG yoki WEBP', 'error');
       e.target.value = '';
       return;
     }
-
     state.logoFile = file;
     const reader = new FileReader();
     reader.onload = (ev) => {
       document.getElementById('logoPreview').innerHTML =
-        `<img src="${ev.target.result}" alt="logo" />`;
+        `<img src="${ev.target.result}" alt="logo" class="w-full h-full object-cover" />`;
     };
     reader.readAsDataURL(file);
   });
 
-  // Submit
   document.getElementById('businessForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -636,6 +661,9 @@ function setupBusinessModal() {
     fd.append('defaultLanguage', document.getElementById('f_language').value);
     fd.append('note', document.getElementById('f_note').value.trim());
     fd.append('enabledModules', JSON.stringify(Array.from(state.selectedModules)));
+
+    // YANGI: ish turlarini yuborish
+    fd.append('enabledWorkTypes', JSON.stringify(state.workTypes));
 
     if (state.logoFile) fd.append('logo', state.logoFile);
 
@@ -673,7 +701,6 @@ function setupBusinessModal() {
 async function toggleSuspend(id) {
   const biz = state.businesses.find(b => b._id === id);
   if (!biz) return;
-
   const action = biz.status === 'active' ? "to'xtatish" : 'faollashtirish';
   if (!confirm(`"${biz.name}" ni ${action}ni tasdiqlaysizmi?`)) return;
 
@@ -691,7 +718,7 @@ async function toggleSuspend(id) {
 }
 
 // ============================================
-// DELETE CONFIRMATION
+// DELETE
 // ============================================
 
 function confirmDelete(id, name) {
@@ -715,7 +742,6 @@ function closeConfirmModal() {
 
 function setupConfirmModal() {
   const modal = document.getElementById('confirmModal');
-
   document.getElementById('cancelConfirmBtn').addEventListener('click', closeConfirmModal);
 
   modal.addEventListener('click', (e) => {
@@ -750,7 +776,7 @@ function setupConfirmModal() {
 }
 
 // ============================================
-// KEYBOARD SHORTCUTS
+// KEYBOARD
 // ============================================
 
 function setupKeyboard() {
@@ -765,7 +791,7 @@ function setupKeyboard() {
 }
 
 // ============================================
-// INIT APP
+// INIT
 // ============================================
 
 async function initApp() {
@@ -775,16 +801,15 @@ async function initApp() {
       logout();
       return;
     }
-
     state.user = me;
     document.getElementById('userName').textContent = me.username;
 
     showApp();
+
     await loadModules();
     await loadBusinesses();
     await loadStats();
 
-    // Auto-refresh stats every 60s
     setInterval(() => loadStats(), 60000);
   } catch (err) {
     console.error('Init error:', err);
@@ -802,6 +827,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupSidebar();
   setupSearch();
   setupBusinessModal();
+  setupWorkTypeToggles();
   setupConfirmModal();
   setupKeyboard();
 

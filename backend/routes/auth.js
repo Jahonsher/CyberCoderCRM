@@ -1,5 +1,6 @@
 /**
  * CyberCoderCRM - Auth routes
+ * YANGI: /me da enabledWorkTypes qaytadi
  */
 
 const express = require('express');
@@ -25,7 +26,6 @@ router.post('/login', async (req, res) => {
     console.log(`🔐 Login urinishi: ${usernameLower}`);
 
     // ========== SUPERADMIN ==========
-    // +password orqali parolni ham olish (kafolat uchun)
     const superAdmin = await SuperAdmin.findOne({ username: usernameLower }).select('+password');
 
     if (superAdmin) {
@@ -54,16 +54,12 @@ router.post('/login', async (req, res) => {
     }
 
     // ========== BUSINESS ADMIN ==========
-    // +password orqali parolni ham olish (MUHIM!)
     const business = await Business.findOne({ login: usernameLower }).select('+password');
 
     if (!business) {
       console.log(`❌ Biznes topilmadi: ${usernameLower}`);
       return res.status(401).json({ success: false, error: "Login yoki parol noto'g'ri" });
     }
-
-    // Debug: password borligini tekshirish
-    console.log(`   Password mavjud: ${!!business.password}, uzunlik: ${business.password?.length || 0}`);
 
     if (!business.password) {
       console.log(`❌ Biznesning paroli DB'da yo'q: ${usernameLower}`);
@@ -100,6 +96,7 @@ router.post('/login', async (req, res) => {
         logo: business.logo,
         role: 'admin',
         enabledModules: business.enabledModules || [],
+        enabledWorkTypes: business.enabledWorkTypes || { piecework: true, daily: true },
         defaultLanguage: business.defaultLanguage || 'uz-lat',
       }
     });
@@ -141,6 +138,7 @@ router.get('/me', verifyToken, async (req, res) => {
         phone: business.phone,
         role: 'admin',
         enabledModules: business.enabledModules || [],
+        enabledWorkTypes: business.enabledWorkTypes || { piecework: true, daily: true },
         modulesInfo,
         defaultLanguage: business.defaultLanguage || 'uz-lat',
       });
