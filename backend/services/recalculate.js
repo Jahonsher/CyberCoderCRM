@@ -1,17 +1,13 @@
 /**
  * CyberCoderCRM - Recalculate Service
- * dateString (YYYY-MM-DD) bilan ishlaydi
+ * Endi: kunlik xodim daromadi yo'nalishning dailyPrice'idan olinadi
  */
 
 const DailyAssignment = require('../models/DailyAssignment');
 const DailyProduct = require('../models/DailyProduct');
+const Direction = require('../models/Direction');
 
-/**
- * Yo'nalish + sana uchun qayta hisoblash
- * dateStr - "YYYY-MM-DD" string
- */
 async function recalculateDirection(businessId, directionId, dateStr) {
-  // 1. Shu yo'nalishdagi BARCHA xodimlar
   const allAssignments = await DailyAssignment.find({
     businessId,
     directionId,
@@ -20,10 +16,17 @@ async function recalculateDirection(businessId, directionId, dateStr) {
 
   if (allAssignments.length === 0) return;
 
-  // 2. Kunlik xodimlarni alohida hisoblash
+  // Yo'nalishni olamiz - kunlik narxi uchun
+  const direction = await Direction.findById(directionId);
+  const dailyPrice = direction?.dailyPrice || 0;
+  const pieceworkPrice = direction?.pieceworkPrice || direction?.currentPrice || 0;
+
+  // 1. Kunlik xodimlar
   const dailyAssignments = allAssignments.filter(a => a.type === 'daily');
   for (const a of dailyAssignments) {
-    const baseAmount = (a.dailyAmount || 0) * a.shift;
+    // Yo'nalishdagi kunlik narxni ishlatamiz
+    const baseAmount = dailyPrice * a.shift;
+    a.dailyAmount = dailyPrice; // yangilash
     if (a.isManual && a.manualAmount !== null && a.manualAmount !== undefined) {
       a.earning = a.manualAmount;
     } else {
@@ -34,36 +37,27 @@ async function recalculateDirection(businessId, directionId, dateStr) {
     await a.save();
   }
 
-  // 3. Piecework xodimlar
+  // 2. Piecework xodimlar
   const pieceworkAssignments = allAssignments.filter(a => a.type !== 'daily');
   if (pieceworkAssignments.length === 0) return;
 
-  // 4. Umumiy mahsulot (shu kun uchun)
   const products = await DailyProduct.find({
     businessId,
     dateString: dateStr,
   });
 
   const totalQuantity = products.reduce((sum, p) => sum + p.quantity, 0);
-  const price = pieceworkAssignments[0].priceSnapshot;
+  const totalAmount = totalQuantity * pieceworkPrice;
 
-  // 5. Umumiy summa
-  const totalAmount = totalQuantity * price;
-
-  // 6. 1 smena narxi
   const employeeCount = pieceworkAssignments.length;
   const oneShiftPrice = employeeCount > 0 ? totalAmount / employeeCount : 0;
 
-  // 7. Deficit pool
   let deficitPool = 0;
-
   const processed = pieceworkAssignments.map(a => {
     const fairShare = oneShiftPrice * a.shift;
     if (a.isManual && a.manualAmount !== null && a.manualAmount !== undefined) {
       const diff = fairShare - a.manualAmount;
-      if (diff > 0) {
-        deficitPool += diff;
-      }
+      if (diff > 0) deficitPool += diff;
       return { assignment: a, fairShare, isManual: true };
     }
     return { assignment: a, fairShare, isManual: false };
@@ -72,9 +66,9 @@ async function recalculateDirection(businessId, directionId, dateStr) {
   const nonManualCount = processed.filter(p => !p.isManual).length;
   const bonusPerEmployee = nonManualCount > 0 ? deficitPool / nonManualCount : 0;
 
-  // 8. Saqlash
   for (const p of processed) {
     const a = p.assignment;
+    a.priceSnapshot = pieceworkPrice;
     if (p.isManual) {
       a.fairShare = p.fairShare;
       a.earning = a.manualAmount;
@@ -88,20 +82,13 @@ async function recalculateDirection(businessId, directionId, dateStr) {
   }
 
   return {
-    totalQuantity,
-    price,
-    totalAmount,
-    oneShiftPrice,
-    deficitPool,
-    bonusPerEmployee,
+    totalQuantity, pieceworkPrice, totalAmount, oneShiftPrice,
+    deficitPool, bonusPerEmployee,
     pieceworkCount: pieceworkAssignments.length,
     dailyCount: dailyAssignments.length,
   };
 }
 
-/**
- * Butun kun uchun
- */
 async function recalculateDay(businessId, dateStr) {
   const directionIds = await DailyAssignment.find({
     businessId,
@@ -113,11 +100,7 @@ async function recalculateDay(businessId, dateStr) {
     const result = await recalculateDirection(businessId, directionId, dateStr);
     if (result) results.push({ directionId, ...result });
   }
-
   return results;
 }
 
-module.exports = {
-  recalculateDirection,
-  recalculateDay,
-};
+module.exports = { recalculateDirection, recalculateDay };

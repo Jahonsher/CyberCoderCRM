@@ -1,6 +1,7 @@
 /**
  * CyberCoderCRM - Daily Report routes
- * dateString (YYYY-MM-DD) bilan ishlaydi - timezone safe
+ * Endi: dailyAmount yo'nalishning dailyPrice'dan olinadi
+ * Frontend body'dan dailyAmount qabul qilinmaydi
  */
 
 const express = require('express');
@@ -19,63 +20,31 @@ const requireModule = require('../middleware/requireModule');
 
 router.use(verifyToken, requireAdmin, businessScope, requireModule('dailyReport'));
 
-/**
- * "YYYY-MM-DD" stringga aylantirish (lokal sana asosida)
- */
 function toDateString(input) {
   if (!input) {
     const now = new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    const d = String(now.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    const tashkent = new Date(now.getTime() + 5 * 60 * 60 * 1000);
+    return `${tashkent.getUTCFullYear()}-${String(tashkent.getUTCMonth() + 1).padStart(2, '0')}-${String(tashkent.getUTCDate()).padStart(2, '0')}`;
   }
-
-  // Agar string bo'lsa va to'g'ri formatda - to'g'ridan-to'g'ri qaytarish
   if (typeof input === 'string') {
     const match = input.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (match) {
-      return `${match[1]}-${match[2]}-${match[3]}`;
-    }
+    if (match) return `${match[1]}-${match[2]}-${match[3]}`;
   }
-
-  // Date object'dan
   const d = input instanceof Date ? input : new Date(input);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-/**
- * dateString'dan Date object yaratish (UTC midnight)
- */
 function dateStringToDate(dateString) {
   const parts = dateString.split('-');
-  return new Date(Date.UTC(
-    parseInt(parts[0], 10),
-    parseInt(parts[1], 10) - 1,
-    parseInt(parts[2], 10)
-  ));
+  return new Date(Date.UTC(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)));
 }
 
-/**
- * Bugungi sana - YYYY-MM-DD
- * Tashkent timezone (UTC+5) bilan hisoblaymiz
- */
 function todayString() {
-  // UTC vaqtga +5 soat qo'shib, Tashkent vaqtini olamiz
   const now = new Date();
-  const tashkentTime = new Date(now.getTime() + 5 * 60 * 60 * 1000);
-  const y = tashkentTime.getUTCFullYear();
-  const m = String(tashkentTime.getUTCMonth() + 1).padStart(2, '0');
-  const d = String(tashkentTime.getUTCDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+  const tashkent = new Date(now.getTime() + 5 * 60 * 60 * 1000);
+  return `${tashkent.getUTCFullYear()}-${String(tashkent.getUTCMonth() + 1).padStart(2, '0')}-${String(tashkent.getUTCDate()).padStart(2, '0')}`;
 }
 
-/**
- * Kelajak sana tekshiruvi
- */
 function isFutureDateString(dateString) {
   return dateString > todayString();
 }
@@ -99,12 +68,8 @@ router.get('/', async (req, res) => {
       }).sort('-createdAt'),
     ]);
 
-    const assignedEmployeeIds = new Set(
-      assigned.map((a) => a.employeeId.toString())
-    );
-    const unassigned = allEmployees.filter(
-      (e) => !assignedEmployeeIds.has(e._id.toString())
-    );
+    const assignedEmployeeIds = new Set(assigned.map((a) => a.employeeId.toString()));
+    const unassigned = allEmployees.filter((e) => !assignedEmployeeIds.has(e._id.toString()));
 
     const totalEarning = assigned.reduce((sum, a) => sum + (a.earning || 0), 0);
     const totalProducts = products.reduce((sum, p) => sum + (p.quantity || 0), 0);
@@ -130,7 +95,7 @@ router.get('/', async (req, res) => {
 
 router.post('/assign', async (req, res) => {
   try {
-    const { employeeId, directionId, shift, date, type, dailyAmount } = req.body;
+    const { employeeId, directionId, shift, date, type } = req.body;
 
     if (!employeeId || !directionId || !shift) {
       return res.status(400).json({ error: 'Barcha maydonlar kerak' });
@@ -142,11 +107,6 @@ router.post('/assign', async (req, res) => {
     }
 
     const assignType = type === 'daily' ? 'daily' : 'piecework';
-    const dailyAmt = assignType === 'daily' ? Number(dailyAmount || 0) : 0;
-
-    if (assignType === 'daily' && (isNaN(dailyAmt) || dailyAmt < 0)) {
-      return res.status(400).json({ error: "Kunlik summa noto'g'ri" });
-    }
 
     const dateStr = toDateString(date);
 
@@ -170,7 +130,20 @@ router.post('/assign', async (req, res) => {
     if (!employee) return res.status(404).json({ error: 'Xodim topilmadi' });
     if (!direction) return res.status(404).json({ error: "Yo'nalish topilmadi" });
 
-    // Tekshirish - dateString bo'yicha
+    // Yo'nalishda tanlangan tur yoqilgan bo'lishi kerak
+    if (assignType === 'piecework' && !direction.pieceworkEnabled) {
+      return res.status(400).json({ error: "Bu yo'nalishda Shtuk turi yoqilmagan" });
+    }
+    if (assignType === 'daily' && !direction.dailyEnabled) {
+      return res.status(400).json({ error: "Bu yo'nalishda Kunlik turi yoqilmagan" });
+    }
+
+    // Yo'nalishdan narx olinadi
+    const priceSnapshot = assignType === 'piecework'
+      ? (direction.pieceworkPrice || direction.currentPrice || 0)
+      : (direction.dailyPrice || 0);
+    const dailyAmt = assignType === 'daily' ? (direction.dailyPrice || 0) : 0;
+
     const existing = await DailyAssignment.findOne({
       businessId: req.businessId,
       employeeId: employee._id,
@@ -181,18 +154,16 @@ router.post('/assign', async (req, res) => {
       return res.status(400).json({ error: 'Bu xodim bu kun uchun allaqachon biriktirilgan' });
     }
 
-    const targetDate = dateStringToDate(dateStr);
-
     const assignment = new DailyAssignment({
       businessId: req.businessId,
       employeeId: employee._id,
       directionId: direction._id,
       dateString: dateStr,
-      date: targetDate,
+      date: dateStringToDate(dateStr),
       shift: shiftNum,
       type: assignType,
       dailyAmount: dailyAmt,
-      priceSnapshot: direction.currentPrice,
+      priceSnapshot,
       earning: 0,
       fairShare: 0,
       bonus: 0,
@@ -209,7 +180,6 @@ router.post('/assign', async (req, res) => {
     });
 
     await assignment.save();
-
     await recalculateDirection(req.businessId, direction._id, dateStr);
 
     const updated = await DailyAssignment.findById(assignment._id);
@@ -278,13 +248,11 @@ router.delete('/assign/:id', async (req, res) => {
 router.post('/products', async (req, res) => {
   try {
     const { productName, quantity, date } = req.body;
-
     if (!productName || quantity === undefined) {
       return res.status(400).json({ error: 'Nom va soni kerak' });
     }
 
     const dateStr = toDateString(date);
-
     if (isFutureDateString(dateStr)) {
       return res.status(400).json({ error: "Kelajakdagi kun uchun mahsulot qo'shish mumkin emas" });
     }
@@ -299,7 +267,6 @@ router.post('/products', async (req, res) => {
 
     await product.save();
     await recalculateDay(req.businessId, dateStr);
-
     res.status(201).json(product);
   } catch (err) {
     console.error('Product POST xato:', err);
@@ -313,7 +280,6 @@ router.put('/products/:id', async (req, res) => {
       _id: req.params.id,
       businessId: req.businessId,
     });
-
     if (!product) return res.status(404).json({ error: 'Mahsulot topilmadi' });
 
     const { productName, quantity } = req.body;
@@ -322,7 +288,6 @@ router.put('/products/:id', async (req, res) => {
 
     await product.save();
     await recalculateDay(req.businessId, product.dateString || toDateString(product.date));
-
     res.json(product);
   } catch (err) {
     console.error('Product PUT xato:', err);
@@ -336,13 +301,11 @@ router.delete('/products/:id', async (req, res) => {
       _id: req.params.id,
       businessId: req.businessId,
     });
-
     if (!product) return res.status(404).json({ error: 'Topilmadi' });
 
     const dateStr = product.dateString || toDateString(product.date);
     await DailyProduct.findByIdAndDelete(product._id);
     await recalculateDay(req.businessId, dateStr);
-
     res.json({ success: true });
   } catch (err) {
     console.error('Product DELETE xato:', err);

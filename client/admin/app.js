@@ -1,11 +1,9 @@
 /**
  * CyberCoderCRM - Admin Application (SPA)
  * Bitta fayl ichida 5 sahifa + dinamik sidebar + white-label
+ * YANGI: Yo'nalishlarda piecework va daily turlari (toggle)
  */
 
-// ============================================
-// CONFIG
-// ============================================
 const API_BASE = window.API_BASE || '';
 
 function apiUrl(path) {
@@ -13,17 +11,11 @@ function apiUrl(path) {
   return API_BASE.replace(/\/$/, '') + path;
 }
 
-// ============================================
-// STORAGE KEYS
-// ============================================
 const STORAGE = {
   token: 'cc_admin_token',
   user: 'cc_admin_user',
 };
 
-// ============================================
-// MODULE ICONS
-// ============================================
 const MODULE_ICONS = {
   employees: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>`,
   directions: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>`,
@@ -32,9 +24,6 @@ const MODULE_ICONS = {
   archive: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>`,
 };
 
-// ============================================
-// STATE
-// ============================================
 const state = {
   token: localStorage.getItem(STORAGE.token) || null,
   user: null,
@@ -49,9 +38,13 @@ const state = {
   dailyData: null,
   dailyDate: null,
   monthData: null,
-  monthSelected: new Set(),       // employee IDs
-  monthSelectedDays: new Set(),   // assignment IDs (kun bo'yicha to'lov)
+  monthlyData: null,
+  monthSelected: new Set(),
+  monthSelectedDays: new Set(),
   archives: [],
+
+  // Assign modal cache
+  _assignDirections: [],
 
   editingEmpId: null,
   editingDirId: null,
@@ -74,7 +67,6 @@ function formatMoney(amount) {
   if (typeof amount !== 'number' || isNaN(amount)) return '0';
   return amount.toLocaleString('uz-UZ');
 }
-
 
 function todayISO() {
   const d = new Date();
@@ -148,7 +140,6 @@ async function api(endpoint, options = {}) {
 }
 
 function t(key) {
-  // translations.js global _t funksiyasini chaqiradi
   if (window.TRANSLATIONS) {
     const lang = localStorage.getItem('cc_lang') || 'uz-lat';
     const dict = window.TRANSLATIONS[lang] || window.TRANSLATIONS['uz-lat'];
@@ -158,7 +149,7 @@ function t(key) {
 }
 
 // ============================================
-// THEME MANAGEMENT (Dark/Light)
+// THEME
 // ============================================
 
 const THEME_KEY = 'cc_theme';
@@ -174,9 +165,7 @@ function setTheme(theme) {
 }
 
 function toggleTheme() {
-  const current = getCurrentTheme();
-  const newTheme = current === 'dark' ? 'light' : 'dark';
-  setTheme(newTheme);
+  setTheme(getCurrentTheme() === 'dark' ? 'light' : 'dark');
 }
 
 function updateThemeButton() {
@@ -184,16 +173,12 @@ function updateThemeButton() {
   const iconDark = document.getElementById('themeIconDark');
   const iconLight = document.getElementById('themeIconLight');
   const text = document.getElementById('themeText');
-
   if (!iconDark || !iconLight || !text) return;
-
   if (theme === 'dark') {
-    // Dark mode - show sun icon (click to go light)
     iconDark.classList.remove('hidden');
     iconLight.classList.add('hidden');
     text.textContent = t('theme.light');
   } else {
-    // Light mode - show moon icon (click to go dark)
     iconDark.classList.add('hidden');
     iconLight.classList.remove('hidden');
     text.textContent = t('theme.dark');
@@ -202,14 +187,9 @@ function updateThemeButton() {
 
 function setupThemeToggle() {
   const btn = document.getElementById('themeToggle');
-  if (btn) {
-    btn.addEventListener('click', toggleTheme);
-  }
-
-  // Dastlab saqlangan theme'ni tatbiq qilish
+  if (btn) btn.addEventListener('click', toggleTheme);
   setTheme(getCurrentTheme());
 }
-
 
 // ============================================
 // VIEW SWITCHER
@@ -233,16 +213,12 @@ function setupLangSwitchers() {
   document.querySelectorAll('[data-lang]').forEach(btn => {
     btn.addEventListener('click', () => {
       const lang = btn.dataset.lang;
-      if (typeof window.setLang === 'function') {
-        window.setLang(lang);
-      }
+      if (typeof window.setLang === 'function') window.setLang(lang);
       updateLangButtonsActive();
-      updateThemeButton();  // Theme button text til bilan
+      updateThemeButton();
 
-      // Sidebar ni qayta chizish (modul nomlari til bilan)
       if (state.business && state.business.enabledModules) {
         buildSidebar(state.business.enabledModules, state.business.modulesInfo || []);
-        // Active nav item ni qaytarish
         if (state.currentPage) {
           document.querySelectorAll('[data-page]').forEach(el => {
             el.classList.toggle('active', el.dataset.page === state.currentPage);
@@ -250,7 +226,6 @@ function setupLangSwitchers() {
         }
       }
 
-      // Joriy sahifani qayta chizish
       if (state.currentPage) {
         navigateTo(state.currentPage);
       } else {
@@ -263,18 +238,14 @@ function setupLangSwitchers() {
 
 function updateLangButtonsActive() {
   const currentLang = (typeof window.getCurrentLang === 'function')
-    ? window.getCurrentLang()
-    : 'uz-lat';
-
+    ? window.getCurrentLang() : 'uz-lat';
   document.querySelectorAll('[data-lang]').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.lang === currentLang);
   });
 }
 
 function applyStaticTranslations() {
-  if (typeof window.applyTranslations === 'function') {
-    window.applyTranslations();
-  }
+  if (typeof window.applyTranslations === 'function') window.applyTranslations();
 }
 
 // ============================================
@@ -303,10 +274,8 @@ function setupLogin() {
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-
     const username = document.getElementById('loginUsername').value.trim();
     const password = document.getElementById('loginPassword').value;
-
     errorEl.classList.add('hidden');
 
     if (!username || !password) {
@@ -325,16 +294,9 @@ function setupLogin() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
-
       const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || t('msg.loginWrong'));
-      }
-
-      if (data.user.role !== 'admin') {
-        throw new Error('SuperAdmin: /superadmin/');
-      }
+      if (!res.ok || !data.success) throw new Error(data.error || t('msg.loginWrong'));
+      if (data.user.role !== 'admin') throw new Error('SuperAdmin: /superadmin/');
 
       state.token = data.token;
       state.user = data.user;
@@ -343,9 +305,7 @@ function setupLogin() {
 
       if (data.user.defaultLanguage && typeof window.setLang === 'function') {
         const savedLang = localStorage.getItem('cc_lang');
-        if (!savedLang) {
-          window.setLang(data.user.defaultLanguage);
-        }
+        if (!savedLang) window.setLang(data.user.defaultLanguage);
       }
 
       btnText.textContent = t('login.welcome');
@@ -363,10 +323,6 @@ function setupLogin() {
   });
 }
 
-// ============================================
-// LOGOUT
-// ============================================
-
 function logout() {
   localStorage.removeItem(STORAGE.token);
   localStorage.removeItem(STORAGE.user);
@@ -382,12 +338,10 @@ function logout() {
 
 function applyBranding(business) {
   document.title = `${business.name} · CyberCoderCRM`;
-
   const logoEl = document.getElementById('businessLogo');
   const firstLetter = (business.name || '?').charAt(0).toUpperCase();
 
   if (business.logo) {
-    // Logo Railway'dan yuklanadi
     const logoUrl = apiUrl(`/uploads/${business.logo}`);
     logoEl.innerHTML = `<img src="${logoUrl}" alt="${escapeHtml(business.name)}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<div class=\\'logo-placeholder w-full h-full\\'>${firstLetter}</div>'" />`;
   } else {
@@ -398,21 +352,18 @@ function applyBranding(business) {
 }
 
 // ============================================
-// DYNAMIC SIDEBAR
+// SIDEBAR
 // ============================================
 
 function buildSidebar(enabledModules, modulesInfo) {
   const nav = document.getElementById('sidebarNav');
-
   nav.innerHTML = `<div class="mono text-[10px] text-zinc-500 px-3 mb-2 uppercase tracking-widest">${t('nav.modules')}</div>`;
 
   const items = enabledModules.map(key => {
     const info = modulesInfo.find(m => m.key === key);
     if (!info) return '';
-
     const icon = MODULE_ICONS[key] || MODULE_ICONS.employees;
     const label = t(`nav.${key}`);
-
     return `
       <a href="#" class="nav-item" data-page="${key}">
         ${icon}
@@ -432,44 +383,35 @@ function buildSidebar(enabledModules, modulesInfo) {
 }
 
 // ============================================
-// SPA ROUTER
+// ROUTER
 // ============================================
 
 function navigateTo(pageKey) {
   if (!state.business || !state.business.enabledModules.includes(pageKey)) {
     const firstPage = state.business?.enabledModules?.[0];
-    if (firstPage) {
-      pageKey = firstPage;
-    } else {
-      return;
-    }
+    if (firstPage) pageKey = firstPage;
+    else return;
   }
 
   state.currentPage = pageKey;
 
-  // Update active nav item
   document.querySelectorAll('[data-page]').forEach(el => {
     el.classList.toggle('active', el.dataset.page === pageKey);
   });
 
-  // Update header
   document.getElementById('pageTitle').textContent = t(`nav.${pageKey}`);
   document.getElementById('pageSubtitle').textContent = '';
   document.getElementById('headerActions').innerHTML = '';
 
-  // Show only active page
   document.querySelectorAll('.page').forEach(p => {
     p.classList.toggle('active', p.dataset.page === pageKey);
   });
 
-  // Close mobile sidebar
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sidebarBackdrop').classList.add('hidden');
 
-  // Apply static translations
   applyStaticTranslations();
 
-  // Load page data
   switch (pageKey) {
     case 'employees': loadEmployees(); break;
     case 'directions': loadDepartments(); break;
@@ -483,7 +425,7 @@ function navigateTo(pageKey) {
 }
 
 // ============================================
-// PAGE: EMPLOYEES
+// EMPLOYEES
 // ============================================
 
 async function loadEmployees() {
@@ -504,7 +446,6 @@ async function loadEmployees() {
 
 function renderEmployees(employees) {
   const container = document.getElementById('empTableContainer');
-
   if (employees.length === 0) {
     container.innerHTML = `
       <div class="p-12 text-center">
@@ -586,10 +527,8 @@ function setupEmployeesPage() {
 
   document.getElementById('empForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-
     const btn = document.getElementById('empSubmitBtn');
     const spinner = document.getElementById('empSubmitSpinner');
-
     const body = {
       firstName: document.getElementById('empFirstName').value.trim(),
       lastName: document.getElementById('empLastName').value.trim() || '-',
@@ -606,7 +545,6 @@ function setupEmployeesPage() {
       } else {
         await api('/api/employees', { method: 'POST', body: JSON.stringify(body) });
       }
-
       toast(t('msg.saved'), 'success');
       closeModal('empModal');
       loadEmployees();
@@ -622,12 +560,10 @@ function setupEmployeesPage() {
 function openEmpEdit(id) {
   const emp = state.employees.find(e => e._id === id);
   if (!emp) return;
-
   state.editingEmpId = id;
   document.getElementById('empEditingId').value = id;
   document.getElementById('empModalTitle').textContent = t('emp.edit');
   document.getElementById('empFirstName').value = emp.firstName || '';
-  // lastName hidden - eski qiymat saqlanadi
   document.getElementById('empLastName').value = emp.lastName || '-';
   document.getElementById('empCode').value = emp.code || '';
   document.getElementById('empPhone').value = emp.phone || '';
@@ -635,23 +571,19 @@ function openEmpEdit(id) {
 }
 
 function confirmDeleteEmployee(id, name) {
-  openConfirm(
-    t('emp.deleteConfirm'),
-    `"${name}" — ${t('emp.deleteWarn')}`,
-    async () => {
-      try {
-        await api(`/api/employees/${id}`, { method: 'DELETE' });
-        toast(t('msg.deleted'), 'success');
-        loadEmployees();
-      } catch (err) {
-        toast(err.message || t('msg.error'), 'error');
-      }
+  openConfirm(t('emp.deleteConfirm'), `"${name}" — ${t('emp.deleteWarn')}`, async () => {
+    try {
+      await api(`/api/employees/${id}`, { method: 'DELETE' });
+      toast(t('msg.deleted'), 'success');
+      loadEmployees();
+    } catch (err) {
+      toast(err.message || t('msg.error'), 'error');
     }
-  );
+  });
 }
 
 // ============================================
-// PAGE: DIRECTIONS
+// DEPARTMENTS & DIRECTIONS (YANGI - 2 type bilan)
 // ============================================
 
 async function loadDirections(departmentId) {
@@ -686,11 +618,9 @@ async function loadDepartments() {
     state.departments = departments;
     renderDepartments(departments);
 
-    // Default - birinchi bo'limni tanlash
     if (departments.length > 0 && !state.selectedDepartmentId) {
       selectDepartment(departments[0]._id);
     } else if (state.selectedDepartmentId) {
-      // Tanlangan bo'lim bor bo'lsa, qayta ko'rsatish
       selectDepartment(state.selectedDepartmentId);
     }
   } catch (err) {
@@ -700,7 +630,6 @@ async function loadDepartments() {
 
 function renderDepartments(departments) {
   const container = document.getElementById('departmentsContainer');
-
   if (departments.length === 0) {
     container.innerHTML = `
       <div class="card p-8 text-center">
@@ -743,13 +672,10 @@ function renderDepartments(departments) {
     </div>
   `;
 
-  // Click handlers
   container.querySelectorAll('.dept-card').forEach(card => {
     card.addEventListener('click', (e) => {
-      // Actions tugmalarga bosilganda bo'lim tanlanmasin
       if (e.target.closest('[data-act]')) return;
-      const deptId = card.dataset.deptId;
-      selectDepartment(deptId);
+      selectDepartment(card.dataset.deptId);
     });
   });
 
@@ -768,30 +694,24 @@ function selectDepartment(deptId) {
   state.selectedDepartmentId = deptId;
   const dept = state.departments.find(d => d._id === deptId);
 
-  // Update active card
   document.querySelectorAll('.dept-card').forEach(c => {
     c.classList.toggle('selected', c.dataset.deptId === deptId);
   });
 
-  // Update title
   if (dept) {
     document.getElementById('currentDeptName').textContent = dept.name;
     document.getElementById('currentDeptHint').textContent = `${dept.directionCount || 0} ${t('dept.directionCount')}`;
   }
 
-  // Load directions
   loadDirections(deptId);
 }
 
+// YANGI - Yo'nalishlar 2 ta type badge bilan
 function renderDirections(directions) {
   const container = document.getElementById('dirTableContainer');
 
   if (!state.selectedDepartmentId) {
-    container.innerHTML = `
-      <div class="p-10 text-center text-zinc-500">
-        <p class="text-sm">${t('dir.selectDept')}</p>
-      </div>
-    `;
+    container.innerHTML = `<div class="p-10 text-center text-zinc-500"><p class="text-sm">${t('dir.selectDept')}</p></div>`;
     return;
   }
 
@@ -812,38 +732,60 @@ function renderDirections(directions) {
   }
 
   container.innerHTML = `
-    <div class="table-wrap">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>${t('dir.table.type')}</th>
-            <th>${t('dir.table.price')}</th>
-            <th class="text-right">${t('common.actions')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${directions.map(d => `
-            <tr>
-              <td class="font-medium">${escapeHtml(d.name)}</td>
-              <td class="mono"><span class="text-purple-300">${formatMoney(d.currentPrice)}</span> <span class="text-zinc-500 text-xs">so'm</span></td>
-              <td class="text-right whitespace-nowrap">
-                <button type="button" data-act="dir-edit" data-id="${d._id}" class="btn-icon">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                  </svg>
-                </button>
-                <button type="button" data-act="dir-delete" data-id="${d._id}" data-name="${escapeHtml(d.name)}" class="btn-icon danger ml-1">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="3 6 5 6 21 6"/>
-                    <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/>
-                  </svg>
-                </button>
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
+    <div class="p-5 space-y-3">
+      ${directions.map(d => {
+        const pwEnabled = d.pieceworkEnabled !== false;
+        const dEnabled = d.dailyEnabled === true;
+        const pwPrice = d.pieceworkPrice || d.currentPrice || 0;
+        const dPrice = d.dailyPrice || 0;
+
+        return `
+          <div class="card p-4 flex items-center justify-between gap-3 flex-wrap" style="background: rgba(139, 92, 246, 0.04);">
+            <div class="flex-1 min-w-0">
+              <div class="font-bold text-base truncate">${escapeHtml(d.name)}</div>
+
+              <div class="flex gap-2 mt-2 flex-wrap">
+                ${pwEnabled ? `
+                  <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/25">
+                    <span class="text-xs font-medium text-purple-300">${t('daily.piecework')}</span>
+                    <span class="mono text-xs font-bold text-purple-300">${formatMoney(pwPrice)}</span>
+                  </div>
+                ` : `
+                  <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-500/5 border border-zinc-500/15 opacity-40">
+                    <span class="text-xs font-medium text-zinc-500 line-through">${t('daily.piecework')}</span>
+                  </div>
+                `}
+
+                ${dEnabled ? `
+                  <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3);">
+                    <span class="text-xs font-medium" style="color: #34d399;">${t('daily.dailyWork')}</span>
+                    <span class="mono text-xs font-bold" style="color: #34d399;">${formatMoney(dPrice)}</span>
+                  </div>
+                ` : `
+                  <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-500/5 border border-zinc-500/15 opacity-40">
+                    <span class="text-xs font-medium text-zinc-500 line-through">${t('daily.dailyWork')}</span>
+                  </div>
+                `}
+              </div>
+            </div>
+
+            <div class="flex items-center gap-1 shrink-0">
+              <button type="button" data-act="dir-edit" data-id="${d._id}" class="btn-icon" title="${t('common.edit')}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+              </button>
+              <button type="button" data-act="dir-delete" data-id="${d._id}" data-name="${escapeHtml(d.name)}" class="btn-icon danger">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('')}
     </div>
   `;
 
@@ -858,7 +800,7 @@ function renderDirections(directions) {
 }
 
 function setupDirectionsPage() {
-  // Department add button
+  // Department
   const deptAddBtn = document.getElementById('deptAddBtn');
   if (deptAddBtn) {
     deptAddBtn.addEventListener('click', () => {
@@ -870,34 +812,25 @@ function setupDirectionsPage() {
     });
   }
 
-  // Department form submit
   const deptForm = document.getElementById('deptForm');
   if (deptForm) {
     deptForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-
       const btn = document.getElementById('deptSubmitBtn');
       const spinner = document.getElementById('deptSubmitSpinner');
-
       const body = {
         name: document.getElementById('deptName').value.trim(),
         description: document.getElementById('deptDescription').value.trim(),
       };
-
       btn.disabled = true;
       spinner.classList.remove('hidden');
 
       try {
         if (state.editingDeptId) {
-          await api(`/api/departments/${state.editingDeptId}`, {
-            method: 'PUT', body: JSON.stringify(body)
-          });
+          await api(`/api/departments/${state.editingDeptId}`, { method: 'PUT', body: JSON.stringify(body) });
         } else {
-          await api('/api/departments', {
-            method: 'POST', body: JSON.stringify(body)
-          });
+          await api('/api/departments', { method: 'POST', body: JSON.stringify(body) });
         }
-
         toast(t('msg.saved'), 'success');
         closeModal('deptModal');
         loadDepartments();
@@ -910,33 +843,35 @@ function setupDirectionsPage() {
     });
   }
 
-  // Direction add
+  // Direction - YANGI 2 ta type bilan
   document.getElementById('dirAddBtn').addEventListener('click', () => {
     if (!state.selectedDepartmentId) {
       toast(t('dept.selectFirst'), 'error');
       return;
     }
-
     state.editingDirId = null;
     document.getElementById('dirForm').reset();
     document.getElementById('dirEditingId').value = '';
     document.getElementById('dirModalTitle').textContent = t('dir.add');
-    document.getElementById('dirPriceWarning').classList.add('hidden');
 
-    // Department dropdown to'ldirish
+    // Default values
+    document.getElementById('dirPieceworkEnabled').checked = true;
+    document.getElementById('dirDailyEnabled').checked = false;
+    document.getElementById('dirPieceworkPrice').value = '';
+    document.getElementById('dirDailyPrice').value = '';
+
     fillDepartmentSelect('dirDepartment', state.selectedDepartmentId);
+    toggleDirPieceworkWrap();
+    toggleDirDailyWrap();
 
     openModal('dirModal');
   });
 
-  document.getElementById('dirPrice').addEventListener('input', () => {
-    if (!state.editingDirId) return;
-    const dir = state.directions.find(d => d._id === state.editingDirId);
-    if (!dir) return;
-    const newPrice = Number(document.getElementById('dirPrice').value);
-    const warning = document.getElementById('dirPriceWarning');
-    warning.classList.toggle('hidden', newPrice === dir.currentPrice);
-  });
+  // Toggle listeners
+  const pwCheck = document.getElementById('dirPieceworkEnabled');
+  if (pwCheck) pwCheck.addEventListener('change', toggleDirPieceworkWrap);
+  const dCheck = document.getElementById('dirDailyEnabled');
+  if (dCheck) dCheck.addEventListener('change', toggleDirDailyWrap);
 
   document.getElementById('dirForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -944,10 +879,21 @@ function setupDirectionsPage() {
     const btn = document.getElementById('dirSubmitBtn');
     const spinner = document.getElementById('dirSubmitSpinner');
 
+    const pwEnabled = document.getElementById('dirPieceworkEnabled').checked;
+    const dEnabled = document.getElementById('dirDailyEnabled').checked;
+
+    if (!pwEnabled && !dEnabled) {
+      toast(t('dir.atLeastOne'), 'error');
+      return;
+    }
+
     const body = {
       name: document.getElementById('dirName').value.trim(),
-      currentPrice: Number(document.getElementById('dirPrice').value),
       departmentId: document.getElementById('dirDepartment').value,
+      pieceworkEnabled: pwEnabled,
+      pieceworkPrice: pwEnabled ? Number(document.getElementById('dirPieceworkPrice').value || 0) : 0,
+      dailyEnabled: dEnabled,
+      dailyPrice: dEnabled ? Number(document.getElementById('dirDailyPrice').value || 0) : 0,
     };
 
     btn.disabled = true;
@@ -959,10 +905,9 @@ function setupDirectionsPage() {
       } else {
         await api('/api/directions', { method: 'POST', body: JSON.stringify(body) });
       }
-
       toast(t('msg.saved'), 'success');
       closeModal('dirModal');
-      loadDirections();
+      loadDirections(state.selectedDepartmentId);
     } catch (err) {
       toast(err.message || t('msg.error'), 'error');
     } finally {
@@ -972,6 +917,36 @@ function setupDirectionsPage() {
   });
 }
 
+function toggleDirPieceworkWrap() {
+  const enabled = document.getElementById('dirPieceworkEnabled').checked;
+  const wrap = document.getElementById('dirPieceworkWrap');
+  const toggleWrap = document.getElementById('dirPieceworkEnabled').closest('.type-toggle-wrap');
+  if (wrap) {
+    if (enabled) {
+      wrap.classList.remove('hidden');
+      if (toggleWrap) toggleWrap.classList.remove('disabled');
+    } else {
+      wrap.classList.add('hidden');
+      if (toggleWrap) toggleWrap.classList.add('disabled');
+    }
+  }
+}
+
+function toggleDirDailyWrap() {
+  const enabled = document.getElementById('dirDailyEnabled').checked;
+  const wrap = document.getElementById('dirDailyWrap');
+  const toggleWrap = document.getElementById('dirDailyToggleWrap');
+  if (wrap) {
+    if (enabled) {
+      wrap.classList.remove('hidden');
+      if (toggleWrap) toggleWrap.classList.remove('disabled');
+    } else {
+      wrap.classList.add('hidden');
+      if (toggleWrap) toggleWrap.classList.add('disabled');
+    }
+  }
+}
+
 function openDirEdit(id) {
   const dir = state.directions.find(d => d._id === id);
   if (!dir) return;
@@ -979,19 +954,20 @@ function openDirEdit(id) {
   document.getElementById('dirEditingId').value = id;
   document.getElementById('dirModalTitle').textContent = t('dir.edit');
   document.getElementById('dirName').value = dir.name || '';
-  document.getElementById('dirPrice').value = dir.currentPrice || 0;
-  document.getElementById('dirPriceWarning').classList.add('hidden');
 
-  // Department dropdown
+  document.getElementById('dirPieceworkEnabled').checked = dir.pieceworkEnabled !== false;
+  document.getElementById('dirPieceworkPrice').value = dir.pieceworkPrice || dir.currentPrice || 0;
+  document.getElementById('dirDailyEnabled').checked = dir.dailyEnabled === true;
+  document.getElementById('dirDailyPrice').value = dir.dailyPrice || 0;
+
   const deptId = dir.departmentId?._id || dir.departmentId || state.selectedDepartmentId;
   fillDepartmentSelect('dirDepartment', deptId);
 
+  toggleDirPieceworkWrap();
+  toggleDirDailyWrap();
+
   openModal('dirModal');
 }
-
-// ============================================
-// DEPARTMENT HELPER FUNCTIONS
-// ============================================
 
 function fillDepartmentSelect(selectId, selectedId) {
   const select = document.getElementById(selectId);
@@ -1022,17 +998,10 @@ function confirmDeleteDept(id, name) {
     `"${name}"${hasDirections ? ` (${dept.directionCount} ${t('dept.directionCount')})` : ''} — ${t('dept.deleteWarn')}`,
     async () => {
       try {
-        const url = hasDirections
-          ? `/api/departments/${id}?force=true`
-          : `/api/departments/${id}`;
+        const url = hasDirections ? `/api/departments/${id}?force=true` : `/api/departments/${id}`;
         await api(url, { method: 'DELETE' });
         toast(t('msg.deleted'), 'success');
-
-        // Agar o'chirilgan bo'lim tanlangan bo'lsa - null qilish
-        if (state.selectedDepartmentId === id) {
-          state.selectedDepartmentId = null;
-        }
-
+        if (state.selectedDepartmentId === id) state.selectedDepartmentId = null;
         loadDepartments();
       } catch (err) {
         toast(err.message || t('msg.error'), 'error');
@@ -1042,27 +1011,22 @@ function confirmDeleteDept(id, name) {
 }
 
 function confirmDeleteDirection(id, name) {
-  openConfirm(
-    t('dir.deleteConfirm'),
-    `"${name}" — ${t('dir.deleteWarn')}`,
-    async () => {
-      try {
-        await api(`/api/directions/${id}`, { method: 'DELETE' });
-        toast(t('msg.deleted'), 'success');
-        loadDirections();
-      } catch (err) {
-        toast(err.message || t('msg.error'), 'error');
-      }
+  openConfirm(t('dir.deleteConfirm'), `"${name}" — ${t('dir.deleteWarn')}`, async () => {
+    try {
+      await api(`/api/directions/${id}`, { method: 'DELETE' });
+      toast(t('msg.deleted'), 'success');
+      loadDirections(state.selectedDepartmentId);
+    } catch (err) {
+      toast(err.message || t('msg.error'), 'error');
     }
-  );
+  });
 }
 
 // ============================================
-// PAGE: DAILY REPORT
+// DAILY REPORT
 // ============================================
 
 async function loadDailyReport(dateStr) {
-  // dateStr - YYYY-MM-DD formatda (ixtiyoriy)
   const url = dateStr ? `/api/daily-report?date=${dateStr}` : '/api/daily-report';
   try {
     const data = await api(url);
@@ -1080,10 +1044,7 @@ function updateDailyDateInput() {
   const input = document.getElementById('dailyDateInput');
   const label = document.getElementById('dailyDateLabel');
   if (!input || !state.dailyDate) return;
-
   input.value = state.dailyDate;
-
-  // Label - to'liq sana
   if (label) {
     const d = new Date(state.dailyDate);
     label.textContent = formatDate(d);
@@ -1095,7 +1056,6 @@ function renderDailyReport(data) {
   document.getElementById('dailyStatUnassigned').textContent = data.stats.totalUnassigned;
   document.getElementById('dailyStatEarning').textContent = formatMoney(data.stats.totalEarning);
   document.getElementById('dailyStatProducts').textContent = data.stats.totalProducts;
-
 
   const assignedEl = document.getElementById('assignedList');
   if (data.assigned.length === 0) {
@@ -1148,7 +1108,6 @@ function renderDailyReport(data) {
     assignedEl.querySelectorAll('[data-act="unassign"]').forEach(btn => {
       btn.addEventListener('click', () => unassignEmployee(btn.dataset.id));
     });
-
     assignedEl.querySelectorAll('[data-act="edit-earning"]').forEach(btn => {
       btn.addEventListener('click', () => openEarningEditModal(btn.dataset.id));
     });
@@ -1180,7 +1139,6 @@ function renderDailyReport(data) {
 
 function renderProducts(products) {
   const container = document.getElementById('productsContainer');
-
   if (products.length === 0) {
     container.innerHTML = `<div class="p-8 text-center text-zinc-500 text-sm">${t('common.emptyData')}</div>`;
     return;
@@ -1242,89 +1200,114 @@ async function unassignEmployee(assignmentId) {
   }
 }
 
+// ============================================
+// ASSIGN MODAL - YANGI tartib (Xodim → Ish turi → Bo'lim → Yo'nalish)
+// ============================================
 
 async function openAssignModal(employeeId, employeeName) {
   document.getElementById('assignEmployeeId').value = employeeId;
   document.getElementById('assignEmployeeName').textContent = employeeName;
 
-  // Departmentlarni yuklash
-  if (state.departments.length === 0) {
-    try {
-      const depts = await api('/api/departments');
-      if (depts) state.departments = depts;
-    } catch (err) {}
-  }
-
-  fillDepartmentSelect('assignDepartment', '');
-
-  const dirSelect = document.getElementById('assignDirection');
-  dirSelect.innerHTML = '<option value="">—</option>';
-  dirSelect.disabled = true;
-
-  document.querySelector('input[name="shift"][value="1"]').checked = true;
-
-  // Default work type = piecework
+  // Default piecework
   const pwRadio = document.querySelector('input[name="workType"][value="piecework"]');
   if (pwRadio) pwRadio.checked = true;
 
-  // Daily amount yashirilsin va tozalansin
-  const wrap = document.getElementById('assignDailyAmountWrap');
-  if (wrap) wrap.classList.add('hidden');
-  const amtInput = document.getElementById('assignDailyAmount');
-  if (amtInput) {
-    amtInput.value = '';
-    amtInput.required = false;
-  }
+  // Default smena 1
+  const sh1 = document.querySelector('input[name="shift"][value="1"]');
+  if (sh1) sh1.checked = true;
+
+  // Yo'nalishlarni yuklash (piecework type bilan)
+  await loadDirectionsForAssign();
 
   openModal('assignModal');
 }
 
-async function loadDirectionsForAssign(departmentId) {
-  const dirSelect = document.getElementById('assignDirection');
-  dirSelect.innerHTML = '<option value="">—</option>';
+async function loadDirectionsForAssign() {
+  const type = document.querySelector('input[name="workType"]:checked')?.value || 'piecework';
 
+  try {
+    // Backend filter - faqat tegishli tur yoqilgan yo'nalishlar
+    const directions = await api(`/api/directions?type=${type}`);
+    if (!directions) return;
+
+    state._assignDirections = directions;
+
+    // Bo'limlarni yo'nalishlardan yig'amiz (faqat tegishli tur yoqilganlari)
+    const deptMap = {};
+    directions.forEach(d => {
+      const dept = d.departmentId;
+      if (dept && dept._id) {
+        deptMap[dept._id] = dept.name;
+      }
+    });
+
+    const deptSelect = document.getElementById('assignDepartment');
+    const depts = Object.entries(deptMap).map(([id, name]) => ({ id, name }));
+
+    if (depts.length === 0) {
+      deptSelect.innerHTML = `<option value="">${type === 'daily' ? "Kunlik yo'nalish yo'q" : "Shtuk yo'nalish yo'q"}</option>`;
+      deptSelect.disabled = true;
+    } else {
+      deptSelect.innerHTML = '<option value="">—</option>' +
+        depts.map(d => `<option value="${d.id}">${escapeHtml(d.name)}</option>`).join('');
+      deptSelect.disabled = false;
+    }
+
+    // Direction reset
+    const dirSelect = document.getElementById('assignDirection');
+    dirSelect.innerHTML = '<option value="">—</option>';
+    dirSelect.disabled = true;
+  } catch (err) {
+    console.error('Directions load error:', err);
+    toast(err.message || t('msg.error'), 'error');
+  }
+}
+
+function fillDirectionsByDepartment(departmentId) {
+  const dirSelect = document.getElementById('assignDirection');
   if (!departmentId) {
+    dirSelect.innerHTML = '<option value="">—</option>';
     dirSelect.disabled = true;
     return;
   }
 
-  try {
-    const directions = await api(`/api/directions?departmentId=${departmentId}`);
-    if (directions && directions.length > 0) {
-      dirSelect.innerHTML = '<option value="">—</option>' +
-        directions.map(d =>
-          `<option value="${d._id}">${escapeHtml(d.name)} — ${formatMoney(d.currentPrice)}</option>`
-        ).join('');
-      dirSelect.disabled = false;
-    } else {
-      dirSelect.disabled = true;
-    }
-  } catch (err) {
-    console.error('Directions load error:', err);
+  const filtered = (state._assignDirections || []).filter(d => {
+    const dId = d.departmentId?._id || d.departmentId;
+    return String(dId) === String(departmentId);
+  });
+
+  const type = document.querySelector('input[name="workType"]:checked')?.value || 'piecework';
+
+  if (filtered.length === 0) {
+    dirSelect.innerHTML = '<option value="">—</option>';
+    dirSelect.disabled = true;
+    return;
   }
+
+  dirSelect.innerHTML = '<option value="">—</option>' +
+    filtered.map(d => {
+      const price = type === 'piecework'
+        ? (d.pieceworkPrice || d.currentPrice || 0)
+        : (d.dailyPrice || 0);
+      return `<option value="${d._id}">${escapeHtml(d.name)} — ${formatMoney(price)}</option>`;
+    }).join('');
+  dirSelect.disabled = false;
 }
 
 function setupDailyReportPage() {
-  // Department change - direction yuklash
+  // Department change
   const deptSelect = document.getElementById('assignDepartment');
   if (deptSelect) {
     deptSelect.addEventListener('change', () => {
-      loadDirectionsForAssign(deptSelect.value);
+      fillDirectionsByDepartment(deptSelect.value);
     });
   }
 
-  // Work type radio - dailyAmount maydonini ko'rsatish/yashirish
+  // Work type change - yo'nalishlarni qayta yuklash
   document.querySelectorAll('input[name="workType"]').forEach(radio => {
-    radio.addEventListener('change', () => {
-      const wrap = document.getElementById('assignDailyAmountWrap');
-      const dailyAmtInput = document.getElementById('assignDailyAmount');
-      if (radio.value === 'daily' && radio.checked) {
-        wrap.classList.remove('hidden');
-        dailyAmtInput.required = true;
-      } else if (radio.value === 'piecework' && radio.checked) {
-        wrap.classList.add('hidden');
-        dailyAmtInput.required = false;
-        dailyAmtInput.value = '';
+    radio.addEventListener('change', async () => {
+      if (radio.checked) {
+        await loadDirectionsForAssign();
       }
     });
   });
@@ -1332,13 +1315,10 @@ function setupDailyReportPage() {
   // Date controls
   const dateInput = document.getElementById('dailyDateInput');
   if (dateInput) {
-    // Maksimal sana - bugun (kelajakni cheklash)
     dateInput.max = todayISO();
-
     dateInput.addEventListener('change', () => {
-      // Kelajak sanani rad qilish
       if (dateInput.value > todayISO()) {
-        toast(t('daily.futureNotAllowed') || "Kelajakdagi kun mumkin emas", 'error');
+        toast(t('daily.futureNotAllowed'), 'error');
         dateInput.value = state.dailyDate || todayISO();
         return;
       }
@@ -1365,13 +1345,10 @@ function setupDailyReportPage() {
       const d = new Date(state.dailyDate);
       d.setDate(d.getDate() + 1);
       const newDate = d.toISOString().split('T')[0];
-
-      // Kelajak sanani rad qilish
       if (newDate > todayISO()) {
-        toast(t('daily.futureNotAllowed') || "Kelajakdagi kun mumkin emas", 'error');
+        toast(t('daily.futureNotAllowed'), 'error');
         return;
       }
-
       state.dailyDate = newDate;
       loadDailyReport(state.dailyDate);
     });
@@ -1385,40 +1362,28 @@ function setupDailyReportPage() {
     });
   }
 
+  // Assign form submit - YANGI (dailyAmount yo'q)
   document.getElementById('assignForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-
     const btn = document.getElementById('assignSubmitBtn');
     const spinner = document.getElementById('assignSubmitSpinner');
 
     const workType = document.querySelector('input[name="workType"]:checked')?.value || 'piecework';
-    const dailyAmount = workType === 'daily'
-      ? Number(document.getElementById('assignDailyAmount').value || 0)
-      : 0;
-
-    if (workType === 'daily' && (isNaN(dailyAmount) || dailyAmount <= 0)) {
-      toast(t('daily.dailyAmountRequired') || "Kunlik summa kiriting", 'error');
-      return;
-    }
-
-    // MUHIM: state.dailyDate har doim to'g'ri sana bilan bo'lsin
     const currentDate = state.dailyDate || todayISO();
 
     const body = {
       employeeId: document.getElementById('assignEmployeeId').value,
       directionId: document.getElementById('assignDirection').value,
       shift: document.querySelector('input[name="shift"]:checked').value,
-      date: currentDate,  // ALWAYS send the date
+      date: currentDate,
       type: workType,
-      dailyAmount: dailyAmount,
+      // dailyAmount endi YOQ - yo'nalishdan olinadi
     };
 
     if (!body.directionId) {
       toast(t('daily.direction'), 'error');
       return;
     }
-
-    console.log('📤 Assign yuborilyapti:', { date: body.date, type: body.type, dailyAmount: body.dailyAmount });
 
     btn.disabled = true;
     spinner.classList.remove('hidden');
@@ -1436,6 +1401,7 @@ function setupDailyReportPage() {
     }
   });
 
+  // Product handlers
   document.getElementById('productAddBtn').addEventListener('click', () => {
     state.editingProductId = null;
     document.getElementById('productForm').reset();
@@ -1446,7 +1412,6 @@ function setupDailyReportPage() {
 
   document.getElementById('productForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-
     const btn = document.getElementById('productSubmitBtn');
     const spinner = document.getElementById('productSubmitSpinner');
 
@@ -1456,8 +1421,6 @@ function setupDailyReportPage() {
       quantity: Number(document.getElementById('productQty').value),
       date: currentDate,
     };
-
-    console.log('📤 Product yuborilyapti:', { date: body.date });
 
     btn.disabled = true;
     spinner.classList.remove('hidden');
@@ -1491,11 +1454,6 @@ function openProductEdit(id) {
   openModal('productModal');
 }
 
-
-// ============================================
-// EARNING EDIT (3-talab: qo'lda narx tahrirlash)
-// ============================================
-
 function openEarningEditModal(assignmentId) {
   const assignment = state.dailyData?.assigned.find(a => a._id === assignmentId);
   if (!assignment) return;
@@ -1514,13 +1472,10 @@ function openEarningEditModal(assignmentId) {
 function setupEarningEdit() {
   const form = document.getElementById('earningForm');
   if (!form) return;
-
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-
     const btn = document.getElementById('earningSubmitBtn');
     const spinner = document.getElementById('earningSubmitSpinner');
-
     const assignmentId = document.getElementById('earningAssignmentId').value;
     const earning = Number(document.getElementById('earningAmount').value);
 
@@ -1534,8 +1489,7 @@ function setupEarningEdit() {
 
     try {
       await api(`/api/daily-report/assign/${assignmentId}/earning`, {
-        method: 'PUT',
-        body: JSON.stringify({ earning }),
+        method: 'PUT', body: JSON.stringify({ earning }),
       });
       toast(t('msg.saved'), 'success');
       closeModal('earningModal');
@@ -1550,45 +1504,34 @@ function setupEarningEdit() {
 }
 
 function confirmDeleteProduct(id) {
-  openConfirm(
-    t('common.delete'),
-    t('common.confirm'),
-    async () => {
-      try {
-        await api(`/api/daily-report/products/${id}`, { method: 'DELETE' });
-        toast(t('msg.deleted'), 'success');
-        loadDailyReport(state.dailyDate);
-      } catch (err) {
-        toast(err.message || t('msg.error'), 'error');
-      }
+  openConfirm(t('common.delete'), t('common.confirm'), async () => {
+    try {
+      await api(`/api/daily-report/products/${id}`, { method: 'DELETE' });
+      toast(t('msg.deleted'), 'success');
+      loadDailyReport(state.dailyDate);
+    } catch (err) {
+      toast(err.message || t('msg.error'), 'error');
     }
-  );
+  });
 }
 
 // ============================================
-// PAGE: MONTHLY REPORT
+// MONTHLY REPORT (o'zgarmagan, faqat o'sha versiya)
 // ============================================
 
 function initMonthlyReport() {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
   document.getElementById('monthStart').value = startOfMonth.toISOString().split('T')[0];
   document.getElementById('monthEnd').value = now.toISOString().split('T')[0];
-
   loadMonthlyReport();
 }
 
 function setupMonthlyReportPage() {
-  // Excel export tugmasi
   const exportBtn = document.getElementById('monthExportBtn');
-  if (exportBtn) {
-    exportBtn.addEventListener('click', exportMonthlyToExcel);
-  }
+  if (exportBtn) exportBtn.addEventListener('click', exportMonthlyToExcel);
   const exportDetailBtn = document.getElementById('monthExportDetailBtn');
-  if (exportDetailBtn) {
-    exportDetailBtn.addEventListener('click', exportEmployeeDetailToExcel);
-  }
+  if (exportDetailBtn) exportDetailBtn.addEventListener('click', exportEmployeeDetailToExcel);
 
   const today = todayISO();
   const d = new Date();
@@ -1597,10 +1540,8 @@ function setupMonthlyReportPage() {
 
   document.getElementById('monthStart').value = monthStart;
   document.getElementById('monthEnd').value = today;
-
   document.getElementById('monthLoadBtn').addEventListener('click', loadMonthlyReport);
 
-  // Presets
   document.querySelectorAll('[data-preset]').forEach(btn => {
     btn.addEventListener('click', () => {
       const preset = btn.dataset.preset;
@@ -1628,37 +1569,28 @@ function setupMonthlyReportPage() {
 
       document.getElementById('monthStart').value = start;
       if (preset !== 'yesterday') document.getElementById('monthEnd').value = end;
-
       loadMonthlyReport();
     });
   });
 
-  // Select all checkbox
   const selectAllCb = document.getElementById('monthSelectAll');
   if (selectAllCb) {
     selectAllCb.addEventListener('change', () => {
       const checked = selectAllCb.checked;
       state.monthSelected.clear();
-
       document.querySelectorAll('.pay-checkbox').forEach(cb => {
         const row = cb.closest('.emp-row');
-        if (row && row.classList.contains('paid')) return; // Paidlarga tegmaymiz
-
+        if (row && row.classList.contains('paid')) return;
         cb.checked = checked;
         if (checked) state.monthSelected.add(cb.dataset.employeeId);
       });
-
       updateMonthActionBar();
     });
   }
 
-  // Pay button
   const payBtn = document.getElementById('monthPayBtn');
-  if (payBtn) {
-    payBtn.addEventListener('click', openPayModal);
-  }
+  if (payBtn) payBtn.addEventListener('click', openPayModal);
 
-  // Pay form submit
   const payForm = document.getElementById('payForm');
   if (payForm) {
     payForm.addEventListener('submit', async (e) => {
@@ -1678,7 +1610,6 @@ async function loadMonthlyReport() {
     return;
   }
 
-  // Reset selection
   state.monthSelected.clear();
 
   const params = new URLSearchParams({ startDate, endDate });
@@ -1695,10 +1626,8 @@ async function loadMonthlyReport() {
 }
 
 function renderMonthlyReport(data) {
-  // State'da saqlash (Excel export uchun)
   state.monthlyData = data;
 
-  // Stats
   document.getElementById('monthStatEarning').textContent = formatMoney(data.stats.totalEarning);
   document.getElementById('monthStatEmployees').textContent = data.stats.totalEmployees;
   document.getElementById('monthStatPaid').textContent = formatMoney(data.stats.totalPaid || 0);
@@ -1706,31 +1635,24 @@ function renderMonthlyReport(data) {
 
   const container = document.getElementById('monthResultsContainer');
   const actionBar = document.getElementById('monthActionBar');
-  const exportBar = document.getElementById('monthExportBar');
   const detailsContainer = document.getElementById('monthDetailsContainer');
 
   if (!data.employees || data.employees.length === 0) {
     container.innerHTML = `<div class="p-10 text-center text-zinc-500"><p class="text-sm">${t('month.empty')}</p></div>`;
     actionBar.classList.add('hidden');
-    if (exportBar) exportBar.classList.add('hidden');
     detailsContainer.classList.add('hidden');
     return;
   }
 
-  // Reset selections
   state.monthSelected.clear();
   state.monthSelectedDays.clear();
 
   const isSingleEmployee = data.employees.length === 1 && document.getElementById('monthCode').value.trim();
 
-  // ========================================================
-  // SINGLE EMPLOYEE - kod qidirilganda
-  // ========================================================
   if (isSingleEmployee) {
     const emp = data.employees[0];
     const fullName = emp.firstName + (emp.lastName && emp.lastName !== '-' ? ' ' + emp.lastName : '');
 
-    // Summary cards (3ta: jami, berilgan, qolgan)
     container.innerHTML = `
       <div class="p-5">
         <div class="mb-4">
@@ -1761,16 +1683,15 @@ function renderMonthlyReport(data) {
       </div>
     `;
 
-    // Details table - har kun checkbox bilan
     detailsContainer.classList.remove('hidden');
     document.getElementById('monthDetailsSubtitle').textContent = `${escapeHtml(emp.code)} · ${emp.totalDays} kun`;
 
     document.getElementById('monthDetailsTable').innerHTML = `
-      <div class="p-4 border-b border-purple-500/10 flex items-center justify-between flex-wrap gap-3" id="dayActionBar">
+      <div class="p-4 border-b border-purple-500/10 flex items-center justify-between flex-wrap gap-3">
         <div class="flex items-center gap-3">
           <label class="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" id="dayselectAll" class="w-5 h-5 rounded cursor-pointer accent-purple-600" />
-            <span class="text-sm font-medium">Tanlash (faqat to'lanmaganlar)</span>
+            <span class="text-sm font-medium">${t('month.selectUnpaidOnly')}</span>
           </label>
           <span class="mono text-xs text-zinc-500" id="daySelectedCount"></span>
         </div>
@@ -1778,7 +1699,7 @@ function renderMonthlyReport(data) {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
           </svg>
-          <span>Tanlangan kunlar uchun to'lash</span>
+          <span>${t('month.paySelectedDays')}</span>
         </button>
       </div>
       <div class="table-wrap">
@@ -1807,7 +1728,7 @@ function renderMonthlyReport(data) {
                 <td class="mono font-semibold text-emerald-400 text-right">${formatMoney(day.earning)}</td>
                 <td class="text-center">
                   ${day.isPaid
-                    ? `<button type="button" data-act="undo-pay" data-payment-id="${day.paymentId}" class="paid-badge cursor-pointer hover:opacity-80" title="Bekor qilish">✓ Berilgan</button>`
+                    ? `<button type="button" data-act="undo-pay" data-payment-id="${day.paymentId}" class="paid-badge cursor-pointer hover:opacity-80" title="${t('month.undoPayConfirm')}">${t('month.paidStatus')}</button>`
                     : `<span class="mono text-xs text-zinc-500">—</span>`}
                 </td>
               </tr>
@@ -1817,21 +1738,16 @@ function renderMonthlyReport(data) {
       </div>
     `;
 
-    // Day checkbox handlers
     detailsContainer.querySelectorAll('.day-checkbox').forEach(cb => {
       cb.addEventListener('change', () => {
         if (cb.disabled) return;
         const aid = cb.dataset.assignmentId;
-        if (cb.checked) {
-          state.monthSelectedDays.add(aid);
-        } else {
-          state.monthSelectedDays.delete(aid);
-        }
+        if (cb.checked) state.monthSelectedDays.add(aid);
+        else state.monthSelectedDays.delete(aid);
         updateDayActionBar();
       });
     });
 
-    // Select all (faqat to'lanmaganlar)
     const selectAllDays = document.getElementById('dayselectAll');
     if (selectAllDays) {
       selectAllDays.addEventListener('change', () => {
@@ -1846,31 +1762,21 @@ function renderMonthlyReport(data) {
       });
     }
 
-    // Pay button
     const dayPayBtn = document.getElementById('dayPayBtn');
-    if (dayPayBtn) {
-      dayPayBtn.addEventListener('click', () => payDays(false));
-    }
+    if (dayPayBtn) dayPayBtn.addEventListener('click', () => payDays(false));
 
-    // Undo pay (badge bosish)
     detailsContainer.querySelectorAll('[data-act="undo-pay"]').forEach(btn => {
       btn.addEventListener('click', () => {
-        const pid = btn.dataset.paymentId;
-        confirmUndoPay(pid);
+        confirmUndoPay(btn.dataset.paymentId);
       });
     });
 
     actionBar.classList.add('hidden');
-    if (exportBar) exportBar.classList.add('hidden');
     return;
   }
 
-  // ========================================================
-  // KO'PCHILIK XODIM - oddiy ro'yxat
-  // ========================================================
   detailsContainer.classList.add('hidden');
   actionBar.classList.remove('hidden');
-  if (exportBar) exportBar.classList.remove('hidden');
 
   document.getElementById('monthSelectAll').checked = false;
 
@@ -1920,15 +1826,11 @@ function renderMonthlyReport(data) {
     </div>
   `;
 
-  // Checkbox handlers
   container.querySelectorAll('.pay-checkbox').forEach(cb => {
     cb.addEventListener('change', () => {
       const empId = cb.dataset.employeeId;
-      if (cb.checked) {
-        state.monthSelected.add(empId);
-      } else {
-        state.monthSelected.delete(empId);
-      }
+      if (cb.checked) state.monthSelected.add(empId);
+      else state.monthSelected.delete(empId);
       updateMonthActionBar();
     });
   });
@@ -1946,20 +1848,15 @@ function updateDayActionBar() {
 
 async function payDays(skipConfirm) {
   if (state.monthSelectedDays.size === 0) return;
-
   const ids = Array.from(state.monthSelectedDays);
-
   if (!skipConfirm) {
     const ok = confirm(`${ids.length} kun uchun to'lash?`);
     if (!ok) return;
   }
-
   try {
     const result = await api('/api/monthly-report/pay-days', {
-      method: 'POST',
-      body: JSON.stringify({ assignmentIds: ids }),
+      method: 'POST', body: JSON.stringify({ assignmentIds: ids }),
     });
-
     if (result) {
       toast(`${result.paidCount} kun uchun to'lov qilindi`, 'success');
       state.monthSelectedDays.clear();
@@ -1971,19 +1868,15 @@ async function payDays(skipConfirm) {
 }
 
 function confirmUndoPay(paymentId) {
-  openConfirm(
-    "To'lovni bekor qilish?",
-    "Bu kunning to'lovi bekor qilinadi va xodim qayta to'lanishi mumkin bo'ladi.",
-    async () => {
-      try {
-        await api(`/api/monthly-report/pay/${paymentId}`, { method: 'DELETE' });
-        toast("To'lov bekor qilindi", 'success');
-        loadMonthlyReport();
-      } catch (err) {
-        toast(err.message || t('msg.error'), 'error');
-      }
+  openConfirm(t('month.undoPayConfirm'), t('month.undoPayWarn'), async () => {
+    try {
+      await api(`/api/monthly-report/pay/${paymentId}`, { method: 'DELETE' });
+      toast(t('msg.deleted'), 'success');
+      loadMonthlyReport();
+    } catch (err) {
+      toast(err.message || t('msg.error'), 'error');
     }
-  );
+  });
 }
 
 function updateMonthActionBar() {
@@ -1994,13 +1887,10 @@ function updateMonthActionBar() {
 
 function openPayModal() {
   if (state.monthSelected.size === 0) return;
-
   const selectedEmps = state.monthData.employees.filter(e =>
     state.monthSelected.has(String(e.employeeId))
   );
-
   const total = selectedEmps.reduce((sum, e) => sum + e.totalEarning, 0);
-
   document.getElementById('payCountLabel').textContent = selectedEmps.length;
   document.getElementById('payTotalLabel').textContent = formatMoney(total);
 
@@ -2035,17 +1925,13 @@ async function submitPay() {
   spinner.classList.remove('hidden');
 
   try {
-    // Yangi endpoint: pay-remaining (faqat to'lanmagan kunlar uchun)
     const result = await api('/api/monthly-report/pay-remaining', {
-      method: 'POST',
-      body: JSON.stringify(body),
+      method: 'POST', body: JSON.stringify(body),
     });
-
     if (result) {
       const msg = `Qolgani to'landi: ${result.paidCount} kun` +
         (result.errorsCount > 0 ? ` (${result.errorsCount} xato)` : '');
       toast(msg, result.paidCount > 0 ? 'success' : 'error');
-
       closeModal('payModal');
       state.monthSelected.clear();
       loadMonthlyReport();
@@ -2057,6 +1943,10 @@ async function submitPay() {
     spinner.classList.add('hidden');
   }
 }
+
+// ============================================
+// ARCHIVE
+// ============================================
 
 async function loadArchive() {
   const container = document.getElementById('archiveResultsContainer');
@@ -2080,7 +1970,6 @@ async function loadArchive() {
 }
 
 function renderArchive(data) {
-  // Stats
   document.getElementById('archiveStatPayments').textContent = data.stats.totalPayments || 0;
   document.getElementById('archiveStatAmount').textContent = formatMoney(data.stats.totalAmount || 0);
   document.getElementById('archiveStatEmployees').textContent = data.stats.uniqueEmployees || 0;
@@ -2102,7 +1991,6 @@ function renderArchive(data) {
     return;
   }
 
-  // Oy oy ko'rsatish
   container.innerHTML = data.months.map(m => `
     <div class="archive-month-card">
       <div class="archive-month-header flex items-center justify-between flex-wrap gap-3">
@@ -2148,18 +2036,14 @@ function renderArchive(data) {
     </div>
   `).join('');
 
-  // Delete button handlers
   container.querySelectorAll('[data-act="archive-delete"]').forEach(btn => {
     btn.addEventListener('click', () => {
-      const id = btn.dataset.id;
-      const name = btn.dataset.name;
-      confirmDeleteArchive(id, name);
+      confirmDeleteArchive(btn.dataset.id, btn.dataset.name);
     });
   });
 }
 
 function formatMonthLabel(periodMonth) {
-  // YYYY-MM format
   const [year, month] = periodMonth.split('-');
   const monthNames = {
     'uz-lat': ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr'],
@@ -2173,26 +2057,20 @@ function formatMonthLabel(periodMonth) {
 }
 
 function confirmDeleteArchive(id, name) {
-  openConfirm(
-    t('archive.deleteConfirm'),
-    `"${name}" — ${t('archive.deleteWarn')}`,
-    async () => {
-      try {
-        await api(`/api/archive/${id}`, { method: 'DELETE' });
-        toast(t('msg.deleted'), 'success');
-        loadArchive();
-      } catch (err) {
-        toast(err.message || t('msg.error'), 'error');
-      }
+  openConfirm(t('archive.deleteConfirm'), `"${name}" — ${t('archive.deleteWarn')}`, async () => {
+    try {
+      await api(`/api/archive/${id}`, { method: 'DELETE' });
+      toast(t('msg.deleted'), 'success');
+      loadArchive();
+    } catch (err) {
+      toast(err.message || t('msg.error'), 'error');
     }
-  );
+  });
 }
 
 function setupArchivePage() {
   const loadBtn = document.getElementById('archiveLoadBtn');
-  if (loadBtn) {
-    loadBtn.addEventListener('click', loadArchive);
-  }
+  if (loadBtn) loadBtn.addEventListener('click', loadArchive);
 
   const resetBtn = document.getElementById('archiveResetBtn');
   if (resetBtn) {
@@ -2250,23 +2128,18 @@ function openConfirm(title, text, callback, btnClass = 'btn-danger') {
   document.getElementById('confirmTitle').textContent = title;
   document.getElementById('confirmText').textContent = text;
   state.confirmCallback = callback;
-
   const okBtn = document.getElementById('confirmOkBtn');
   okBtn.className = `flex-1 ${btnClass} py-2.5 rounded-xl font-medium flex items-center justify-center gap-2`;
-
   openModal('confirmModal');
 }
 
 function setupConfirmModal() {
   document.getElementById('confirmOkBtn').addEventListener('click', async () => {
     if (!state.confirmCallback) return;
-
     const btn = document.getElementById('confirmOkBtn');
     const spinner = document.getElementById('confirmOkSpinner');
-
     btn.disabled = true;
     spinner.classList.remove('hidden');
-
     try {
       await state.confirmCallback();
     } finally {
@@ -2278,29 +2151,19 @@ function setupConfirmModal() {
   });
 }
 
-// ============================================
-// SIDEBAR
-// ============================================
-
 function setupSidebar() {
   document.getElementById('menuToggle').addEventListener('click', () => {
     document.getElementById('sidebar').classList.add('open');
     document.getElementById('sidebarBackdrop').classList.remove('hidden');
   });
-
   document.getElementById('sidebarBackdrop').addEventListener('click', () => {
     document.getElementById('sidebar').classList.remove('open');
     document.getElementById('sidebarBackdrop').classList.add('hidden');
   });
-
   document.getElementById('logoutBtn').addEventListener('click', () => {
     if (confirm('Logout?')) logout();
   });
 }
-
-// ============================================
-// INIT
-// ============================================
 
 async function initApp() {
   try {
@@ -2309,27 +2172,20 @@ async function initApp() {
       logout();
       return;
     }
-
     state.user = me;
     state.business = me;
 
     if (me.defaultLanguage && typeof window.setLang === 'function') {
       const savedLang = localStorage.getItem('cc_lang');
-      if (!savedLang) {
-        window.setLang(me.defaultLanguage);
-      }
+      if (!savedLang) window.setLang(me.defaultLanguage);
     }
     updateLangButtonsActive();
-
     applyBranding(me);
     buildSidebar(me.enabledModules || [], me.modulesInfo || []);
-
     showApp();
 
     const firstModule = me.enabledModules?.[0];
-    if (firstModule) {
-      navigateTo(firstModule);
-    }
+    if (firstModule) navigateTo(firstModule);
 
     applyStaticTranslations();
   } catch (err) {
@@ -2338,10 +2194,9 @@ async function initApp() {
   }
 }
 
-
-// ============================================================
+// ============================================
 // EXCEL EXPORT
-// ============================================================
+// ============================================
 
 function exportMonthlyToExcel() {
   if (!state.monthlyData || !state.monthlyData.employees || state.monthlyData.employees.length === 0) {
@@ -2349,10 +2204,9 @@ function exportMonthlyToExcel() {
     return;
   }
 
-  const lang = state.lang || localStorage.getItem('cc_lang') || 'uz-lat';
+  const lang = localStorage.getItem('cc_lang') || 'uz-lat';
   const data = state.monthlyData;
 
-  // Excel sarlavhalari (tildan olamiz)
   const headers = {
     'uz-lat': {
       no: '№', name: 'Xodim', code: 'Kod', days: 'Kunlar',
@@ -2381,7 +2235,6 @@ function exportMonthlyToExcel() {
   };
   const h = headers[lang] || headers['uz-lat'];
 
-  // Sana formatlash
   function fmtDate(dateStr) {
     if (!dateStr) return '';
     const parts = String(dateStr).split('-');
@@ -2389,98 +2242,48 @@ function exportMonthlyToExcel() {
     return dateStr;
   }
 
-  // Asosiy sheet - xodimlar ro'yxati
   const rows = [
     [h.no, h.name, h.code, h.days, h.total, h.paid, h.remaining]
   ];
 
   data.employees.forEach((e, i) => {
     const fullName = e.firstName + (e.lastName && e.lastName !== '-' ? ' ' + e.lastName : '');
-    rows.push([
-      i + 1,
-      fullName,
-      e.code,
-      e.totalDays,
-      e.totalEarning,
-      e.paidAmount || 0,
-      e.remainingAmount || 0,
-    ]);
+    rows.push([i + 1, fullName, e.code, e.totalDays, e.totalEarning, e.paidAmount || 0, e.remainingAmount || 0]);
   });
 
-  // Yakuniy qator - jami
-  const totals = {
-    'uz-lat': 'JAMI',
-    'uz-cyr': 'ЖАМИ',
-    'ru': 'ИТОГО',
-  };
-  rows.push([
-    '',
-    totals[lang] || 'JAMI',
-    '',
+  const totals = { 'uz-lat': 'JAMI', 'uz-cyr': 'ЖАМИ', 'ru': 'ИТОГО' };
+  rows.push(['', totals[lang] || 'JAMI', '',
     data.employees.reduce((s, e) => s + e.totalDays, 0),
-    data.stats.totalEarning,
-    data.stats.totalPaid || 0,
-    data.stats.totalRemaining || 0,
-  ]);
+    data.stats.totalEarning, data.stats.totalPaid || 0, data.stats.totalRemaining || 0]);
 
-  // Mahsulotlar uchun pozitsiyani saqlab qolamiz
-  const employeesEndRow = rows.length;  // jami qator + 1
-
-  // Bo'sh qator (xodim ro'yxati va mahsulotlar oralig'i)
+  const employeesEndRow = rows.length;
   rows.push(['']);
   rows.push(['']);
 
-  // Mahsulotlar sarlavhasi (merge bo'ladi)
   const productsTitleRow = rows.length;
   rows.push([h.productsTitle, '', '', '', '', '', '']);
   rows.push(['']);
 
-  // Mahsulotlar jadval header
   const productsHeaderRow = rows.length;
   rows.push([h.no, h.date, h.productName, h.quantity, '', '', '']);
 
-  // Mahsulotlar
   const productsList = data.products || [];
   if (productsList.length > 0) {
     productsList.forEach((p, i) => {
-      rows.push([
-        i + 1,
-        fmtDate(p.dateString),
-        p.productName,
-        p.quantity,
-        '', '', ''
-      ]);
+      rows.push([i + 1, fmtDate(p.dateString), p.productName, p.quantity, '', '', '']);
     });
-
-    // Jami mahsulot
     const totalProducts = productsList.reduce((s, p) => s + (p.quantity || 0), 0);
-    rows.push([
-      '',
-      h.productsTotal,
-      '',
-      totalProducts,
-      '', '', ''
-    ]);
+    rows.push(['', h.productsTotal, '', totalProducts, '', '', '']);
   }
 
-  // SheetJS bilan workbook
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(rows);
 
-  // Ustun kengliklari
   ws['!cols'] = [
-    { wch: 5 },   // №
-    { wch: 25 },  // Xodim/Sana
-    { wch: 22 },  // Kod/Mahsulot nomi
-    { wch: 12 },  // Kunlar/Soni
-    { wch: 15 },  // Jami
-    { wch: 15 },  // Berilgan
-    { wch: 15 },  // Qolgan
+    { wch: 5 }, { wch: 25 }, { wch: 22 }, { wch: 12 },
+    { wch: 15 }, { wch: 15 }, { wch: 15 },
   ];
 
-  const range = XLSX.utils.decode_range(ws['!ref']);
-
-  // ===== Xodimlar sarlavhasi (1-qator) - bold + binafsha =====
   for (let C = 0; C <= 6; C++) {
     const cellAddr = XLSX.utils.encode_cell({ r: 0, c: C });
     if (ws[cellAddr]) {
@@ -2492,7 +2295,6 @@ function exportMonthlyToExcel() {
     }
   }
 
-  // Xodim qatorlari pul format
   for (let R = 1; R <= employeesEndRow - 1; R++) {
     for (const C of [4, 5, 6]) {
       const cellAddr = XLSX.utils.encode_cell({ r: R, c: C });
@@ -2503,7 +2305,6 @@ function exportMonthlyToExcel() {
     }
   }
 
-  // JAMI qatori (oxirgi xodim qatori) - bold
   const totalRowIdx = employeesEndRow - 1;
   for (let C = 0; C <= 6; C++) {
     const cellAddr = XLSX.utils.encode_cell({ r: totalRowIdx, c: C });
@@ -2520,14 +2321,9 @@ function exportMonthlyToExcel() {
     }
   }
 
-  // ===== MAHSULOTLAR QISMI =====
   if (productsList.length > 0) {
-    // Title - merge va styling
     if (!ws['!merges']) ws['!merges'] = [];
-    ws['!merges'].push({
-      s: { r: productsTitleRow, c: 0 },
-      e: { r: productsTitleRow, c: 6 }
-    });
+    ws['!merges'].push({ s: { r: productsTitleRow, c: 0 }, e: { r: productsTitleRow, c: 6 } });
 
     const titleAddr = XLSX.utils.encode_cell({ r: productsTitleRow, c: 0 });
     if (ws[titleAddr]) {
@@ -2538,7 +2334,6 @@ function exportMonthlyToExcel() {
       };
     }
 
-    // Mahsulotlar header (№, Sana, Mahsulot nomi, Soni)
     for (let C = 0; C <= 3; C++) {
       const cellAddr = XLSX.utils.encode_cell({ r: productsHeaderRow, c: C });
       if (ws[cellAddr]) {
@@ -2550,28 +2345,21 @@ function exportMonthlyToExcel() {
       }
     }
 
-    // Mahsulotlar qatorlari - oddiy stil + zebra
     productsList.forEach((p, i) => {
       const r = productsHeaderRow + 1 + i;
       const isAlt = i % 2 === 1;
       const bgColor = isAlt ? 'F8FAFC' : 'FFFFFF';
-
       for (let C = 0; C <= 3; C++) {
         const cellAddr = XLSX.utils.encode_cell({ r, c: C });
         if (ws[cellAddr]) {
           ws[cellAddr].s = {
             font: { sz: 11 },
-            alignment: {
-              horizontal: C === 2 ? 'left' : 'center',
-              vertical: 'center'
-            },
+            alignment: { horizontal: C === 2 ? 'left' : 'center', vertical: 'center' },
             fill: { fgColor: { rgb: bgColor } },
             border: { bottom: { style: 'thin', color: { rgb: 'E2E8F0' } } },
           };
         }
       }
-
-      // Soni - number format va bold
       const qtyAddr = XLSX.utils.encode_cell({ r, c: 3 });
       if (ws[qtyAddr]) {
         ws[qtyAddr].t = 'n';
@@ -2580,7 +2368,6 @@ function exportMonthlyToExcel() {
       }
     });
 
-    // Jami mahsulot qatori
     const totalProductsRow = productsHeaderRow + 1 + productsList.length;
     for (let C = 0; C <= 3; C++) {
       const cellAddr = XLSX.utils.encode_cell({ r: totalProductsRow, c: C });
@@ -2599,14 +2386,10 @@ function exportMonthlyToExcel() {
   }
 
   XLSX.utils.book_append_sheet(wb, ws, h.sheetName.slice(0, 31));
-
-  // Fayl nomi
   const period = data.period;
   const fileName = `${h.sheetName}_${period.startDate}_${period.endDate}.xlsx`;
-
   XLSX.writeFile(wb, fileName);
-
-  toast(t('msg.exportSuccess') || "Excel fayl yuklandi", 'success');
+  toast(t('msg.exportSuccess'), 'success');
 }
 
 function exportEmployeeDetailToExcel() {
@@ -2615,74 +2398,33 @@ function exportEmployeeDetailToExcel() {
     return;
   }
 
-  const lang = state.lang || localStorage.getItem('cc_lang') || 'uz-lat';
+  const lang = localStorage.getItem('cc_lang') || 'uz-lat';
   const emp = state.monthlyData.employees[0];
 
   const labels = {
     'uz-lat': {
-      // Header
-      title: "XODIM MA'LUMOTI",
-      name: 'Ism',
-      code: 'Kod',
-      period: 'Davr',
-      // Stats
-      total: 'Jami',
-      paid: 'Berilgan',
-      remaining: 'Qolgan',
-      days: 'kun',
-      // Detail header
+      title: "XODIM MA'LUMOTI", name: 'Ism', code: 'Kod', period: 'Davr',
+      total: 'Jami', paid: 'Berilgan', remaining: 'Qolgan', days: 'kun',
       detailTitle: "KUNLIK MA'LUMOT",
-      // Table headers
-      date: 'Sana',
-      dept: "Bo'lim",
-      direction: "Yo'nalish",
-      shift: 'Smena',
-      earning: 'Daromad',
-      status: 'Holat',
-      // Status values
-      paidStatus: '✓ Berilgan',
-      notPaidStatus: '—',
-      sheetName: 'Hisobot',
+      date: 'Sana', dept: "Bo'lim", direction: "Yo'nalish",
+      shift: 'Smena', earning: 'Daromad', status: 'Holat',
+      paidStatus: '✓ Berilgan', notPaidStatus: '—', sheetName: 'Hisobot',
     },
     'uz-cyr': {
-      title: 'ХОДИМ МАЪЛУМОТИ',
-      name: 'Исм',
-      code: 'Код',
-      period: 'Давр',
-      total: 'Жами',
-      paid: 'Берилган',
-      remaining: 'Қолган',
-      days: 'кун',
+      title: 'ХОДИМ МАЪЛУМОТИ', name: 'Исм', code: 'Код', period: 'Давр',
+      total: 'Жами', paid: 'Берилган', remaining: 'Қолган', days: 'кун',
       detailTitle: 'КУНЛИК МАЪЛУМОТ',
-      date: 'Сана',
-      dept: 'Бўлим',
-      direction: 'Йўналиш',
-      shift: 'Смена',
-      earning: 'Даромад',
-      status: 'Ҳолат',
-      paidStatus: '✓ Берилган',
-      notPaidStatus: '—',
-      sheetName: 'Ҳисобот',
+      date: 'Сана', dept: 'Бўлим', direction: 'Йўналиш',
+      shift: 'Смена', earning: 'Даромад', status: 'Ҳолат',
+      paidStatus: '✓ Берилган', notPaidStatus: '—', sheetName: 'Ҳисобот',
     },
     'ru': {
-      title: 'ИНФОРМАЦИЯ О СОТРУДНИКЕ',
-      name: 'Имя',
-      code: 'Код',
-      period: 'Период',
-      total: 'Всего',
-      paid: 'Выплачено',
-      remaining: 'Остаток',
-      days: 'дн.',
+      title: 'ИНФОРМАЦИЯ О СОТРУДНИКЕ', name: 'Имя', code: 'Код', period: 'Период',
+      total: 'Всего', paid: 'Выплачено', remaining: 'Остаток', days: 'дн.',
       detailTitle: 'ДЕТАЛЬНАЯ ИНФОРМАЦИЯ',
-      date: 'Дата',
-      dept: 'Отдел',
-      direction: 'Направление',
-      shift: 'Смена',
-      earning: 'Доход',
-      status: 'Статус',
-      paidStatus: '✓ Выплачено',
-      notPaidStatus: '—',
-      sheetName: 'Отчёт',
+      date: 'Дата', dept: 'Отдел', direction: 'Направление',
+      shift: 'Смена', earning: 'Доход', status: 'Статус',
+      paidStatus: '✓ Выплачено', notPaidStatus: '—', sheetName: 'Отчёт',
     },
   };
   const L = labels[lang] || labels['uz-lat'];
@@ -2690,7 +2432,6 @@ function exportEmployeeDetailToExcel() {
   const fullName = emp.firstName + (emp.lastName && emp.lastName !== '-' ? ' ' + emp.lastName : '');
   const period = state.monthlyData.period;
 
-  // Sana formatlash funksiyasi
   function fmtDate(dateInput) {
     if (!dateInput) return '';
     const d = new Date(dateInput);
@@ -2701,50 +2442,25 @@ function exportEmployeeDetailToExcel() {
     return `${day}.${month}.${year}`;
   }
 
-  // Worksheet yaratish - 6 ustun (A-F)
   const rows = [];
-
-  // ===== HEADER QISMI =====
-  // 1-qator: Asosiy sarlavha (merge A1:F1)
   rows.push([L.title, '', '', '', '', '']);
-  // 2-qator: bo'sh
   rows.push(['', '', '', '', '', '']);
-  // 3-qator: Ism
   rows.push([L.name + ':', fullName, '', '', '', '']);
-  // 4-qator: Kod
   rows.push([L.code + ':', emp.code, '', '', '', '']);
-  // 5-qator: Davr
   rows.push([L.period + ':', `${fmtDate(period.startDate)} — ${fmtDate(period.endDate)}`, '', '', '', '']);
-  // 6-qator: bo'sh
   rows.push(['', '', '', '', '', '']);
-
-  // ===== STATS QISMI =====
-  // 7-qator: Stats sarlavhalar (3 ustun, har biri 2 ustunni egallaydi)
   rows.push([L.total, '', L.paid, '', L.remaining, '']);
-  // 8-qator: Stats qiymatlar
-  rows.push([
-    emp.totalEarning, '',
-    emp.paidAmount || 0, '',
-    emp.remainingAmount || 0, ''
-  ]);
-  // 9-qator: Stats sub-info (kunlar)
+  rows.push([emp.totalEarning, '', emp.paidAmount || 0, '', emp.remainingAmount || 0, '']);
   rows.push([
     `${emp.totalDays} ${L.days}`, '',
     `${emp.paidDays || 0} ${L.days}`, '',
     `${emp.remainingDays || 0} ${L.days}`, ''
   ]);
-  // 10-qator: bo'sh
   rows.push(['', '', '', '', '', '']);
-
-  // ===== DETAIL TITLE =====
   rows.push([L.detailTitle, '', '', '', '', '']);
-  // 12-qator: bo'sh
   rows.push(['', '', '', '', '', '']);
-
-  // ===== JADVAL SARLAVHALARI =====
   rows.push([L.date, L.dept, L.direction, L.shift, L.earning, L.status]);
 
-  // ===== KUNLAR =====
   emp.days.forEach(day => {
     rows.push([
       fmtDate(day.dateString || day.date),
@@ -2756,64 +2472,36 @@ function exportEmployeeDetailToExcel() {
     ]);
   });
 
-  // Workbook va worksheet
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(rows);
 
-  // Ustun kengliklari
   ws['!cols'] = [
-    { wch: 14 },   // A - Sana
-    { wch: 22 },   // B - Bo'lim / Ism qiymati
-    { wch: 18 },   // C - Yo'nalish
-    { wch: 10 },   // D - Smena
-    { wch: 16 },   // E - Daromad
-    { wch: 16 },   // F - Holat
+    { wch: 14 }, { wch: 22 }, { wch: 18 },
+    { wch: 10 }, { wch: 16 }, { wch: 16 },
   ];
 
-  // Qator balandliklari
   ws['!rows'] = [
-    { hpt: 28 },   // 1 - asosiy sarlavha (katta)
-    { hpt: 8 },    // 2 - bo'sh
-    { hpt: 20 },   // 3 - Ism
-    { hpt: 20 },   // 4 - Kod
-    { hpt: 20 },   // 5 - Davr
-    { hpt: 8 },    // 6 - bo'sh
-    { hpt: 22 },   // 7 - Stats label
-    { hpt: 32 },   // 8 - Stats value (katta)
-    { hpt: 18 },   // 9 - Stats sub
-    { hpt: 12 },   // 10 - bo'sh
-    { hpt: 24 },   // 11 - Detail title
-    { hpt: 8 },    // 12 - bo'sh
-    { hpt: 24 },   // 13 - Jadval header
+    { hpt: 28 }, { hpt: 8 }, { hpt: 20 }, { hpt: 20 }, { hpt: 20 }, { hpt: 8 },
+    { hpt: 22 }, { hpt: 32 }, { hpt: 18 }, { hpt: 12 }, { hpt: 24 }, { hpt: 8 }, { hpt: 24 },
   ];
 
-  // Merge cells
   ws['!merges'] = [
-    // Header
-    { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },  // Title row
-    { s: { r: 2, c: 1 }, e: { r: 2, c: 5 } },  // Ism qiymati
-    { s: { r: 3, c: 1 }, e: { r: 3, c: 5 } },  // Kod qiymati
-    { s: { r: 4, c: 1 }, e: { r: 4, c: 5 } },  // Davr qiymati
-
-    // Stats - har biri 2 ustun
-    { s: { r: 6, c: 0 }, e: { r: 6, c: 1 } },  // Jami label
-    { s: { r: 6, c: 2 }, e: { r: 6, c: 3 } },  // Berilgan label
-    { s: { r: 6, c: 4 }, e: { r: 6, c: 5 } },  // Qolgan label
-
-    { s: { r: 7, c: 0 }, e: { r: 7, c: 1 } },  // Jami value
-    { s: { r: 7, c: 2 }, e: { r: 7, c: 3 } },  // Berilgan value
-    { s: { r: 7, c: 4 }, e: { r: 7, c: 5 } },  // Qolgan value
-
-    { s: { r: 8, c: 0 }, e: { r: 8, c: 1 } },  // Jami sub
-    { s: { r: 8, c: 2 }, e: { r: 8, c: 3 } },  // Berilgan sub
-    { s: { r: 8, c: 4 }, e: { r: 8, c: 5 } },  // Qolgan sub
-
-    // Detail title
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },
+    { s: { r: 2, c: 1 }, e: { r: 2, c: 5 } },
+    { s: { r: 3, c: 1 }, e: { r: 3, c: 5 } },
+    { s: { r: 4, c: 1 }, e: { r: 4, c: 5 } },
+    { s: { r: 6, c: 0 }, e: { r: 6, c: 1 } },
+    { s: { r: 6, c: 2 }, e: { r: 6, c: 3 } },
+    { s: { r: 6, c: 4 }, e: { r: 6, c: 5 } },
+    { s: { r: 7, c: 0 }, e: { r: 7, c: 1 } },
+    { s: { r: 7, c: 2 }, e: { r: 7, c: 3 } },
+    { s: { r: 7, c: 4 }, e: { r: 7, c: 5 } },
+    { s: { r: 8, c: 0 }, e: { r: 8, c: 1 } },
+    { s: { r: 8, c: 2 }, e: { r: 8, c: 3 } },
+    { s: { r: 8, c: 4 }, e: { r: 8, c: 5 } },
     { s: { r: 10, c: 0 }, e: { r: 10, c: 5 } },
   ];
 
-  // ===== STYLES =====
-  // 1. Title (A1) - katta, qora fon, oq matn
   if (ws['A1']) {
     ws['A1'].s = {
       font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 14 },
@@ -2822,7 +2510,6 @@ function exportEmployeeDetailToExcel() {
     };
   }
 
-  // 3-5 qatorlar - Ism, Kod, Davr label
   for (let r = 2; r <= 4; r++) {
     const labelCell = XLSX.utils.encode_cell({ r, c: 0 });
     if (ws[labelCell]) {
@@ -2841,7 +2528,6 @@ function exportEmployeeDetailToExcel() {
     }
   }
 
-  // 7-qator: Stats labels
   for (let c = 0; c <= 5; c += 2) {
     const cellAddr = XLSX.utils.encode_cell({ r: 6, c });
     if (ws[cellAddr]) {
@@ -2853,8 +2539,7 @@ function exportEmployeeDetailToExcel() {
     }
   }
 
-  // 8-qator: Stats values - katta sonlar
-  const statColors = ['1E293B', '059669', 'D97706']; // Jami: qora, Berilgan: yashil, Qolgan: sariq
+  const statColors = ['1E293B', '059669', 'D97706'];
   for (let i = 0; i < 3; i++) {
     const c = i * 2;
     const cellAddr = XLSX.utils.encode_cell({ r: 7, c });
@@ -2869,7 +2554,6 @@ function exportEmployeeDetailToExcel() {
     }
   }
 
-  // 9-qator: Stats sub (kunlar)
   for (let c = 0; c <= 5; c += 2) {
     const cellAddr = XLSX.utils.encode_cell({ r: 8, c });
     if (ws[cellAddr]) {
@@ -2880,7 +2564,6 @@ function exportEmployeeDetailToExcel() {
     }
   }
 
-  // 11-qator: Detail title
   if (ws['A11']) {
     ws['A11'].s = {
       font: { bold: true, sz: 12, color: { rgb: 'FFFFFF' } },
@@ -2889,7 +2572,6 @@ function exportEmployeeDetailToExcel() {
     };
   }
 
-  // 13-qator: Jadval sarlavhalari
   for (let c = 0; c <= 5; c++) {
     const cellAddr = XLSX.utils.encode_cell({ r: 12, c });
     if (ws[cellAddr]) {
@@ -2908,49 +2590,33 @@ function exportEmployeeDetailToExcel() {
     }
   }
 
-  // Kun qatorlari (13'dan boshlab)
   emp.days.forEach((day, i) => {
     const r = 13 + i;
     const isAlt = i % 2 === 1;
     const bgColor = isAlt ? 'F8FAFC' : 'FFFFFF';
 
-    // A - Sana
-    if (ws[XLSX.utils.encode_cell({ r, c: 0 })]) {
-      ws[XLSX.utils.encode_cell({ r, c: 0 })].s = {
-        font: { sz: 11 },
-        alignment: { horizontal: 'left', vertical: 'center', indent: 1 },
-        fill: { fgColor: { rgb: bgColor } },
-        border: { bottom: { style: 'thin', color: { rgb: 'E2E8F0' } } },
-      };
-    }
-    // B - Bo'lim
-    if (ws[XLSX.utils.encode_cell({ r, c: 1 })]) {
-      ws[XLSX.utils.encode_cell({ r, c: 1 })].s = {
-        font: { sz: 11 },
-        alignment: { horizontal: 'left', vertical: 'center' },
-        fill: { fgColor: { rgb: bgColor } },
-        border: { bottom: { style: 'thin', color: { rgb: 'E2E8F0' } } },
-      };
-    }
-    // C - Yo'nalish
-    if (ws[XLSX.utils.encode_cell({ r, c: 2 })]) {
-      ws[XLSX.utils.encode_cell({ r, c: 2 })].s = {
-        font: { sz: 11 },
-        alignment: { horizontal: 'left', vertical: 'center' },
-        fill: { fgColor: { rgb: bgColor } },
-        border: { bottom: { style: 'thin', color: { rgb: 'E2E8F0' } } },
-      };
-    }
-    // D - Smena
-    if (ws[XLSX.utils.encode_cell({ r, c: 3 })]) {
-      ws[XLSX.utils.encode_cell({ r, c: 3 })].s = {
+    [0, 1, 2].forEach(c => {
+      const cell = ws[XLSX.utils.encode_cell({ r, c })];
+      if (cell) {
+        cell.s = {
+          font: { sz: 11 },
+          alignment: { horizontal: 'left', vertical: 'center', indent: c === 0 ? 1 : 0 },
+          fill: { fgColor: { rgb: bgColor } },
+          border: { bottom: { style: 'thin', color: { rgb: 'E2E8F0' } } },
+        };
+      }
+    });
+
+    const shiftCell = ws[XLSX.utils.encode_cell({ r, c: 3 })];
+    if (shiftCell) {
+      shiftCell.s = {
         font: { sz: 11, bold: true },
         alignment: { horizontal: 'center', vertical: 'center' },
         fill: { fgColor: { rgb: bgColor } },
         border: { bottom: { style: 'thin', color: { rgb: 'E2E8F0' } } },
       };
     }
-    // E - Daromad (number format)
+
     const earnAddr = XLSX.utils.encode_cell({ r, c: 4 });
     if (ws[earnAddr]) {
       ws[earnAddr].t = 'n';
@@ -2962,9 +2628,10 @@ function exportEmployeeDetailToExcel() {
         border: { bottom: { style: 'thin', color: { rgb: 'E2E8F0' } } },
       };
     }
-    // F - Holat
-    if (ws[XLSX.utils.encode_cell({ r, c: 5 })]) {
-      ws[XLSX.utils.encode_cell({ r, c: 5 })].s = {
+
+    const statusCell = ws[XLSX.utils.encode_cell({ r, c: 5 })];
+    if (statusCell) {
+      statusCell.s = {
         font: { sz: 11, color: { rgb: day.isPaid ? '059669' : '94A3B8' } },
         alignment: { horizontal: 'center', vertical: 'center' },
         fill: { fgColor: { rgb: bgColor } },
@@ -2974,16 +2641,13 @@ function exportEmployeeDetailToExcel() {
   });
 
   XLSX.utils.book_append_sheet(wb, ws, L.sheetName.slice(0, 31));
-
   const fileName = `${fullName}_${period.startDate}_${period.endDate}.xlsx`;
   XLSX.writeFile(wb, fileName);
-
-  toast(t('msg.exportSuccess') || "Excel fayl yuklab olindi", 'success');
+  toast(t('msg.exportSuccess'), 'success');
 }
 
-
 document.addEventListener('DOMContentLoaded', () => {
-  setupThemeToggle();  // Theme birinchi navbatda
+  setupThemeToggle();
   setupLangSwitchers();
   setupLogin();
   setupSidebar();
@@ -2994,7 +2658,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupDailyReportPage();
   setupMonthlyReportPage();
   setupArchivePage();
-  setupEarningEdit();  // 3-talab
+  setupEarningEdit();
 
   applyStaticTranslations();
 

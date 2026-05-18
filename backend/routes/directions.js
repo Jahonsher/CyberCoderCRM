@@ -1,5 +1,6 @@
 /**
- * CyberCoderCRM - Directions routes (bo'limlar bilan)
+ * CyberCoderCRM - Directions routes
+ * Endi piecework va daily turlari bilan
  */
 
 const express = require('express');
@@ -7,6 +8,7 @@ const router = express.Router();
 
 const Direction = require('../models/Direction');
 const Department = require('../models/Department');
+const DailyAssignment = require('../models/DailyAssignment');
 
 const { verifyToken, requireAdmin } = require('../middleware/auth');
 const businessScope = require('../middleware/businessScope');
@@ -14,27 +16,14 @@ const requireModule = require('../middleware/requireModule');
 
 router.use(verifyToken, requireAdmin, businessScope, requireModule('directions'));
 
-async function ensureDefaultDepartment(businessId) {
-  let dept = await Department.findOne({
-    businessId,
-    name: 'Umumiy',
-    status: 'active',
-  });
-
-  if (!dept) {
-    dept = await Department.create({
-      businessId,
-      name: 'Umumiy',
-      description: "Umumiy yo'nalishlar",
-    });
-  }
-
-  return dept;
-}
-
+/**
+ * GET /api/directions
+ * ?departmentId=...  - bo'limga qarab filter
+ * ?type=piecework | daily  - turga qarab filter (yoqilganlar)
+ */
 router.get('/', async (req, res) => {
   try {
-    const { departmentId } = req.query;
+    const { departmentId, type } = req.query;
 
     const filter = {
       businessId: req.businessId,
@@ -45,9 +34,16 @@ router.get('/', async (req, res) => {
       filter.departmentId = departmentId;
     }
 
+    // Type bo'yicha filter - faqat yoqilganlar
+    if (type === 'piecework') {
+      filter.pieceworkEnabled = true;
+    } else if (type === 'daily') {
+      filter.dailyEnabled = true;
+    }
+
     const directions = await Direction.find(filter)
       .populate('departmentId', 'name')
-      .sort('-createdAt');
+      .sort('name');
 
     res.json(directions);
   } catch (err) {
@@ -58,45 +54,54 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { name, currentPrice, departmentId } = req.body;
+    const {
+      name,
+      departmentId,
+      pieceworkEnabled,
+      pieceworkPrice,
+      dailyEnabled,
+      dailyPrice,
+    } = req.body;
 
-    if (!name || currentPrice === undefined || currentPrice === null) {
-      return res.status(400).json({ error: 'Nom va narx kerak' });
+    if (!name || !departmentId) {
+      return res.status(400).json({ error: "Nom va bo'lim kerak" });
     }
 
-    const price = Number(currentPrice);
-    if (isNaN(price) || price < 0) {
-      return res.status(400).json({ error: "Narx noto'g'ri" });
+    const pwEnabled = pieceworkEnabled !== false; // default true
+    const dEnabled = dailyEnabled === true;       // default false
+    const pwPrice = Number(pieceworkPrice || 0);
+    const dPrice = Number(dailyPrice || 0);
+
+    // Kamida bittasi yoqilgan bo'lishi kerak
+    if (!pwEnabled && !dEnabled) {
+      return res.status(400).json({ error: "Kamida bitta ish turi yoqilgan bo'lishi kerak" });
     }
 
-    let deptId = departmentId;
-    if (deptId) {
-      const dept = await Department.findOne({
-        _id: deptId,
-        businessId: req.businessId,
-        status: 'active',
-      });
-      if (!dept) {
-        return res.status(400).json({ error: "Bo'lim topilmadi" });
-      }
-    } else {
-      const defaultDept = await ensureDefaultDepartment(req.businessId);
-      deptId = defaultDept._id;
+    // Bo'lim tekshirish
+    const department = await Department.findOne({
+      _id: departmentId,
+      businessId: req.businessId,
+    });
+    if (!department) {
+      return res.status(404).json({ error: "Bo'lim topilmadi" });
     }
 
     const direction = new Direction({
       businessId: req.businessId,
-      departmentId: deptId,
+      departmentId,
       name: String(name).trim(),
-      currentPrice: price,
-      priceHistory: [{ price, changedAt: new Date() }],
+      pieceworkEnabled: pwEnabled,
+      pieceworkPrice: pwPrice,
+      dailyEnabled: dEnabled,
+      dailyPrice: dPrice,
+      currentPrice: pwPrice, // backward compatibility
     });
 
     await direction.save();
-    await direction.populate('departmentId', 'name');
-    res.status(201).json(direction);
+    const populated = await Direction.findById(direction._id).populate('departmentId', 'name');
+    res.status(201).json(populated);
   } catch (err) {
-    console.error('Direction POST xato:', err);
+    console.error('Directions POST xato:', err);
     res.status(500).json({ error: err.message || 'Server xatosi' });
   }
 });
@@ -112,53 +117,68 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: "Yo'nalish topilmadi" });
     }
 
-    const { name, currentPrice, departmentId } = req.body;
+    const {
+      name,
+      departmentId,
+      pieceworkEnabled,
+      pieceworkPrice,
+      dailyEnabled,
+      dailyPrice,
+    } = req.body;
 
-    if (name) direction.name = String(name).trim();
-
-    if (departmentId) {
-      const dept = await Department.findOne({
-        _id: departmentId,
-        businessId: req.businessId,
-      });
-      if (dept) direction.departmentId = departmentId;
+    if (name !== undefined) direction.name = String(name).trim();
+    if (departmentId !== undefined) direction.departmentId = departmentId;
+    if (pieceworkEnabled !== undefined) direction.pieceworkEnabled = !!pieceworkEnabled;
+    if (pieceworkPrice !== undefined) {
+      direction.pieceworkPrice = Number(pieceworkPrice);
+      direction.currentPrice = Number(pieceworkPrice); // backward compat
     }
+    if (dailyEnabled !== undefined) direction.dailyEnabled = !!dailyEnabled;
+    if (dailyPrice !== undefined) direction.dailyPrice = Number(dailyPrice);
 
-    if (currentPrice !== undefined && currentPrice !== null) {
-      const newPrice = Number(currentPrice);
-      if (!isNaN(newPrice) && newPrice !== direction.currentPrice) {
-        direction.priceHistory.push({
-          price: newPrice,
-          changedAt: new Date(),
-        });
-        direction.currentPrice = newPrice;
-      }
+    // Kamida bittasi yoqilgan bo'lishi
+    if (!direction.pieceworkEnabled && !direction.dailyEnabled) {
+      return res.status(400).json({ error: "Kamida bitta ish turi yoqilgan bo'lishi kerak" });
     }
 
     await direction.save();
-    await direction.populate('departmentId', 'name');
-    res.json(direction);
+    const populated = await Direction.findById(direction._id).populate('departmentId', 'name');
+    res.json(populated);
   } catch (err) {
-    console.error('Direction PUT xato:', err);
+    console.error('Directions PUT xato:', err);
     res.status(500).json({ error: err.message || 'Server xatosi' });
   }
 });
 
 router.delete('/:id', async (req, res) => {
   try {
-    const direction = await Direction.findOneAndUpdate(
-      { _id: req.params.id, businessId: req.businessId },
-      { status: 'archived' },
-      { new: true }
-    );
+    const { force } = req.query;
+    const direction = await Direction.findOne({
+      _id: req.params.id,
+      businessId: req.businessId,
+    });
 
     if (!direction) {
       return res.status(404).json({ error: "Yo'nalish topilmadi" });
     }
 
+    // Tekshirish - hech kim biriktirilganmi
+    const assigned = await DailyAssignment.countDocuments({
+      businessId: req.businessId,
+      directionId: direction._id,
+    });
+
+    if (assigned > 0 && force !== 'true') {
+      return res.status(400).json({
+        error: "Bu yo'nalishga xodimlar biriktirilgan. Avval ularni o'chiring yoki force=true qiling",
+        assignedCount: assigned,
+      });
+    }
+
+    await Direction.findByIdAndDelete(direction._id);
     res.json({ success: true });
   } catch (err) {
-    console.error('Direction DELETE xato:', err);
+    console.error('Directions DELETE xato:', err);
     res.status(500).json({ error: 'Server xatosi' });
   }
 });

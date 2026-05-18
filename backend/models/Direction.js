@@ -1,17 +1,10 @@
 /**
  * CyberCoderCRM - Direction Model
- * Endi departmentId bor
+ * Endi har yo'nalishda 2 ta type: piecework va daily
+ * Har biri alohida yoqilishi/o'chirilishi va narxi belgilanishi mumkin
  */
 
 const mongoose = require('mongoose');
-
-const priceHistorySchema = new mongoose.Schema(
-  {
-    price: { type: Number, required: true },
-    changedAt: { type: Date, default: Date.now },
-  },
-  { _id: false }
-);
 
 const directionSchema = new mongoose.Schema(
   {
@@ -24,7 +17,7 @@ const directionSchema = new mongoose.Schema(
     departmentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Department',
-      required: false, // Eski data uchun optional
+      required: true,
       index: true,
     },
     name: {
@@ -33,19 +26,40 @@ const directionSchema = new mongoose.Schema(
       trim: true,
       maxlength: 100,
     },
+
+    // ESKI MAYDON - migratsiya uchun saqlanadi
     currentPrice: {
       type: Number,
-      required: true,
+      default: 0,
+    },
+
+    // YANGI: Shtuk turi
+    pieceworkEnabled: {
+      type: Boolean,
+      default: true,
+    },
+    pieceworkPrice: {
+      type: Number,
+      default: 0,
       min: 0,
     },
-    priceHistory: {
-      type: [priceHistorySchema],
-      default: [],
+
+    // YANGI: Kunlik turi
+    dailyEnabled: {
+      type: Boolean,
+      default: false,
     },
+    dailyPrice: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
     status: {
       type: String,
       enum: ['active', 'archived'],
       default: 'active',
+      index: true,
     },
   },
   {
@@ -56,4 +70,48 @@ const directionSchema = new mongoose.Schema(
 directionSchema.index({ businessId: 1, status: 1 });
 directionSchema.index({ businessId: 1, departmentId: 1 });
 
-module.exports = mongoose.models.Direction || mongoose.model('Direction', directionSchema);
+const Direction = mongoose.models.Direction || mongoose.model('Direction', directionSchema);
+
+// MIGRATSIYA: eski currentPrice -> pieceworkPrice
+async function migrateDirections() {
+  try {
+    // pieceworkPrice = 0 va currentPrice > 0 bo'lganlarni topish
+    const docs = await Direction.find({
+      $and: [
+        { currentPrice: { $gt: 0 } },
+        {
+          $or: [
+            { pieceworkPrice: 0 },
+            { pieceworkPrice: { $exists: false } },
+          ]
+        }
+      ]
+    });
+
+    if (docs.length > 0) {
+      console.log(`🔄 ${docs.length} ta yo'nalishni migratsiya qilmoqdaman...`);
+      for (const doc of docs) {
+        doc.pieceworkPrice = doc.currentPrice;
+        doc.pieceworkEnabled = true;
+        if (doc.dailyPrice === undefined || doc.dailyPrice === null) doc.dailyPrice = 0;
+        if (doc.dailyEnabled === undefined || doc.dailyEnabled === null) doc.dailyEnabled = false;
+        await doc.save();
+      }
+      console.log(`✅ Direction migratsiya tugadi`);
+    }
+  } catch (err) {
+    if (err.code !== 26 && !err.message?.includes('ns does not exist')) {
+      console.error('Direction migratsiya xato:', err.message);
+    }
+  }
+}
+
+mongoose.connection.once('open', () => {
+  migrateDirections();
+});
+
+if (mongoose.connection.readyState === 1) {
+  migrateDirections();
+}
+
+module.exports = Direction;

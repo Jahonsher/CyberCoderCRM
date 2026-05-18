@@ -83,6 +83,14 @@ const TRANSLATIONS = {
     'dir.priceChanged': "Narx o'zgartirildi - eski kunlar eski narxda qoladi",
     'dir.table.type': 'Turi',
     'dir.table.price': 'Kunlik Narxi',
+    // YANGI - 2 ta type uchun
+    'dir.pieceworkType': 'Shtuk turi',
+    'dir.dailyType': 'Kunlik turi',
+    'dir.pieceworkPrice': "Shtuk narxi (so'm/dona)",
+    'dir.dailyPrice': "Kunlik summa (so'm/1 smena)",
+    'dir.pieceworkHint': "narx × mahsulot",
+    'dir.dailyHint': "smenaga belgilangan summa",
+    'dir.atLeastOne': "Kamida bitta ish turi yoqilgan bo'lishi kerak",
 
     'daily.title': 'Kunlik Hisobot',
     'daily.assigned': 'Biriktirilgan xodimlar',
@@ -137,7 +145,6 @@ const TRANSLATIONS = {
     'daily.editEarning': 'Narxni tahrirlash',
     'daily.earningHint': "Qo'lda kiritishingiz mumkin",
 
-    // Departments
     'dept.title': "Bo'limlar",
     'dept.add': "Bo'lim qo'shish",
     'dept.edit': "Bo'limni tahrirlash",
@@ -147,19 +154,17 @@ const TRANSLATIONS = {
     'dept.empty': "Bo'limlar yo'q",
     'dept.emptyHint': "Yo'nalish qo'shish uchun avval bo'lim yarating",
     'dept.selectFirst': "Bo'limni tanlang",
-    'dept.directionCount': 'ta yo\'nalish',
+    'dept.directionCount': "ta yo'nalish",
     'dept.deleteConfirm': "Bo'limni o'chirish?",
     'dept.deleteWarn': "Bu bo'limdagi barcha yo'nalishlar ham arxivlanadi.",
     'dir.selectDept': "Yo'nalishlarni ko'rish uchun bo'limni tanlang",
     'dir.noDept': "Bo'lim tanlanmagan",
 
-    // Daily calendar
     'daily.selectDate': 'Sana tanlang',
     'daily.datePrev': 'Oldingi',
     'daily.dateNext': 'Keyingi',
     'daily.dateToday': 'Bugun',
 
-    // Monthly pay
     'month.selectAll': 'Hammasini tanlash',
     'month.deselectAll': 'Tanlashni bekor qilish',
     'month.payBtn': 'Oylik berish',
@@ -167,12 +172,11 @@ const TRANSLATIONS = {
     'month.unpaidBadge': "To'lanmagan",
     'month.payConfirm': 'tanlangan xodimlarga oylik berilsinmi?',
     'month.paySuccess': 'Oylik berildi',
-    'month.alreadyPaid': 'Allaqachon to\'langan',
-    'month.noEarning': 'Daromad yo\'q',
+    'month.alreadyPaid': "Allaqachon to'langan",
+    'month.noEarning': "Daromad yo'q",
     'month.viewDetails': 'Batafsil',
-    'month.dayDetails': 'Kunlik ma\'lumot',
+    'month.dayDetails': "Kunlik ma'lumot",
 
-    // Archive (To'lov tarixi)
     'archive.month': 'Oy',
     'archive.totalPayments': "Jami to'lovlar",
     'archive.totalAmount': 'Jami summa',
@@ -181,21 +185,15 @@ const TRANSLATIONS = {
     'archive.empty': "Hali to'lovlar yo'q",
     'archive.monthlyTotal': 'Oylik jami',
     'archive.paidTo': "To'langan",
-    'archive.period': 'Davr',
     'archive.paidAt': "To'lov vaqti",
     'archive.deleteConfirm': "To'lovni bekor qilishni xohlaysizmi?",
     'archive.deleteWarn': "Bu amal qaytarib bo'lmaydi. To'lov bekor qilinadi va xodim yana oylik olishi mumkin bo'ladi.",
 
-    // Yangi - work type
     'daily.workType': 'Ish turi',
     'daily.piecework': 'Shtuk',
     'daily.dailyWork': 'Kunlik',
-    'daily.dailyAmount': "Kunlik summa (so'm)",
-    'daily.dailyHint': "Kunlik xodim shu summani oladi (mahsulotga bog'liq emas)",
-    'daily.dailyAmountRequired': 'Kunlik summa kiriting',
     'daily.futureNotAllowed': "Kelajakdagi kun mumkin emas",
 
-    // Yangi - kun bo'yicha to'lov
     'month.given': 'Berilgan',
     'month.remaining': 'Qolgan',
     'month.paySelectedDays': "Tanlangan kunlar uchun to'lash",
@@ -289,6 +287,13 @@ const TRANSLATIONS = {
     'dir.priceChanged': 'Нарх ўзгартирилди - эски кунлар эски нархда қолади',
     'dir.table.type': 'Тури',
     'dir.table.price': 'Кунлик Нархи',
+    'dir.pieceworkType': 'Штук тури',
+    'dir.dailyType': 'Кунлик тури',
+    'dir.pieceworkPrice': 'Штук нархи (сўм/дона)',
+    'dir.dailyPrice': 'Кунлик сумма (сўм/1 смена)',
+    'dir.pieceworkHint': 'нарх × маҳсулот',
+    'dir.dailyHint': 'сменага белгиланган сумма',
+    'dir.atLeastOne': 'Камида битта иш тури ёқилган бўлиши керак',
 
     'daily.title': 'Кунлик Ҳисобот',
     'daily.assigned': 'Бириктирилган ходимлар',
@@ -383,7 +388,6 @@ const TRANSLATIONS = {
     'archive.empty': 'Ҳали тўловлар йўқ',
     'archive.monthlyTotal': 'Ойлик жами',
     'archive.paidTo': 'Тўланган',
-    'archive.period': 'Давр',
     'archive.paidAt': 'Тўлов вақти',
     'archive.deleteConfirm': 'Тўловни бекор қилишни хоҳлайсизми?',
     'archive.deleteWarn': 'Бу амални қайтариб бўлмайди. Тўлов бекор қилинади ва ходим яна ойлик олиши мумкин бўлади.',
@@ -391,9 +395,6 @@ const TRANSLATIONS = {
     'daily.workType': 'Иш тури',
     'daily.piecework': 'Штук',
     'daily.dailyWork': 'Кунлик',
-    'daily.dailyAmount': 'Кунлик сумма (сўм)',
-    'daily.dailyHint': "Кунлик ходим шу суммани олади (маҳсулотга боғлиқ эмас)",
-    'daily.dailyAmountRequired': 'Кунлик сумма киритинг',
     'daily.futureNotAllowed': 'Келажакдаги кун мумкин эмас',
 
     'month.given': 'Берилган',
@@ -489,6 +490,13 @@ const TRANSLATIONS = {
     'dir.priceChanged': 'Цена изменена - старые дни останутся по старой цене',
     'dir.table.type': 'Тип',
     'dir.table.price': 'Ежедневная цена',
+    'dir.pieceworkType': 'Тип Штучно',
+    'dir.dailyType': 'Тип Дневная',
+    'dir.pieceworkPrice': 'Цена за штуку (сум)',
+    'dir.dailyPrice': 'Дневная сумма (сум/1 смена)',
+    'dir.pieceworkHint': 'цена × количество',
+    'dir.dailyHint': 'фиксированная сумма за смену',
+    'dir.atLeastOne': 'Должен быть включён хотя бы один тип',
 
     'daily.title': 'Ежедневный отчёт',
     'daily.assigned': 'Закреплённые сотрудники',
@@ -583,7 +591,6 @@ const TRANSLATIONS = {
     'archive.empty': 'Пока нет выплат',
     'archive.monthlyTotal': 'Итог за месяц',
     'archive.paidTo': 'Выплачено',
-    'archive.period': 'Период',
     'archive.paidAt': 'Время выплаты',
     'archive.deleteConfirm': 'Отменить выплату?',
     'archive.deleteWarn': 'Это действие нельзя отменить. Выплата будет удалена, и сотрудник сможет снова получить зарплату.',
@@ -591,9 +598,6 @@ const TRANSLATIONS = {
     'daily.workType': 'Тип работы',
     'daily.piecework': 'Штучно',
     'daily.dailyWork': 'Дневная',
-    'daily.dailyAmount': 'Дневная сумма (сум)',
-    'daily.dailyHint': 'Дневной работник получает эту сумму (не зависит от продукта)',
-    'daily.dailyAmountRequired': 'Введите дневную сумму',
     'daily.futureNotAllowed': 'Будущий день недоступен',
 
     'month.given': 'Выплачено',
@@ -602,7 +606,7 @@ const TRANSLATIONS = {
     'month.payRemaining': 'Оплатить остаток',
     'month.payRemainingTitle': 'Оплата остатков',
     'month.undoPayConfirm': 'Отменить выплату?',
-    'month.undoPayWarn': 'Выплата за этот день будет отменена, и сотрудник сможет снова получить эту сумму.',
+    'month.undoPayWarn': 'Выплата за этот день будет отменена.',
     'month.paidStatus': '✓ Выплачено',
     'month.daysSelected': 'дней выбрано',
     'month.selectUnpaidOnly': 'Выбрать (только невыплаченные)',
@@ -610,10 +614,6 @@ const TRANSLATIONS = {
     'msg.exportSuccess': 'Excel файл скачан',
   },
 };
-
-// ============================================
-// LANGUAGE MANAGEMENT
-// ============================================
 
 const LANG_STORAGE_KEY = 'cc_lang';
 
@@ -628,7 +628,6 @@ function setLang(lang) {
   document.documentElement.lang = lang.startsWith('uz') ? 'uz' : 'ru';
 }
 
-// MUHIM: funksiyaga _t nom berildi — app.js dagi t() bilan konflikt qilmaydi
 function _t(key) {
   const lang = getCurrentLang();
   const dict = TRANSLATIONS[lang] || TRANSLATIONS['uz-lat'];
@@ -637,22 +636,16 @@ function _t(key) {
 
 function applyTranslations() {
   document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.dataset.i18n;
-    el.textContent = _t(key);
+    el.textContent = _t(el.dataset.i18n);
   });
-
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-    const key = el.dataset.i18nPlaceholder;
-    el.placeholder = _t(key);
+    el.placeholder = _t(el.dataset.i18nPlaceholder);
   });
-
   document.querySelectorAll('[data-i18n-title]').forEach(el => {
-    const key = el.dataset.i18nTitle;
-    el.title = _t(key);
+    el.title = _t(el.dataset.i18nTitle);
   });
 }
 
-// Global ga qo'yish
 window.TRANSLATIONS = TRANSLATIONS;
 window._t = _t;
 window.setLang = setLang;
