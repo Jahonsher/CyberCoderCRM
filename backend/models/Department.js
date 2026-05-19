@@ -1,6 +1,6 @@
 /**
  * CyberCoderCRM - Department Model
- * Bo'limlar (Yozgi stanoklar, Qishki stanoklar va h.k.)
+ * YANGI: type field qo'shildi - har bo'lim 'piecework' yoki 'daily' ga tegishli
  */
 
 const mongoose = require('mongoose');
@@ -24,17 +24,21 @@ const departmentSchema = new mongoose.Schema(
       default: '',
       maxlength: 500,
     },
-    status: {
+    // YANGI: Bo'lim turi
+    type: {
       type: String,
-      enum: ['active', 'archived'],
-      default: 'active',
+      enum: ['piecework', 'daily'],
+      default: 'piecework',
+      index: true,
+    },
+    directionCount: {
+      type: Number,
+      default: 0,
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-departmentSchema.index({ businessId: 1, status: 1 });
+departmentSchema.index({ businessId: 1, type: 1 });
 
 module.exports = mongoose.models.Department || mongoose.model('Department', departmentSchema);

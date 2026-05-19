@@ -582,7 +582,7 @@ async function loadDepartmentsForType(type) {
   container.innerHTML = '<div class="skeleton h-24"></div>';
 
   try {
-    const departments = await api('/api/departments');
+    const departments = await api('/api/departments?type=' + type);
     if (!departments) return;
     state[`departments${suffix}`] = departments;
     renderDepartments(type);
@@ -944,6 +944,7 @@ function setupDirectionForms() {
     const body = {
       name: document.getElementById('deptName').value.trim(),
       description: document.getElementById('deptDescription').value.trim(),
+      type: state.deptModalType || 'piecework', // YANGI: qaysi sahifadan ochilganini
     };
     btn.disabled = true;
     spinner.classList.remove('hidden');
@@ -1703,7 +1704,7 @@ function openConfirm(title, text, callback) {
 }
 
 function setupConfirmModal() {
-  document.getElementById('confirmYesBtn').addEventListener('click', async function() {
+  document.getElementById('confirmOkBtn').addEventListener('click', async function() {
     var cb = state.confirmCallback;
     state.confirmCallback = null;
     closeModal('confirmModal');

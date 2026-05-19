@@ -196,8 +196,8 @@ const TRANSLATIONS = {
     'archive.deleteWarn': "Bu amal qaytarib bo'lmaydi. To'lov bekor qilinadi va xodim yana oylik olishi mumkin bo'ladi.",
 
     'daily.workType': 'Ish turi',
-    'daily.piecework': 'Shtuk',
-    'daily.dailyWork': 'Kunlik',
+    'daily.piecework': 'Dona ish',
+    'daily.dailyWork': 'Kunlik ish',
     'daily.futureNotAllowed': "Kelajakdagi kun mumkin emas",
 
     'month.given': 'Berilgan',
@@ -405,8 +405,8 @@ const TRANSLATIONS = {
     'archive.deleteWarn': 'Бу амални қайтариб бўлмайди. Тўлов бекор қилинади ва ходим яна ойлик олиши мумкин бўлади.',
 
     'daily.workType': 'Иш тури',
-    'daily.piecework': 'Штук',
-    'daily.dailyWork': 'Кунлик',
+    'daily.piecework': 'Дона иш',
+    'daily.dailyWork': 'Кунлик иш',
     'daily.futureNotAllowed': 'Келажакдаги кун мумкин эмас',
 
     'month.given': 'Берилган',
@@ -614,8 +614,8 @@ const TRANSLATIONS = {
     'archive.deleteWarn': 'Это действие нельзя отменить. Выплата будет удалена, и сотрудник сможет снова получить зарплату.',
 
     'daily.workType': 'Тип работы',
-    'daily.piecework': 'Штучно',
-    'daily.dailyWork': 'Дневная',
+    'daily.piecework': 'Поштучно',
+    'daily.dailyWork': 'Дневная работа',
     'daily.futureNotAllowed': 'Будущий день недоступен',
 
     'month.given': 'Выплачено',

@@ -1,5 +1,6 @@
 /**
- * CyberCoderCRM - Departments routes
+ * CyberCoderCRM - Departments Routes
+ * YANGI: ?type=piecework|daily filter va body'da type majburiy
  */
 
 const express = require('express');
@@ -7,33 +8,56 @@ const router = express.Router();
 
 const Department = require('../models/Department');
 const Direction = require('../models/Direction');
-
+const Business = require('../models/Business');
 const { verifyToken, requireAdmin } = require('../middleware/auth');
 const businessScope = require('../middleware/businessScope');
-const requireModule = require('../middleware/requireModule');
 
-router.use(verifyToken, requireAdmin, businessScope, requireModule('directions'));
+router.use(verifyToken, requireAdmin, businessScope);
 
-/**
- * GET /api/departments
- * Barcha bo'limlar (yo'nalishlar soni bilan)
- */
+// Modul ruxsatini tekshirish
+async function checkModuleAccess(req, type) {
+  const moduleKey = type === 'daily' ? 'directionsDaily' : 'directionsPiecework';
+  const biz = await Business.findById(req.businessId).select('enabledModules');
+  if (!biz) return false;
+  const enabled = biz.enabledModules || [];
+  return enabled.includes(moduleKey) || enabled.includes('directions');
+}
+
+// ============================================
+// GET /api/departments?type=piecework|daily
+// ============================================
 router.get('/', async (req, res) => {
   try {
-    const departments = await Department.find({
-      businessId: req.businessId,
-      status: 'active',
-    }).sort('-createdAt');
+    const { type } = req.query;
 
-    // Har bir bo'lim uchun yo'nalishlar soni
+    // Type majburiy
+    if (!type || !['piecework', 'daily'].includes(type)) {
+      return res.status(400).json({ error: "type kerak: piecework yoki daily" });
+    }
+
+    // Modul ruxsati
+    const hasAccess = await checkModuleAccess(req, type);
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'Bu modul yoqilmagan' });
+    }
+
+    const filter = {
+      businessId: req.businessId,
+      type,
+    };
+
+    const departments = await Department.find(filter).sort('name').lean();
+
+    // Har bir bo'lim uchun direction count'ni hisoblash
     const result = await Promise.all(
       departments.map(async (d) => {
-        const directionCount = await Direction.countDocuments({
+        const count = await Direction.countDocuments({
           businessId: req.businessId,
           departmentId: d._id,
-          status: 'active',
+          isArchived: { $ne: true },
+          type,
         });
-        return { ...d.toObject(), directionCount };
+        return { ...d, directionCount: count };
       })
     );
 
@@ -44,109 +68,120 @@ router.get('/', async (req, res) => {
   }
 });
 
-/**
- * GET /api/departments/:id/directions
- * Bo'limdagi yo'nalishlar
- */
-router.get('/:id/directions', async (req, res) => {
-  try {
-    const directions = await Direction.find({
-      businessId: req.businessId,
-      departmentId: req.params.id,
-      status: 'active',
-    }).sort('-createdAt');
-
-    res.json(directions);
-  } catch (err) {
-    console.error('Department directions xato:', err);
-    res.status(500).json({ error: 'Server xatosi' });
-  }
-});
-
-/**
- * POST /api/departments
- */
+// ============================================
+// POST /api/departments
+// Body: { name, description, type }
+// ============================================
 router.post('/', async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, type } = req.body;
 
-    if (!name || !String(name).trim()) {
-      return res.status(400).json({ error: "Bo'lim nomi kerak" });
+    if (!name) {
+      return res.status(400).json({ error: 'Bo\'lim nomi majburiy' });
     }
 
-    const department = new Department({
+    if (!type || !['piecework', 'daily'].includes(type)) {
+      return res.status(400).json({ error: "type: piecework yoki daily" });
+    }
+
+    // Modul ruxsati
+    const hasAccess = await checkModuleAccess(req, type);
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'Bu tur uchun modul yoqilmagan' });
+    }
+
+    const dept = new Department({
       businessId: req.businessId,
       name: String(name).trim(),
       description: description ? String(description).trim() : '',
+      type,
     });
 
-    await department.save();
-    res.status(201).json({ ...department.toObject(), directionCount: 0 });
+    await dept.save();
+
+    const obj = dept.toObject();
+    obj.directionCount = 0;
+    res.status(201).json(obj);
   } catch (err) {
     console.error('Department POST xato:', err);
     res.status(500).json({ error: err.message || 'Server xatosi' });
   }
 });
 
-/**
- * PUT /api/departments/:id
- */
+// ============================================
+// PUT /api/departments/:id
+// ============================================
 router.put('/:id', async (req, res) => {
   try {
-    const department = await Department.findOne({
+    const { name, description } = req.body;
+
+    const dept = await Department.findOne({
       _id: req.params.id,
       businessId: req.businessId,
     });
+    if (!dept) return res.status(404).json({ error: "Bo'lim topilmadi" });
 
-    if (!department) {
-      return res.status(404).json({ error: "Bo'lim topilmadi" });
+    // Modul ruxsati (bo'limning o'z type bo'yicha)
+    const hasAccess = await checkModuleAccess(req, dept.type);
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'Ruxsat yo\'q' });
     }
 
-    const { name, description } = req.body;
-    if (name) department.name = String(name).trim();
-    if (description !== undefined) department.description = String(description).trim();
+    if (name !== undefined) dept.name = String(name).trim();
+    if (description !== undefined) dept.description = String(description).trim();
 
-    await department.save();
-    res.json(department);
+    await dept.save();
+
+    const obj = dept.toObject();
+    const count = await Direction.countDocuments({
+      businessId: req.businessId,
+      departmentId: dept._id,
+      isArchived: { $ne: true },
+      type: dept.type,
+    });
+    obj.directionCount = count;
+
+    res.json(obj);
   } catch (err) {
     console.error('Department PUT xato:', err);
     res.status(500).json({ error: err.message || 'Server xatosi' });
   }
 });
 
-/**
- * DELETE /api/departments/:id
- * Bo'limni arxivlash (yo'nalishlar bor bo'lsa ogohlantirish)
- */
+// ============================================
+// DELETE /api/departments/:id?force=true
+// ============================================
 router.delete('/:id', async (req, res) => {
   try {
-    const { force } = req.query; // ?force=true - bo'lsa birga o'chiradi
+    const { force } = req.query;
+    const dept = await Department.findOne({
+      _id: req.params.id,
+      businessId: req.businessId,
+    });
+    if (!dept) return res.status(404).json({ error: "Bo'lim topilmadi" });
 
     const directionsCount = await Direction.countDocuments({
       businessId: req.businessId,
-      departmentId: req.params.id,
-      status: 'active',
+      departmentId: dept._id,
+      isArchived: { $ne: true },
     });
 
     if (directionsCount > 0 && force !== 'true') {
       return res.status(400).json({
-        error: `Bu bo'limda ${directionsCount} ta yo'nalish bor. O'chirish uchun "force" qo'shing.`,
+        error: `Bu bo'limda ${directionsCount} ta yo'nalish bor`,
         directionsCount,
       });
     }
 
-    // Force: barcha yo'nalishlarni ham arxivlash
+    // Force bo'lsa, barcha yo'nalishlarni arxivlash
     if (force === 'true') {
       await Direction.updateMany(
-        { businessId: req.businessId, departmentId: req.params.id },
-        { status: 'archived' }
+        { businessId: req.businessId, departmentId: dept._id },
+        { isArchived: true, archivedAt: new Date() }
       );
     }
 
-    await Department.findOneAndUpdate(
-      { _id: req.params.id, businessId: req.businessId },
-      { status: 'archived' }
-    );
+    await dept.deleteOne();
 
     res.json({ success: true });
   } catch (err) {

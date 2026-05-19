@@ -1,6 +1,6 @@
 /**
  * CyberCoderCRM - Monthly Report routes
- * Yangi: kun bo'yicha to'lov, paid/remaining hisoblash
+ * v2: ?year=&month= qabul qiladi, daysData strukturasi qaytaradi
  */
 
 const express = require('express');
@@ -10,6 +10,7 @@ const Employee = require('../models/Employee');
 const DailyAssignment = require('../models/DailyAssignment');
 const DailyProduct = require('../models/DailyProduct');
 const SalaryPayment = require('../models/SalaryPayment');
+const Archive = require('../models/Archive');
 
 const { verifyToken, requireAdmin } = require('../middleware/auth');
 const businessScope = require('../middleware/businessScope');
@@ -17,298 +18,252 @@ const requireModule = require('../middleware/requireModule');
 
 router.use(verifyToken, requireAdmin, businessScope, requireModule('monthlyReport'));
 
+function daysInMonth(year, month) {
+  return new Date(year, month, 0).getDate();
+}
+
 /**
- * GET /api/monthly-report?startDate=&endDate=&code=
+ * GET /api/monthly-report?year=2025&month=1
  */
 router.get('/', async (req, res) => {
   try {
-    const { startDate, endDate, code } = req.query;
+    const year = parseInt(req.query.year) || new Date().getFullYear();
+    const month = parseInt(req.query.month) || (new Date().getMonth() + 1);
 
-    if (!startDate || !endDate) {
-      return res.status(400).json({ error: "Sana oralig'i kerak" });
+    if (month < 1 || month > 12) {
+      return res.status(400).json({ error: 'Oy 1-12 oralig\'ida bo\'lishi kerak' });
     }
 
-    // dateString format
-    const startStr = String(startDate).slice(0, 10);
-    const endStr = String(endDate).slice(0, 10);
+    const totalDays = daysInMonth(year, month);
 
-    const filter = {
+    // Sana oralig'i (string)
+    const monthStr = String(month).padStart(2, '0');
+    const startDateStr = `${year}-${monthStr}-01`;
+    const endDateStr = `${year}-${monthStr}-${String(totalDays).padStart(2, '0')}`;
+
+    // Barcha xodimlar
+    const employees = await Employee.find({
       businessId: req.businessId,
-      dateString: { $gte: startStr, $lte: endStr },
-    };
+      status: { $ne: 'deleted' },
+    }).sort('firstName').lean();
 
-    if (code) {
-      filter['employeeSnapshot.code'] = code.trim();
-    }
-
-    const assignments = await DailyAssignment.find(filter).sort('dateString');
-
-    // To'lovlarni olish (shu davr uchun)
-    const assignmentIds = assignments.map(a => a._id);
-    const payments = await SalaryPayment.find({
+    // Oydagi barcha biriktirishlar
+    const assignments = await DailyAssignment.find({
       businessId: req.businessId,
-      assignmentId: { $in: assignmentIds },
-    });
+      dateString: { $gte: startDateStr, $lte: endDateStr },
+    }).lean();
 
-    // assignment_id → paid map
-    const paidMap = {};
-    for (const p of payments) {
-      paidMap[String(p.assignmentId)] = {
-        paymentId: p._id,
-        amount: p.amount,
-        paidAt: p.paidAt,
-      };
+    // To'lovlar (agar SalaryPayment model bor bo'lsa)
+    let payments = [];
+    try {
+      payments = await SalaryPayment.find({
+        businessId: req.businessId,
+        dateString: { $gte: startDateStr, $lte: endDateStr },
+      }).lean();
+    } catch (e) {
+      payments = [];
     }
 
-    // Xodimlar bo'yicha guruhlash
-    const grouped = {};
-    for (const a of assignments) {
-      const key = a.employeeSnapshot.code;
-      const aId = String(a._id);
-      const paid = paidMap[aId];
-
-      if (!grouped[key]) {
-        grouped[key] = {
-          employeeId: a.employeeId,
-          firstName: a.employeeSnapshot.firstName,
-          lastName: a.employeeSnapshot.lastName,
-          code: a.employeeSnapshot.code,
-          totalDays: 0,
-          totalShifts: 0,
-          totalEarning: 0,
-          paidAmount: 0,
-          paidDays: 0,
-          remainingAmount: 0,
-          remainingDays: 0,
-          days: [],
-        };
-      }
-
-      grouped[key].totalDays++;
-      grouped[key].totalShifts += a.shift;
-      grouped[key].totalEarning += a.earning;
-
-      if (paid) {
-        grouped[key].paidAmount += paid.amount;
-        grouped[key].paidDays++;
-      } else {
-        grouped[key].remainingAmount += a.earning;
-        grouped[key].remainingDays++;
-      }
-
-      grouped[key].days.push({
-        assignmentId: a._id,
-        date: a.date,
-        dateString: a.dateString,
-        directionName: a.directionSnapshot?.name || '',
-        departmentName: a.directionSnapshot?.departmentName || '',
-        shift: a.shift,
-        earning: a.earning,
-        type: a.type || 'piecework',
-        isPaid: !!paid,
-        paidAmount: paid?.amount || 0,
-        paidAt: paid?.paidAt || null,
-        paymentId: paid?.paymentId || null,
+    // Kunlar ro'yxati
+    const days = [];
+    for (let d = 1; d <= totalDays; d++) {
+      days.push({
+        day: d,
+        dateString: `${year}-${monthStr}-${String(d).padStart(2, '0')}`,
       });
     }
 
-    const employees = Object.values(grouped);
+    // Har bir xodim uchun daysData yig'ish
+    const employeesData = employees.map((emp) => {
+      const empAssignments = assignments.filter(a => {
+        return String(a.employeeId) === String(emp._id);
+      });
 
-    const productsData = await DailyProduct.find({
-      businessId: req.businessId,
-      dateString: { $gte: startStr, $lte: endStr },
-    }).sort('dateString');
+      const empPayments = payments.filter(p => {
+        return String(p.employeeId) === String(emp._id);
+      });
 
-    const totalEarning = assignments.reduce((s, a) => s + (a.earning || 0), 0);
-    const totalPaid = payments.reduce((s, p) => s + p.amount, 0);
-    const totalRemaining = totalEarning - totalPaid;
-    const totalProductCount = productsData.reduce((s, p) => s + (p.quantity || 0), 0);
+      const daysData = {};
+      let totalShift = 0;
+      let totalEarning = 0;
 
-    // Products ro'yxati - frontend uchun
-    const products = productsData.map(p => ({
-      _id: p._id,
-      dateString: p.dateString,
-      productName: p.productName,
-      quantity: p.quantity,
-    }));
+      for (let d = 1; d <= totalDays; d++) {
+        const dateStr = `${year}-${monthStr}-${String(d).padStart(2, '0')}`;
+        const dayAssignments = empAssignments.filter(a => a.dateString === dateStr);
+        const dayPayments = empPayments.filter(p => p.dateString === dateStr);
 
-    res.json({
-      period: { startDate: startStr, endDate: endStr },
-      employees,
-      products,
-      stats: {
+        const dayShift = dayAssignments.reduce((s, a) => s + (a.shift || 0), 0);
+        const dayEarning = dayAssignments.reduce((s, a) => s + (a.earning || 0), 0);
+        const dayPaid = dayPayments.reduce((s, p) => s + (p.amount || 0), 0);
+
+        if (dayShift > 0 || dayPaid > 0) {
+          daysData[d] = {
+            totalShift: dayShift,
+            totalEarning: dayEarning,
+            paid: dayPaid > 0 || dayPayments.length > 0,
+            paidAmount: dayPaid,
+          };
+        }
+
+        totalShift += dayShift;
+        totalEarning += dayEarning;
+      }
+
+      const totalPaid = empPayments.reduce((s, p) => s + (p.amount || 0), 0);
+      const remaining = Math.max(0, totalEarning - totalPaid);
+
+      return {
+        _id: emp._id,
+        firstName: emp.firstName,
+        lastName: emp.lastName,
+        code: emp.code,
+        daysData,
+        totalShift,
         totalEarning,
         totalPaid,
-        totalRemaining,
-        totalEmployees: employees.length,
-        totalProductCount,
-        totalAssignments: assignments.length,
-      },
+        remaining,
+      };
+    });
+
+    res.json({
+      year,
+      month,
+      days,
+      employees: employeesData,
     });
   } catch (err) {
     console.error('Monthly report GET xato:', err);
-    res.status(500).json({ error: 'Server xatosi' });
-  }
-});
-
-/**
- * POST /api/monthly-report/pay-days
- * Aniq kunlar uchun to'lov
- * body: { assignmentIds: [], note? }
- */
-router.post('/pay-days', async (req, res) => {
-  try {
-    const { assignmentIds, note } = req.body;
-
-    if (!Array.isArray(assignmentIds) || assignmentIds.length === 0) {
-      return res.status(400).json({ error: 'Kamida 1 kun tanlang' });
-    }
-
-    // Assignmentlarni olish
-    const assignments = await DailyAssignment.find({
-      _id: { $in: assignmentIds },
-      businessId: req.businessId,
-    });
-
-    if (assignments.length === 0) {
-      return res.status(404).json({ error: 'Topilmadi' });
-    }
-
-    const paid = [];
-    const errors = [];
-
-    for (const a of assignments) {
-      try {
-        // Tekshirish - allaqachon to'langanmi
-        const existing = await SalaryPayment.findOne({
-          businessId: req.businessId,
-          assignmentId: a._id,
-        });
-
-        if (existing) {
-          errors.push({ assignmentId: a._id, reason: "Allaqachon to'langan" });
-          continue;
-        }
-
-        const payment = await SalaryPayment.create({
-          businessId: req.businessId,
-          employeeId: a.employeeId,
-          assignmentId: a._id,
-          dateString: a.dateString,
-          employeeSnapshot: a.employeeSnapshot,
-          amount: a.earning,
-          note: note || '',
-        });
-
-        paid.push(payment);
-      } catch (err) {
-        if (err.code === 11000) {
-          errors.push({ assignmentId: a._id, reason: "Allaqachon to'langan" });
-        } else {
-          errors.push({ assignmentId: a._id, reason: err.message });
-        }
-      }
-    }
-
-    res.json({
-      success: true,
-      paidCount: paid.length,
-      errorsCount: errors.length,
-      paid,
-      errors,
-    });
-  } catch (err) {
-    console.error('Pay-days xato:', err);
     res.status(500).json({ error: err.message || 'Server xatosi' });
   }
 });
 
 /**
- * POST /api/monthly-report/pay-remaining
- * Xodimning qolgan kunlari uchun to'lov (oddiy "hammasini to'lash")
- * body: { employeeIds: [], startDate, endDate, note? }
+ * POST /api/monthly-report/pay
+ * Body: { employeeIds, year, month, amount }
  */
-router.post('/pay-remaining', async (req, res) => {
+router.post('/pay', async (req, res) => {
   try {
-    const { employeeIds, startDate, endDate, note } = req.body;
+    const { employeeIds, year, month, amount } = req.body;
 
     if (!Array.isArray(employeeIds) || employeeIds.length === 0) {
-      return res.status(400).json({ error: 'Kamida 1 xodim tanlang' });
+      return res.status(400).json({ error: 'employeeIds kerak' });
     }
 
-    const startStr = String(startDate).slice(0, 10);
-    const endStr = String(endDate).slice(0, 10);
+    const y = parseInt(year);
+    const m = parseInt(month);
+    const amt = Math.max(0, Number(amount) || 0);
 
-    // Tanlangan xodimlarning to'lanmagan kunlarini topish
-    const assignments = await DailyAssignment.find({
-      businessId: req.businessId,
-      employeeId: { $in: employeeIds },
-      dateString: { $gte: startStr, $lte: endStr },
-    });
-
-    const assignmentIds = assignments.map(a => a._id);
-    const existingPayments = await SalaryPayment.find({
-      businessId: req.businessId,
-      assignmentId: { $in: assignmentIds },
-    });
-    const paidIds = new Set(existingPayments.map(p => String(p.assignmentId)));
-
-    const unpaidAssignments = assignments.filter(a => !paidIds.has(String(a._id)));
-
-    const paid = [];
-    const errors = [];
-
-    for (const a of unpaidAssignments) {
-      try {
-        const payment = await SalaryPayment.create({
-          businessId: req.businessId,
-          employeeId: a.employeeId,
-          assignmentId: a._id,
-          dateString: a.dateString,
-          employeeSnapshot: a.employeeSnapshot,
-          amount: a.earning,
-          note: note || '',
-        });
-        paid.push(payment);
-      } catch (err) {
-        if (err.code !== 11000) {
-          errors.push({ assignmentId: a._id, reason: err.message });
-        }
-      }
+    if (!y || !m || m < 1 || m > 12) {
+      return res.status(400).json({ error: 'Yil/oy noto\'g\'ri' });
     }
 
-    res.json({
-      success: true,
-      paidCount: paid.length,
-      errorsCount: errors.length,
-      paid,
-      errors,
-    });
+    if (amt <= 0) {
+      return res.status(400).json({ error: 'Summa 0 dan katta bo\'lishi kerak' });
+    }
+
+    const today = new Date();
+    const monthStr = String(m).padStart(2, '0');
+    const dayStr = String(today.getDate()).padStart(2, '0');
+    const dateString = `${y}-${monthStr}-${dayStr}`;
+
+    const payments = [];
+    for (const empId of employeeIds) {
+      const emp = await Employee.findOne({
+        _id: empId,
+        businessId: req.businessId,
+      });
+      if (!emp) continue;
+
+      payments.push({
+        businessId: req.businessId,
+        employeeId: empId,
+        amount: amt,
+        dateString,
+        date: new Date(),
+        employeeSnapshot: {
+          firstName: emp.firstName,
+          lastName: emp.lastName || '-',
+          code: emp.code,
+        },
+        year: y,
+        month: m,
+      });
+    }
+
+    if (payments.length === 0) {
+      return res.status(404).json({ error: 'Xodim topilmadi' });
+    }
+
+    try {
+      await SalaryPayment.insertMany(payments);
+    } catch (e) {
+      console.error('SalaryPayment insertMany xato:', e);
+      return res.status(500).json({ error: 'To\'lov saqlanmadi: ' + e.message });
+    }
+
+    res.status(201).json({ success: true, count: payments.length });
   } catch (err) {
-    console.error('Pay-remaining xato:', err);
+    console.error('Pay POST xato:', err);
     res.status(500).json({ error: err.message || 'Server xatosi' });
   }
 });
 
 /**
- * DELETE /api/monthly-report/pay/:id
- * Bitta kunning to'lovini bekor qilish
+ * POST /api/monthly-report/archive (eski endpoint - saqlangan)
  */
-router.delete('/pay/:id', async (req, res) => {
+router.post('/archive', async (req, res) => {
   try {
-    const payment = await SalaryPayment.findOneAndDelete({
-      _id: req.params.id,
-      businessId: req.businessId,
-    });
+    const { year, month } = req.body;
+    const y = parseInt(year);
+    const m = parseInt(month);
 
-    if (!payment) {
-      return res.status(404).json({ error: "To'lov topilmadi" });
+    if (!y || !m || m < 1 || m > 12) {
+      return res.status(400).json({ error: 'Yil/oy noto\'g\'ri' });
     }
 
-    res.json({ success: true });
+    const totalDays = daysInMonth(y, m);
+    const monthStr = String(m).padStart(2, '0');
+    const startDateStr = `${y}-${monthStr}-01`;
+    const endDateStr = `${y}-${monthStr}-${String(totalDays).padStart(2, '0')}`;
+
+    const [assignments, products] = await Promise.all([
+      DailyAssignment.find({
+        businessId: req.businessId,
+        dateString: { $gte: startDateStr, $lte: endDateStr },
+      }).lean(),
+      DailyProduct.find({
+        businessId: req.businessId,
+        dateString: { $gte: startDateStr, $lte: endDateStr },
+      }).lean(),
+    ]);
+
+    const totalEarnings = assignments.reduce((s, a) => s + (a.earning || 0), 0);
+    const totalShifts = assignments.reduce((s, a) => s + a.shift, 0);
+    const uniqueEmployees = new Set(assignments.map(a => a.employeeSnapshot?.code)).size;
+    const totalProducts = products.reduce((s, p) => s + (p.quantity || 0), 0);
+
+    const periodLabel = `${y}-${monthStr}`;
+
+    const archive = new Archive({
+      businessId: req.businessId,
+      year: y,
+      month: m,
+      periodLabel,
+      archivedAt: new Date(),
+      data: { assignments, products },
+      stats: {
+        totalEarnings,
+        totalEmployeesWorked: uniqueEmployees,
+        totalShifts,
+        totalProducts,
+      },
+    });
+
+    await archive.save();
+    res.status(201).json({ success: true, archiveId: archive._id });
   } catch (err) {
-    console.error('Pay DELETE xato:', err);
-    res.status(500).json({ error: 'Server xatosi' });
+    console.error('Archive POST xato:', err);
+    res.status(500).json({ error: err.message || 'Server xatosi' });
   }
 });
 
