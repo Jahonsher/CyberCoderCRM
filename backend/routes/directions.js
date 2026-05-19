@@ -42,10 +42,11 @@ router.get('/', async (req, res) => {
       return res.status(403).json({ error: `Bu modul yoqilmagan` });
     }
 
+    // QATTIQ FILTER: faqat aniq type aniqlangan yo'nalishlar
     const filter = {
       businessId: req.businessId,
       isArchived: { $ne: true },
-      type,
+      type: type, // aniq match
     };
 
     if (departmentId) filter.departmentId = departmentId;
@@ -55,7 +56,12 @@ router.get('/', async (req, res) => {
       .sort('-createdAt')
       .lean();
 
-    res.json(directions);
+    // Qo'shimcha xavfsizlik - JS darajasida ham filter qilish
+    const filtered = directions.filter(d => d.type === type);
+
+    console.log(`[Directions] business=${req.businessId} type=${type} dept=${departmentId || '-'} count=${filtered.length}`);
+
+    res.json(filtered);
   } catch (err) {
     console.error('Directions GET xato:', err);
     res.status(500).json({ error: 'Server xatosi' });

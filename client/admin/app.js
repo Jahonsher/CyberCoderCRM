@@ -1445,105 +1445,172 @@ function confirmDeleteProduct(id) {
   });
 }
 
+// ============================================
+// MONTHLY REPORT - HTML strukturasiga mos
+// ============================================
+
+function todayDateStr() {
+  return todayISO();
+}
+
+function firstDayOfMonthStr() {
+  var d = new Date();
+  var y = d.getFullYear();
+  var m = String(d.getMonth() + 1).padStart(2, '0');
+  return y + '-' + m + '-01';
+}
+
 function initMonthlyReport() {
-  var today = new Date();
-  if (!state.monthData) {
-    state.monthData = { year: today.getFullYear(), month: today.getMonth() + 1 };
-  }
-  updateMonthLabel();
+  // Default sana oraliq: oy boshi - bugun
+  var startInput = document.getElementById('monthStart');
+  var endInput = document.getElementById('monthEnd');
+  if (startInput && !startInput.value) startInput.value = firstDayOfMonthStr();
+  if (endInput && !endInput.value) endInput.value = todayDateStr();
+
+  // Avtomatik yuklash
   loadMonthlyReport();
 }
 
-function updateMonthLabel() {
-  var monthNames = {
-    'uz-lat': ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyn', 'Iyl', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek'],
-    'uz-cyr': ['\u042f\u043d\u0432', '\u0424\u0435\u0432', '\u041c\u0430\u0440', '\u0410\u043f\u0440', '\u041c\u0430\u0439', '\u0418\u044e\u043d', '\u0418\u044e\u043b', '\u0410\u0432\u0433', '\u0421\u0435\u043d', '\u041e\u043a\u0442', '\u041d\u043e\u044f', '\u0414\u0435\u043a'],
-    'ru': ['\u042f\u043d\u0432', '\u0424\u0435\u0432', '\u041c\u0430\u0440', '\u0410\u043f\u0440', '\u041c\u0430\u0439', '\u0418\u044e\u043d', '\u0418\u044e\u043b', '\u0410\u0432\u0433', '\u0421\u0435\u043d', '\u041e\u043a\u0442', '\u041d\u043e\u044f', '\u0414\u0435\u043a'],
-  };
-  var lang = localStorage.getItem('cc_lang') || 'uz-lat';
-  var names = monthNames[lang] || monthNames['uz-lat'];
-  var label = document.getElementById('monthLabel');
-  if (label && state.monthData) {
-    label.textContent = names[state.monthData.month - 1] + ' ' + state.monthData.year;
-  }
-}
-
 async function loadMonthlyReport() {
-  var year = state.monthData.year;
-  var month = state.monthData.month;
-  var tbody = document.getElementById('monthlyTableBody');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="20" class="p-6 text-center"><div class="skeleton h-32"></div></td></tr>';
+  var startDate = document.getElementById('monthStart').value;
+  var endDate = document.getElementById('monthEnd').value;
+  var code = document.getElementById('monthCode').value.trim();
+
+  if (!startDate || !endDate) {
+    toast("Sana oralig'ini tanlang", 'error');
+    return;
+  }
+
+  if (startDate > endDate) {
+    toast("Boshlanish tugashdan oldin bo'lishi kerak", 'error');
+    return;
+  }
+
+  var container = document.getElementById('monthResultsContainer');
+  container.innerHTML = '<div class="p-6"><div class="skeleton h-32"></div></div>';
+
+  var url = '/api/monthly-report?startDate=' + startDate + '&endDate=' + endDate;
+  if (code) url += '&code=' + encodeURIComponent(code);
 
   try {
-    var data = await api('/api/monthly-report?year=' + year + '&month=' + month);
+    var data = await api(url);
     if (!data) return;
     state.monthlyData = data;
     renderMonthlyReport(data);
   } catch (err) {
-    if (tbody) tbody.innerHTML = '<tr><td colspan="20" class="p-6 text-center text-red-400">' + escapeHtml(err.message) + '</td></tr>';
+    container.innerHTML = '<div class="p-6 text-center text-red-400">' + escapeHtml(err.message) + '</div>';
+    toast(err.message || t('msg.error'), 'error');
   }
 }
 
 function renderMonthlyReport(data) {
-  var tbody = document.getElementById('monthlyTableBody');
-  var headRow = document.getElementById('monthlyTableHead');
-  if (!tbody || !headRow) return;
+  // Statistika
+  var statEarning = document.getElementById('monthStatEarning');
+  var statEmployees = document.getElementById('monthStatEmployees');
+  var statPaid = document.getElementById('monthStatPaid');
+  var statProducts = document.getElementById('monthStatProducts');
 
-  var days = data.days || [];
+  if (statEarning) statEarning.textContent = formatMoney(data.stats.totalEarning);
+  if (statEmployees) statEmployees.textContent = data.stats.totalEmployees;
+  if (statPaid) statPaid.textContent = formatMoney(data.stats.totalPaid || 0);
+  if (statProducts) statProducts.textContent = formatMoney(data.stats.totalProductCount);
 
-  var headHTML = '<tr>' +
-    '<th style="position: sticky; left: 0; z-index: 2; background: var(--bg-secondary);"><input type="checkbox" id="monthSelectAll" /></th>' +
-    '<th class="font-bold" style="position: sticky; left: 40px; z-index: 2; background: var(--bg-secondary);">' + t('emp.table.name') + '</th>';
+  // Jadval
+  var container = document.getElementById('monthResultsContainer');
+  var actionBar = document.getElementById('monthActionBar');
 
-  days.forEach(function(day) {
-    headHTML += '<th class="text-center"><span class="mono text-xs">' + day.day + '</span></th>';
-  });
-
-  headHTML += '<th class="text-right">' + t('monthly.totalShift') + '</th>' +
-    '<th class="text-right">' + t('monthly.totalEarning') + '</th>' +
-    '<th class="text-right">' + t('monthly.paid') + '</th>' +
-    '<th class="text-right">' + t('monthly.remaining') + '</th>' +
-    '<th class="text-center">' + t('common.actions') + '</th>' +
-  '</tr>';
-  headRow.innerHTML = headHTML;
-
-  if (data.employees.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="20" class="p-12 text-center text-zinc-500">' + t('common.emptyData') + '</td></tr>';
+  if (!data.employees || data.employees.length === 0) {
+    container.innerHTML = '<div class="p-10 text-center text-zinc-500"><p class="text-sm">' + t('month.empty') + '</p></div>';
+    if (actionBar) actionBar.classList.add('hidden');
     return;
   }
 
-  tbody.innerHTML = data.employees.map(function(emp) {
-    var cells = '';
-    days.forEach(function(day) {
-      var dd = emp.daysData && emp.daysData[day.day];
-      var shift = dd ? (dd.totalShift || 0) : 0;
-      var earned = dd ? (dd.totalEarning || 0) : 0;
-      var isPaid = dd ? dd.paid : false;
-      var cellContent = shift > 0
-        ? '<div class="text-xs">' + (shift === 0.5 ? '\u00bd' : shift) + '</div><div class="mono text-[10px] text-emerald-400 mt-0.5">' + formatMoney(earned) + '</div>'
-        : '<span class="text-zinc-700">\u2014</span>';
-      cells += '<td class="text-center ' + (isPaid ? 'paid-cell' : '') + '">' + cellContent + '</td>';
-    });
+  if (actionBar) actionBar.classList.remove('hidden');
 
-    var actionBtn = emp.totalEarning > 0
-      ? '<button type="button" data-act="pay-emp" data-id="' + emp._id + '" data-name="' + escapeHtml(emp.firstName) + '" class="btn-ghost px-2 py-1 rounded text-[10px]">' + t('monthly.pay') + '</button>'
-      : '\u2014';
+  container.innerHTML = '<div class="table-wrap"><table class="data-table">' +
+    '<thead><tr>' +
+      '<th style="width:40px"><input type="checkbox" id="monthHeadCheckbox" /></th>' +
+      '<th>' + t('emp.table.name') + '</th>' +
+      '<th>' + t('emp.table.code') + '</th>' +
+      '<th class="text-right">Smena</th>' +
+      '<th class="text-right">Kun</th>' +
+      '<th class="text-right">Daromad</th>' +
+      '<th class="text-right">Berildi</th>' +
+      '<th class="text-right">Qoldiq</th>' +
+      '<th class="text-center">' + t('common.actions') + '</th>' +
+    '</tr></thead><tbody>' +
+    data.employees.map(function(emp) {
+      var remainingClass = (emp.remaining || 0) > 0 ? 'text-amber-400' : 'text-zinc-500';
+      var payBtn = (emp.remaining || 0) > 0
+        ? '<button type="button" data-act="pay-emp" data-id="' + emp._id + '" data-name="' + escapeHtml(emp.firstName) + '" class="btn-ghost px-2 py-1 rounded text-[10px]">To\'lash</button>'
+        : '\u2014';
+      return '<tr>' +
+        '<td><input type="checkbox" class="emp-select" data-id="' + emp._id + '" /></td>' +
+        '<td class="font-medium">' + escapeHtml(emp.firstName) + '</td>' +
+        '<td><span class="mono text-xs px-2 py-1 rounded bg-purple-500/10 border border-purple-500/20 text-purple-300">' + escapeHtml(emp.code) + '</span></td>' +
+        '<td class="text-right mono text-sm">' + emp.totalShifts + '</td>' +
+        '<td class="text-right mono text-sm text-zinc-400">' + emp.totalDays + '</td>' +
+        '<td class="text-right mono font-semibold text-emerald-400">' + formatMoney(emp.totalEarning) + '</td>' +
+        '<td class="text-right mono text-emerald-300">' + formatMoney(emp.totalPaid || 0) + '</td>' +
+        '<td class="text-right mono font-bold ' + remainingClass + '">' + formatMoney(emp.remaining || 0) + '</td>' +
+        '<td class="text-center">' + payBtn + '</td>' +
+      '</tr>';
+    }).join('') +
+    '</tbody></table></div>';
 
-    return '<tr>' +
-      '<td style="position: sticky; left: 0; z-index: 1; background: var(--bg-secondary);"><input type="checkbox" class="emp-select" data-id="' + emp._id + '" /></td>' +
-      '<td class="font-medium" style="position: sticky; left: 40px; z-index: 1; background: var(--bg-secondary);"><div>' + escapeHtml(emp.firstName) + '</div><div class="mono text-[10px] text-zinc-500">' + escapeHtml(emp.code) + '</div></td>' +
-      cells +
-      '<td class="text-right mono text-sm">' + emp.totalShift + '</td>' +
-      '<td class="text-right mono font-semibold text-emerald-400">' + formatMoney(emp.totalEarning) + '</td>' +
-      '<td class="text-right mono text-emerald-300">' + formatMoney(emp.totalPaid || 0) + '</td>' +
-      '<td class="text-right mono font-bold ' + ((emp.remaining || 0) > 0 ? 'text-amber-400' : 'text-zinc-500') + '">' + formatMoney(emp.remaining || 0) + '</td>' +
-      '<td class="text-center">' + actionBtn + '</td>' +
-    '</tr>';
-  }).join('');
-
-  tbody.querySelectorAll('[data-act="pay-emp"]').forEach(function(btn) {
+  // Pay tugmalari
+  container.querySelectorAll('[data-act="pay-emp"]').forEach(function(btn) {
     btn.addEventListener('click', function() { payEmployeeAction(btn.dataset.id, btn.dataset.name); });
   });
+
+  // Checkbox tracking
+  container.querySelectorAll('.emp-select').forEach(function(cb) {
+    cb.addEventListener('change', updateMonthSelection);
+  });
+
+  // Header checkbox
+  var headCb = document.getElementById('monthHeadCheckbox');
+  if (headCb) {
+    headCb.addEventListener('change', function() {
+      container.querySelectorAll('.emp-select').forEach(function(cb) {
+        cb.checked = headCb.checked;
+      });
+      updateMonthSelection();
+    });
+  }
+
+  updateMonthSelection();
+}
+
+function updateMonthSelection() {
+  var selected = document.querySelectorAll('#monthResultsContainer .emp-select:checked');
+  var countEl = document.getElementById('monthSelectedCount');
+  var payBtn = document.getElementById('monthPayBtn');
+
+  if (countEl) countEl.textContent = selected.length + ' tanlandi';
+
+  if (payBtn) {
+    if (selected.length > 0) {
+      payBtn.disabled = false;
+      payBtn.classList.remove('opacity-50');
+    } else {
+      payBtn.disabled = true;
+      payBtn.classList.add('opacity-50');
+    }
+  }
+
+  // Header checkbox state
+  var headCb = document.getElementById('monthHeadCheckbox');
+  var allCb = document.querySelectorAll('#monthResultsContainer .emp-select');
+  if (headCb && allCb.length > 0) {
+    headCb.checked = selected.length === allCb.length;
+  }
+
+  // Select all (umumiy)
+  var selectAllCb = document.getElementById('monthSelectAll');
+  if (selectAllCb && allCb.length > 0) {
+    selectAllCb.checked = selected.length === allCb.length;
+  }
 }
 
 async function payEmployeeAction(empId, empName) {
@@ -1552,15 +1619,13 @@ async function payEmployeeAction(empId, empName) {
     toast("Bu xodimga to'lov yo'q", 'error');
     return;
   }
-  if (!confirm(empName + ' ga ' + formatMoney(emp.remaining) + " so'm to'lansinmi?")) return;
+  if (!confirm(empName + " ga " + formatMoney(emp.remaining) + " so'm to'lansinmi?")) return;
 
   try {
     await api('/api/monthly-report/pay', {
       method: 'POST',
       body: JSON.stringify({
         employeeIds: [empId],
-        year: state.monthData.year,
-        month: state.monthData.month,
         amount: emp.remaining,
       }),
     });
@@ -1571,75 +1636,173 @@ async function payEmployeeAction(empId, empName) {
   }
 }
 
-function setupMonthlyReportPage() {
-  var prevBtn = document.getElementById('monthPrevBtn');
-  if (prevBtn) {
-    prevBtn.addEventListener('click', function() {
-      state.monthData.month--;
-      if (state.monthData.month < 1) {
-        state.monthData.month = 12;
-        state.monthData.year--;
-      }
-      updateMonthLabel();
-      loadMonthlyReport();
-    });
-  }
-  var nextBtn = document.getElementById('monthNextBtn');
-  if (nextBtn) {
-    nextBtn.addEventListener('click', function() {
-      var today = new Date();
-      if (state.monthData.year >= today.getFullYear() && state.monthData.month >= today.getMonth() + 1) {
-        toast("Kelajakdagi oyga o'tib bo'lmaydi", 'error');
-        return;
-      }
-      state.monthData.month++;
-      if (state.monthData.month > 12) {
-        state.monthData.month = 1;
-        state.monthData.year++;
-      }
-      updateMonthLabel();
-      loadMonthlyReport();
-    });
+async function payMultipleEmployees() {
+  var selected = document.querySelectorAll('#monthResultsContainer .emp-select:checked');
+  if (selected.length === 0) {
+    toast("Xodim tanlanmagan", 'error');
+    return;
   }
 
-  var exportBtn = document.getElementById('exportExcelBtn');
-  if (exportBtn) {
-    exportBtn.addEventListener('click', exportToExcel);
+  var totalToPay = 0;
+  var empIds = [];
+  selected.forEach(function(cb) {
+    var emp = state.monthlyData.employees.find(function(e) { return e._id === cb.dataset.id; });
+    if (emp && emp.remaining > 0) {
+      totalToPay += emp.remaining;
+      empIds.push(emp._id);
+    }
+  });
+
+  if (empIds.length === 0) {
+    toast("Tanlangan xodimlarda qoldiq yo'q", 'error');
+    return;
+  }
+
+  if (!confirm(empIds.length + " ta xodimga jami " + formatMoney(totalToPay) + " so'm to'lansinmi?")) return;
+
+  try {
+    // Har bir xodimga alohida summa to'lanadi (qoldig'icha)
+    for (var i = 0; i < empIds.length; i++) {
+      var emp = state.monthlyData.employees.find(function(e) { return e._id === empIds[i]; });
+      if (emp) {
+        await api('/api/monthly-report/pay', {
+          method: 'POST',
+          body: JSON.stringify({
+            employeeIds: [emp._id],
+            amount: emp.remaining,
+          }),
+        });
+      }
+    }
+    toast("To'lov amalga oshirildi", 'success');
+    loadMonthlyReport();
+  } catch (err) {
+    toast(err.message || t('msg.error'), 'error');
   }
 }
 
-function exportToExcel() {
-  if (!state.monthlyData) {
-    toast(t('msg.error'), 'error');
+function applyDatePreset(preset) {
+  var today = new Date();
+  var startInput = document.getElementById('monthStart');
+  var endInput = document.getElementById('monthEnd');
+  var fmt = function(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  };
+
+  if (preset === 'today') {
+    startInput.value = fmt(today);
+    endInput.value = fmt(today);
+  } else if (preset === 'yesterday') {
+    var yest = new Date(today);
+    yest.setDate(yest.getDate() - 1);
+    startInput.value = fmt(yest);
+    endInput.value = fmt(yest);
+  } else if (preset === 'week') {
+    var weekAgo = new Date(today);
+    weekAgo.setDate(weekAgo.getDate() - 6);
+    startInput.value = fmt(weekAgo);
+    endInput.value = fmt(today);
+  } else if (preset === 'month') {
+    startInput.value = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-01';
+    endInput.value = fmt(today);
+  }
+
+  loadMonthlyReport();
+}
+
+function setupMonthlyReportPage() {
+  // Qidirish tugmasi
+  var loadBtn = document.getElementById('monthLoadBtn');
+  if (loadBtn) {
+    loadBtn.addEventListener('click', loadMonthlyReport);
+  }
+
+  // Sana oraliq tugmalari
+  document.querySelectorAll('[data-preset]').forEach(function(btn) {
+    btn.addEventListener('click', function() { applyDatePreset(btn.dataset.preset); });
+  });
+
+  // Excel export
+  var exportBtn = document.getElementById('monthExportBtn');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', exportMonthlyToExcel);
+  }
+
+  // Hammasini tanlash
+  var selectAllCb = document.getElementById('monthSelectAll');
+  if (selectAllCb) {
+    selectAllCb.addEventListener('change', function() {
+      var allCb = document.querySelectorAll('#monthResultsContainer .emp-select');
+      allCb.forEach(function(cb) { cb.checked = selectAllCb.checked; });
+      updateMonthSelection();
+    });
+  }
+
+  // Qolganini to'lash tugmasi
+  var payBtn = document.getElementById('monthPayBtn');
+  if (payBtn) {
+    payBtn.addEventListener('click', payMultipleEmployees);
+  }
+
+  // Kod input - Enter bilan qidirish
+  var codeInput = document.getElementById('monthCode');
+  if (codeInput) {
+    codeInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        loadMonthlyReport();
+      }
+    });
+  }
+}
+
+function exportMonthlyToExcel() {
+  if (!state.monthlyData || !state.monthlyData.employees || state.monthlyData.employees.length === 0) {
+    toast("Ma'lumot yo'q", 'error');
     return;
   }
   if (typeof XLSX === 'undefined') {
     toast("XLSX kutubxonasi yo'q", 'error');
     return;
   }
+
   var data = state.monthlyData;
   var wb = XLSX.utils.book_new();
   var ws_data = [];
 
-  var headerRow = ['#', 'Xodim', 'Kod'];
-  data.days.forEach(function(d) { headerRow.push(d.day); });
-  headerRow.push('Jami smena', 'Jami pul', "To'langan", 'Qoldiq');
-  ws_data.push(headerRow);
+  ws_data.push(['#', 'Xodim', 'Kod', 'Smena', 'Kun', 'Daromad', "To'langan", 'Qoldiq']);
 
   data.employees.forEach(function(emp, idx) {
-    var row = [idx + 1, emp.firstName, emp.code];
-    data.days.forEach(function(day) {
-      var shift = (emp.daysData && emp.daysData[day.day]) ? emp.daysData[day.day].totalShift || 0 : 0;
-      row.push(shift > 0 ? shift : '');
-    });
-    row.push(emp.totalShift, emp.totalEarning, emp.totalPaid || 0, emp.remaining || 0);
-    ws_data.push(row);
+    ws_data.push([
+      idx + 1,
+      emp.firstName,
+      emp.code,
+      emp.totalShifts,
+      emp.totalDays,
+      emp.totalEarning,
+      emp.totalPaid || 0,
+      emp.remaining || 0,
+    ]);
   });
+
+  // Stats row
+  ws_data.push([]);
+  ws_data.push([
+    '', 'JAMI', '',
+    data.stats.totalAssignments,
+    '',
+    data.stats.totalEarning,
+    data.stats.totalPaid || 0,
+    Math.max(0, (data.stats.totalEarning || 0) - (data.stats.totalPaid || 0)),
+  ]);
 
   var ws = XLSX.utils.aoa_to_sheet(ws_data);
   XLSX.utils.book_append_sheet(wb, ws, 'Oylik hisobot');
-  XLSX.writeFile(wb, 'oylik_' + data.year + '_' + String(data.month).padStart(2, '0') + '.xlsx');
+
+  var fname = 'oylik_' + (data.period.startStr || 'report') + '_' + (data.period.endStr || '') + '.xlsx';
+  XLSX.writeFile(wb, fname);
 }
+
 
 async function loadArchive() {
   var container = document.getElementById('archiveContainer');

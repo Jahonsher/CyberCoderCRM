@@ -1,6 +1,7 @@
 /**
  * CyberCoderCRM - Monthly Report routes
- * v2: ?year=&month= qabul qiladi, daysData strukturasi qaytaradi
+ * v2: ?startDate=&endDate=&code= qabul qiladi
+ * Har xodim uchun: totalShifts, totalEarning, totalPaid, remaining
  */
 
 const express = require('express');
@@ -9,127 +10,146 @@ const router = express.Router();
 const Employee = require('../models/Employee');
 const DailyAssignment = require('../models/DailyAssignment');
 const DailyProduct = require('../models/DailyProduct');
-const SalaryPayment = require('../models/SalaryPayment');
 const Archive = require('../models/Archive');
 
 const { verifyToken, requireAdmin } = require('../middleware/auth');
 const businessScope = require('../middleware/businessScope');
 const requireModule = require('../middleware/requireModule');
 
+// SalaryPayment optional
+let SalaryPayment;
+try {
+  SalaryPayment = require('../models/SalaryPayment');
+} catch (e) {
+  SalaryPayment = null;
+}
+
 router.use(verifyToken, requireAdmin, businessScope, requireModule('monthlyReport'));
 
-function daysInMonth(year, month) {
-  return new Date(year, month, 0).getDate();
+function parseDate(d) {
+  if (!d) return null;
+  const dt = new Date(d);
+  if (isNaN(dt.getTime())) return null;
+  return dt;
+}
+
+function dateToString(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 /**
- * GET /api/monthly-report?year=2025&month=1
+ * GET /api/monthly-report?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD&code=...
  */
 router.get('/', async (req, res) => {
   try {
-    const year = parseInt(req.query.year) || new Date().getFullYear();
-    const month = parseInt(req.query.month) || (new Date().getMonth() + 1);
+    const { startDate, endDate, code } = req.query;
 
-    if (month < 1 || month > 12) {
-      return res.status(400).json({ error: 'Oy 1-12 oralig\'ida bo\'lishi kerak' });
+    if (!startDate || !endDate) {
+      return res.status(400).json({ error: "Sana oralig'i kerak" });
     }
 
-    const totalDays = daysInMonth(year, month);
+    const start = parseDate(startDate);
+    const end = parseDate(endDate);
+    if (!start || !end) {
+      return res.status(400).json({ error: "Sana noto'g'ri" });
+    }
 
-    // Sana oralig'i (string)
-    const monthStr = String(month).padStart(2, '0');
-    const startDateStr = `${year}-${monthStr}-01`;
-    const endDateStr = `${year}-${monthStr}-${String(totalDays).padStart(2, '0')}`;
+    const startStr = dateToString(start);
+    const endStr = dateToString(end);
 
-    // Barcha xodimlar
-    const employees = await Employee.find({
+    const assignFilter = {
       businessId: req.businessId,
-      status: { $ne: 'deleted' },
-    }).sort('firstName').lean();
+      dateString: { $gte: startStr, $lte: endStr },
+    };
+    if (code && String(code).trim()) {
+      assignFilter['employeeSnapshot.code'] = String(code).trim();
+    }
 
-    // Oydagi barcha biriktirishlar
-    const assignments = await DailyAssignment.find({
+    const assignments = await DailyAssignment.find(assignFilter).lean();
+
+    const products = await DailyProduct.find({
       businessId: req.businessId,
-      dateString: { $gte: startDateStr, $lte: endDateStr },
+      dateString: { $gte: startStr, $lte: endStr },
     }).lean();
 
-    // To'lovlar (agar SalaryPayment model bor bo'lsa)
     let payments = [];
-    try {
-      payments = await SalaryPayment.find({
-        businessId: req.businessId,
-        dateString: { $gte: startDateStr, $lte: endDateStr },
-      }).lean();
-    } catch (e) {
-      payments = [];
-    }
-
-    // Kunlar ro'yxati
-    const days = [];
-    for (let d = 1; d <= totalDays; d++) {
-      days.push({
-        day: d,
-        dateString: `${year}-${monthStr}-${String(d).padStart(2, '0')}`,
-      });
-    }
-
-    // Har bir xodim uchun daysData yig'ish
-    const employeesData = employees.map((emp) => {
-      const empAssignments = assignments.filter(a => {
-        return String(a.employeeId) === String(emp._id);
-      });
-
-      const empPayments = payments.filter(p => {
-        return String(p.employeeId) === String(emp._id);
-      });
-
-      const daysData = {};
-      let totalShift = 0;
-      let totalEarning = 0;
-
-      for (let d = 1; d <= totalDays; d++) {
-        const dateStr = `${year}-${monthStr}-${String(d).padStart(2, '0')}`;
-        const dayAssignments = empAssignments.filter(a => a.dateString === dateStr);
-        const dayPayments = empPayments.filter(p => p.dateString === dateStr);
-
-        const dayShift = dayAssignments.reduce((s, a) => s + (a.shift || 0), 0);
-        const dayEarning = dayAssignments.reduce((s, a) => s + (a.earning || 0), 0);
-        const dayPaid = dayPayments.reduce((s, p) => s + (p.amount || 0), 0);
-
-        if (dayShift > 0 || dayPaid > 0) {
-          daysData[d] = {
-            totalShift: dayShift,
-            totalEarning: dayEarning,
-            paid: dayPaid > 0 || dayPayments.length > 0,
-            paidAmount: dayPaid,
-          };
-        }
-
-        totalShift += dayShift;
-        totalEarning += dayEarning;
+    if (SalaryPayment) {
+      try {
+        payments = await SalaryPayment.find({
+          businessId: req.businessId,
+          dateString: { $gte: startStr, $lte: endStr },
+        }).lean();
+      } catch (e) {
+        payments = [];
       }
+    }
 
-      const totalPaid = empPayments.reduce((s, p) => s + (p.amount || 0), 0);
-      const remaining = Math.max(0, totalEarning - totalPaid);
+    // Xodimlar bo'yicha guruhlash
+    const grouped = {};
+    for (const a of assignments) {
+      const empId = String(a.employeeId);
+      if (!grouped[empId]) {
+        grouped[empId] = {
+          _id: empId,
+          firstName: a.employeeSnapshot?.firstName || '-',
+          lastName: a.employeeSnapshot?.lastName || '-',
+          code: a.employeeSnapshot?.code || '-',
+          totalDays: 0,
+          totalShifts: 0,
+          totalEarning: 0,
+          totalPaid: 0,
+          remaining: 0,
+          assignments: [],
+        };
+      }
+      grouped[empId].totalDays++;
+      grouped[empId].totalShifts += a.shift || 0;
+      grouped[empId].totalEarning += a.earning || 0;
+      grouped[empId].assignments.push(a);
+    }
 
-      return {
-        _id: emp._id,
-        firstName: emp.firstName,
-        lastName: emp.lastName,
-        code: emp.code,
-        daysData,
-        totalShift,
-        totalEarning,
-        totalPaid,
-        remaining,
-      };
+    for (const p of payments) {
+      const empId = String(p.employeeId);
+      if (grouped[empId]) {
+        grouped[empId].totalPaid += p.amount || 0;
+      } else if (p.employeeSnapshot) {
+        grouped[empId] = {
+          _id: empId,
+          firstName: p.employeeSnapshot.firstName || '-',
+          lastName: p.employeeSnapshot.lastName || '-',
+          code: p.employeeSnapshot.code || '-',
+          totalDays: 0,
+          totalShifts: 0,
+          totalEarning: 0,
+          totalPaid: p.amount || 0,
+          remaining: 0,
+          assignments: [],
+        };
+      }
+    }
+
+    const employees = Object.values(grouped).map(e => {
+      e.remaining = Math.max(0, e.totalEarning - e.totalPaid);
+      return e;
     });
 
+    const totalEarning = assignments.reduce((s, a) => s + (a.earning || 0), 0);
+    const totalProductCount = products.reduce((s, p) => s + (p.quantity || 0), 0);
+    const totalPaid = payments.reduce((s, p) => s + (p.amount || 0), 0);
+
     res.json({
-      year,
-      month,
-      days,
-      employees: employeesData,
+      period: { startDate: start, endDate: end, startStr, endStr },
+      employees,
+      stats: {
+        totalEarning,
+        totalEmployees: employees.length,
+        totalProductCount,
+        totalAssignments: assignments.length,
+        totalPaid,
+      },
     });
   } catch (err) {
     console.error('Monthly report GET xato:', err);
@@ -139,32 +159,26 @@ router.get('/', async (req, res) => {
 
 /**
  * POST /api/monthly-report/pay
- * Body: { employeeIds, year, month, amount }
+ * Body: { employeeIds: [], amount, dateString? }
  */
 router.post('/pay', async (req, res) => {
   try {
-    const { employeeIds, year, month, amount } = req.body;
+    if (!SalaryPayment) {
+      return res.status(500).json({ error: "SalaryPayment model topilmadi" });
+    }
+
+    const { employeeIds, amount, dateString } = req.body;
 
     if (!Array.isArray(employeeIds) || employeeIds.length === 0) {
       return res.status(400).json({ error: 'employeeIds kerak' });
     }
 
-    const y = parseInt(year);
-    const m = parseInt(month);
     const amt = Math.max(0, Number(amount) || 0);
-
-    if (!y || !m || m < 1 || m > 12) {
-      return res.status(400).json({ error: 'Yil/oy noto\'g\'ri' });
-    }
-
     if (amt <= 0) {
-      return res.status(400).json({ error: 'Summa 0 dan katta bo\'lishi kerak' });
+      return res.status(400).json({ error: "Summa 0 dan katta bo'lishi kerak" });
     }
 
-    const today = new Date();
-    const monthStr = String(m).padStart(2, '0');
-    const dayStr = String(today.getDate()).padStart(2, '0');
-    const dateString = `${y}-${monthStr}-${dayStr}`;
+    const payDateString = dateString || dateToString(new Date());
 
     const payments = [];
     for (const empId of employeeIds) {
@@ -178,15 +192,13 @@ router.post('/pay', async (req, res) => {
         businessId: req.businessId,
         employeeId: empId,
         amount: amt,
-        dateString,
+        dateString: payDateString,
         date: new Date(),
         employeeSnapshot: {
           firstName: emp.firstName,
           lastName: emp.lastName || '-',
           code: emp.code,
         },
-        year: y,
-        month: m,
       });
     }
 
@@ -194,13 +206,7 @@ router.post('/pay', async (req, res) => {
       return res.status(404).json({ error: 'Xodim topilmadi' });
     }
 
-    try {
-      await SalaryPayment.insertMany(payments);
-    } catch (e) {
-      console.error('SalaryPayment insertMany xato:', e);
-      return res.status(500).json({ error: 'To\'lov saqlanmadi: ' + e.message });
-    }
-
+    await SalaryPayment.insertMany(payments);
     res.status(201).json({ success: true, count: payments.length });
   } catch (err) {
     console.error('Pay POST xato:', err);
@@ -209,31 +215,33 @@ router.post('/pay', async (req, res) => {
 });
 
 /**
- * POST /api/monthly-report/archive (eski endpoint - saqlangan)
+ * POST /api/monthly-report/archive
  */
 router.post('/archive', async (req, res) => {
   try {
-    const { year, month } = req.body;
-    const y = parseInt(year);
-    const m = parseInt(month);
+    const { startDate, endDate } = req.body;
 
-    if (!y || !m || m < 1 || m > 12) {
-      return res.status(400).json({ error: 'Yil/oy noto\'g\'ri' });
+    if (!startDate || !endDate) {
+      return res.status(400).json({ error: "Sana oralig'i kerak" });
     }
 
-    const totalDays = daysInMonth(y, m);
-    const monthStr = String(m).padStart(2, '0');
-    const startDateStr = `${y}-${monthStr}-01`;
-    const endDateStr = `${y}-${monthStr}-${String(totalDays).padStart(2, '0')}`;
+    const start = parseDate(startDate);
+    const end = parseDate(endDate);
+    if (!start || !end) {
+      return res.status(400).json({ error: "Sana noto'g'ri" });
+    }
+
+    const startStr = dateToString(start);
+    const endStr = dateToString(end);
 
     const [assignments, products] = await Promise.all([
       DailyAssignment.find({
         businessId: req.businessId,
-        dateString: { $gte: startDateStr, $lte: endDateStr },
+        dateString: { $gte: startStr, $lte: endStr },
       }).lean(),
       DailyProduct.find({
         businessId: req.businessId,
-        dateString: { $gte: startDateStr, $lte: endDateStr },
+        dateString: { $gte: startStr, $lte: endStr },
       }).lean(),
     ]);
 
@@ -242,13 +250,13 @@ router.post('/archive', async (req, res) => {
     const uniqueEmployees = new Set(assignments.map(a => a.employeeSnapshot?.code)).size;
     const totalProducts = products.reduce((s, p) => s + (p.quantity || 0), 0);
 
-    const periodLabel = `${y}-${monthStr}`;
+    const periodLabel = `${startStr} → ${endStr}`;
 
     const archive = new Archive({
       businessId: req.businessId,
-      year: y,
-      month: m,
       periodLabel,
+      startDate: start,
+      endDate: end,
       archivedAt: new Date(),
       data: { assignments, products },
       stats: {

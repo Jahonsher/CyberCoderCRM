@@ -41,21 +41,25 @@ router.get('/', async (req, res) => {
       return res.status(403).json({ error: 'Bu modul yoqilmagan' });
     }
 
+    // QATTIQ FILTER
     const filter = {
       businessId: req.businessId,
-      type,
+      type: type, // aniq match
     };
 
     const departments = await Department.find(filter).sort('name').lean();
 
-    // Har bir bo'lim uchun direction count'ni hisoblash
+    // JS darajasida ham filter (qo'shimcha xavfsizlik)
+    const filtered = departments.filter(d => d.type === type);
+
+    // Har bir bo'lim uchun direction count'ni hisoblash (faqat shu type)
     const result = await Promise.all(
-      departments.map(async (d) => {
+      filtered.map(async (d) => {
         const count = await Direction.countDocuments({
           businessId: req.businessId,
           departmentId: d._id,
           isArchived: { $ne: true },
-          type,
+          type: type, // qattiq filter
         });
         return { ...d, directionCount: count };
       })
