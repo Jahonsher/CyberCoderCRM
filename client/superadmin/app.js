@@ -24,8 +24,6 @@ const state = {
   deleteTargetId: null,
   logoFile: null,
   selectedModules: new Set(),
-  // YANGI: ish turlari (default ikkalasi yoqilgan)
-  workTypes: { piecework: true, daily: true },
 };
 
 // ============================================
@@ -334,16 +332,6 @@ function renderBusinessCard(b, idx) {
 
   const moduleCount = (b.enabledModules || []).length;
 
-  // YANGI: Ish turlari badge
-  const wt = b.enabledWorkTypes || { piecework: true, daily: true };
-  const workTypeBadges = [];
-  if (wt.piecework) {
-    workTypeBadges.push(`<span class="mono text-[10px] px-2 py-1 rounded bg-purple-500/15 border border-purple-500/30 text-purple-300">Shtuk</span>`);
-  }
-  if (wt.daily) {
-    workTypeBadges.push(`<span class="mono text-[10px] px-2 py-1 rounded" style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); color: #34d399;">Kunlik</span>`);
-  }
-
   const suspendIcon = b.status === 'active'
     ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>'
     : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
@@ -384,11 +372,6 @@ function renderBusinessCard(b, idx) {
             </svg>
             <span class="mono text-xs text-zinc-400">${moduleCount} modul</span>
           </div>
-        </div>
-
-        <!-- YANGI: Ish turlari -->
-        <div class="flex items-center gap-1.5 flex-wrap pt-1">
-          ${workTypeBadges.join('')}
         </div>
       </div>
 
@@ -467,54 +450,6 @@ function renderModulesInForm() {
 }
 
 // ============================================
-// YANGI: WORK TYPES TOGGLE
-// ============================================
-
-function renderWorkTypes() {
-  const pwCard = document.getElementById('wt_pieceworkCard');
-  const pwSwitch = document.getElementById('wt_pieceworkSwitch');
-  const dCard = document.getElementById('wt_dailyCard');
-  const dSwitch = document.getElementById('wt_dailySwitch');
-
-  if (pwCard) {
-    pwCard.classList.toggle('enabled', state.workTypes.piecework);
-    pwSwitch.classList.toggle('on', state.workTypes.piecework);
-  }
-  if (dCard) {
-    dCard.classList.toggle('enabled', state.workTypes.daily);
-    dSwitch.classList.toggle('on', state.workTypes.daily);
-  }
-}
-
-function setupWorkTypeToggles() {
-  const pwCard = document.getElementById('wt_pieceworkCard');
-  const dCard = document.getElementById('wt_dailyCard');
-
-  if (pwCard) {
-    pwCard.addEventListener('click', () => {
-      state.workTypes.piecework = !state.workTypes.piecework;
-      // Kamida bittasi yoqilgan bo'lishi kerak
-      if (!state.workTypes.piecework && !state.workTypes.daily) {
-        state.workTypes.piecework = true;
-        toast("Kamida bitta ish turi yoqilgan bo'lishi kerak", 'error');
-      }
-      renderWorkTypes();
-    });
-  }
-
-  if (dCard) {
-    dCard.addEventListener('click', () => {
-      state.workTypes.daily = !state.workTypes.daily;
-      if (!state.workTypes.piecework && !state.workTypes.daily) {
-        state.workTypes.daily = true;
-        toast("Kamida bitta ish turi yoqilgan bo'lishi kerak", 'error');
-      }
-      renderWorkTypes();
-    });
-  }
-}
-
-// ============================================
 // MODAL: CREATE/EDIT
 // ============================================
 
@@ -524,8 +459,6 @@ function openCreateModal() {
   state.selectedModules = new Set(
     state.allModules.filter(m => m.default).map(m => m.key)
   );
-  // YANGI: default ikkalasi yoqilgan
-  state.workTypes = { piecework: true, daily: true };
 
   document.getElementById('businessForm').reset();
   document.getElementById('editingId').value = '';
@@ -537,7 +470,6 @@ function openCreateModal() {
 
   resetLogoPreview();
   renderModulesInForm();
-  renderWorkTypes();
 
   const modal = document.getElementById('businessModal');
   modal.classList.remove('hidden');
@@ -553,11 +485,6 @@ function openEditModal(id) {
   state.editingId = id;
   state.logoFile = null;
   state.selectedModules = new Set(biz.enabledModules || []);
-  // YANGI: biznes ish turlarini olamiz
-  state.workTypes = {
-    piecework: biz.enabledWorkTypes?.piecework !== false,
-    daily: biz.enabledWorkTypes?.daily !== false,
-  };
 
   document.getElementById('editingId').value = id;
   document.getElementById('modalTitle').textContent = 'Biznesni tahrirlash';
@@ -581,7 +508,6 @@ function openEditModal(id) {
   }
 
   renderModulesInForm();
-  renderWorkTypes();
 
   const modal = document.getElementById('businessModal');
   modal.classList.remove('hidden');
@@ -661,9 +587,6 @@ function setupBusinessModal() {
     fd.append('defaultLanguage', document.getElementById('f_language').value);
     fd.append('note', document.getElementById('f_note').value.trim());
     fd.append('enabledModules', JSON.stringify(Array.from(state.selectedModules)));
-
-    // YANGI: ish turlarini yuborish
-    fd.append('enabledWorkTypes', JSON.stringify(state.workTypes));
 
     if (state.logoFile) fd.append('logo', state.logoFile);
 
@@ -827,7 +750,6 @@ document.addEventListener('DOMContentLoaded', () => {
   setupSidebar();
   setupSearch();
   setupBusinessModal();
-  setupWorkTypeToggles();
   setupConfirmModal();
   setupKeyboard();
 

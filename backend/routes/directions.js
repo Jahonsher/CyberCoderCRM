@@ -1,10 +1,9 @@
 /**
  * CyberCoderCRM - Direction routes
- * YANGI: Biznes faqat yoqgan ish turlarida yo'nalish yaratishi mumkin
- *
- * Query params:
- *   ?departmentId=...      - bo'lim bo'yicha filter
- *   ?type=piecework|daily  - turga qarab (yoqilganlar)
+ * YANGI:
+ *   - ?type=piecework|daily filter (majburiy GET da)
+ *   - POST/PUT body'da type kerak
+ *   - Modul ruxsati: piecework -> directionsPiecework, daily -> directionsDaily
  */
 
 const express = require('express');
@@ -15,32 +14,41 @@ const Department = require('../models/Department');
 const Business = require('../models/Business');
 const { verifyToken, requireAdmin } = require('../middleware/auth');
 const businessScope = require('../middleware/businessScope');
-const requireModule = require('../middleware/requireModule');
 
-router.use(verifyToken, requireAdmin, businessScope, requireModule('directions'));
+router.use(verifyToken, requireAdmin, businessScope);
 
-// Bizness enabledWorkTypes ni olish (cache uchun req'ga qo'yamiz)
-async function getBusinessWorkTypes(businessId) {
-  const biz = await Business.findById(businessId).select('enabledWorkTypes');
-  if (!biz) return { piecework: true, daily: true };
-  return biz.enabledWorkTypes || { piecework: true, daily: true };
+// Modul ruxsatini tekshirish - turga qarab
+async function checkModuleAccess(req, type) {
+  const moduleKey = type === 'daily' ? 'directionsDaily' : 'directionsPiecework';
+  const biz = await Business.findById(req.businessId).select('enabledModules');
+  if (!biz) return false;
+  const enabled = biz.enabledModules || [];
+  // Yangi modul yoki eski 'directions' yoqilgan bo'lsa - ruxsat
+  return enabled.includes(moduleKey) || enabled.includes('directions');
 }
 
 router.get('/', async (req, res) => {
   try {
     const { departmentId, type } = req.query;
+
+    // Type majburiy
+    if (!type || !['piecework', 'daily'].includes(type)) {
+      return res.status(400).json({ error: "type kerak: piecework yoki daily" });
+    }
+
+    // Modul ruxsati
+    const hasAccess = await checkModuleAccess(req, type);
+    if (!hasAccess) {
+      return res.status(403).json({ error: `Bu modul yoqilmagan` });
+    }
+
     const filter = {
       businessId: req.businessId,
       isArchived: { $ne: true },
+      type,
     };
 
     if (departmentId) filter.departmentId = departmentId;
-
-    if (type === 'piecework') {
-      filter.pieceworkEnabled = true;
-    } else if (type === 'daily') {
-      filter.dailyEnabled = true;
-    }
 
     const directions = await Direction.find(filter)
       .populate('departmentId', 'name')
@@ -49,40 +57,27 @@ router.get('/', async (req, res) => {
 
     res.json(directions);
   } catch (err) {
-    console.error('Directions xato:', err);
+    console.error('Directions GET xato:', err);
     res.status(500).json({ error: 'Server xatosi' });
   }
 });
 
 router.post('/', async (req, res) => {
   try {
-    const {
-      name,
-      departmentId,
-      pieceworkEnabled,
-      pieceworkPrice,
-      dailyEnabled,
-      dailyPrice,
-    } = req.body;
+    const { name, departmentId, type, price } = req.body;
 
     if (!name || !departmentId) {
       return res.status(400).json({ error: "Nom va bo'lim majburiy" });
     }
 
-    // Biznesning yoqgan ish turlarini olamiz
-    const businessTypes = await getBusinessWorkTypes(req.businessId);
+    if (!type || !['piecework', 'daily'].includes(type)) {
+      return res.status(400).json({ error: "type: piecework yoki daily" });
+    }
 
-    let pwEnabled = pieceworkEnabled !== false;
-    let dEnabled = dailyEnabled === true;
-
-    // Biznesda yoqilmagan turlarni avtomatik o'chiramiz
-    if (!businessTypes.piecework) pwEnabled = false;
-    if (!businessTypes.daily) dEnabled = false;
-
-    if (!pwEnabled && !dEnabled) {
-      return res.status(400).json({
-        error: "Kamida bitta ish turi yoqilgan bo'lishi kerak. Biznesda bunday tur yoqilmagan bo'lsa, SuperAdmin'ga murojaat qiling."
-      });
+    // Modul ruxsati
+    const hasAccess = await checkModuleAccess(req, type);
+    if (!hasAccess) {
+      return res.status(403).json({ error: `Bu tur uchun modul yoqilmagan` });
     }
 
     const dept = await Department.findOne({
@@ -91,18 +86,15 @@ router.post('/', async (req, res) => {
     });
     if (!dept) return res.status(404).json({ error: "Bo'lim topilmadi" });
 
-    const pwPrice = pwEnabled ? Math.max(0, Number(pieceworkPrice) || 0) : 0;
-    const dPrice = dEnabled ? Math.max(0, Number(dailyPrice) || 0) : 0;
+    const priceNum = Math.max(0, Number(price) || 0);
 
     const direction = new Direction({
       businessId: req.businessId,
       departmentId,
       name: String(name).trim(),
-      pieceworkEnabled: pwEnabled,
-      pieceworkPrice: pwPrice,
-      dailyEnabled: dEnabled,
-      dailyPrice: dPrice,
-      currentPrice: pwPrice, // backward compat
+      type,
+      price: priceNum,
+      currentPrice: priceNum, // backward compat
     });
 
     await direction.save();
@@ -117,14 +109,7 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   try {
-    const {
-      name,
-      departmentId,
-      pieceworkEnabled,
-      pieceworkPrice,
-      dailyEnabled,
-      dailyPrice,
-    } = req.body;
+    const { name, departmentId, type, price } = req.body;
 
     const direction = await Direction.findOne({
       _id: req.params.id,
@@ -132,8 +117,11 @@ router.put('/:id', async (req, res) => {
     });
     if (!direction) return res.status(404).json({ error: "Yo'nalish topilmadi" });
 
-    // Biznesning ruxsati
-    const businessTypes = await getBusinessWorkTypes(req.businessId);
+    // Modul ruxsati (turini bilgan holda)
+    const hasAccess = await checkModuleAccess(req, direction.type);
+    if (!hasAccess) {
+      return res.status(403).json({ error: `Bu tur uchun modul yoqilmagan` });
+    }
 
     if (name !== undefined) direction.name = String(name).trim();
 
@@ -146,31 +134,25 @@ router.put('/:id', async (req, res) => {
       direction.departmentId = departmentId;
     }
 
-    // Pieework
-    if (pieceworkEnabled !== undefined) {
-      const wantEnable = !!pieceworkEnabled;
-      // Biznesda yoqilmagan bo'lsa - false qilamiz
-      direction.pieceworkEnabled = wantEnable && businessTypes.piecework;
-    }
-    if (pieceworkPrice !== undefined && direction.pieceworkEnabled) {
-      direction.pieceworkPrice = Math.max(0, Number(pieceworkPrice) || 0);
-      direction.currentPrice = direction.pieceworkPrice; // sync
-    }
-
-    // Daily
-    if (dailyEnabled !== undefined) {
-      const wantEnable = !!dailyEnabled;
-      direction.dailyEnabled = wantEnable && businessTypes.daily;
-    }
-    if (dailyPrice !== undefined && direction.dailyEnabled) {
-      direction.dailyPrice = Math.max(0, Number(dailyPrice) || 0);
-    }
-
-    // Kamida bitta yoqilgan bo'lishi kerak
-    if (!direction.pieceworkEnabled && !direction.dailyEnabled) {
+    // Type o'zgartirish ruxsat bermaymiz (uni o'chirib qayta yaratish kerak)
+    if (type !== undefined && type !== direction.type) {
       return res.status(400).json({
-        error: "Kamida bitta ish turi yoqilgan bo'lishi kerak"
+        error: "Yo'nalish turini o'zgartirib bo'lmaydi. O'chirib qayta yarating."
       });
+    }
+
+    if (price !== undefined) {
+      const priceNum = Math.max(0, Number(price) || 0);
+      // Narx tarixi
+      if (priceNum !== direction.price && direction.price > 0) {
+        direction.priceHistory = direction.priceHistory || [];
+        direction.priceHistory.push({
+          price: direction.price,
+          changedAt: new Date(),
+        });
+      }
+      direction.price = priceNum;
+      direction.currentPrice = priceNum; // backward compat
     }
 
     await direction.save();

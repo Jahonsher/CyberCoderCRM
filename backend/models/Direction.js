@@ -1,7 +1,8 @@
 /**
  * CyberCoderCRM - Direction Model
- * Endi har yo'nalishda 2 ta type: piecework va daily
- * Har biri alohida yoqilishi/o'chirilishi va narxi belgilanishi mumkin
+ * YANGI: Har yo'nalish FAQAT BITTA tur (piecework yoki daily)
+ * Eski pieceworkEnabled/dailyEnabled/pieceworkPrice/dailyPrice OLIB TASHLANDI
+ * Endi: type + price
  */
 
 const mongoose = require('mongoose');
@@ -27,91 +28,74 @@ const directionSchema = new mongoose.Schema(
       maxlength: 100,
     },
 
-    // ESKI MAYDON - migratsiya uchun saqlanadi
+    // YANGI: Yo'nalish turi - piecework (dona) yoki daily (kunlik)
+    type: {
+      type: String,
+      enum: ['piecework', 'daily'],
+      required: true,
+      default: 'piecework',
+      index: true,
+    },
+
+    // YANGI: Bitta narx (piecework => so'm/dona, daily => so'm/smena)
+    price: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    // ESKI - backward compat (eski yozuvlarni o'qish uchun)
     currentPrice: {
       type: Number,
       default: 0,
-    },
-
-    // YANGI: Shtuk turi
-    pieceworkEnabled: {
-      type: Boolean,
-      default: true,
-    },
-    pieceworkPrice: {
-      type: Number,
-      default: 0,
       min: 0,
     },
+    pieceworkEnabled: { type: Boolean, default: undefined },
+    pieceworkPrice: { type: Number, default: undefined },
+    dailyEnabled: { type: Boolean, default: undefined },
+    dailyPrice: { type: Number, default: undefined },
 
-    // YANGI: Kunlik turi
-    dailyEnabled: {
+    priceHistory: [{
+      price: { type: Number, required: true },
+      changedAt: { type: Date, default: Date.now },
+    }],
+
+    isArchived: {
       type: Boolean,
       default: false,
-    },
-    dailyPrice: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-
-    status: {
-      type: String,
-      enum: ['active', 'archived'],
-      default: 'active',
       index: true,
     },
+    archivedAt: { type: Date, default: null },
   },
   {
     timestamps: true,
   }
 );
 
-directionSchema.index({ businessId: 1, status: 1 });
-directionSchema.index({ businessId: 1, departmentId: 1 });
+directionSchema.index({ businessId: 1, departmentId: 1, type: 1, isArchived: 1 });
+directionSchema.index({ businessId: 1, type: 1, isArchived: 1 });
 
-const Direction = mongoose.models.Direction || mongoose.model('Direction', directionSchema);
-
-// MIGRATSIYA: eski currentPrice -> pieceworkPrice
-async function migrateDirections() {
-  try {
-    // pieceworkPrice = 0 va currentPrice > 0 bo'lganlarni topish
-    const docs = await Direction.find({
-      $and: [
-        { currentPrice: { $gt: 0 } },
-        {
-          $or: [
-            { pieceworkPrice: 0 },
-            { pieceworkPrice: { $exists: false } },
-          ]
-        }
-      ]
-    });
-
-    if (docs.length > 0) {
-      console.log(`🔄 ${docs.length} ta yo'nalishni migratsiya qilmoqdaman...`);
-      for (const doc of docs) {
-        doc.pieceworkPrice = doc.currentPrice;
-        doc.pieceworkEnabled = true;
-        if (doc.dailyPrice === undefined || doc.dailyPrice === null) doc.dailyPrice = 0;
-        if (doc.dailyEnabled === undefined || doc.dailyEnabled === null) doc.dailyEnabled = false;
-        await doc.save();
-      }
-      console.log(`✅ Direction migratsiya tugadi`);
-    }
-  } catch (err) {
-    if (err.code !== 26 && !err.message?.includes('ns does not exist')) {
-      console.error('Direction migratsiya xato:', err.message);
-    }
+// Auto-migration: eski fieldlarni yangiga aylantirish
+directionSchema.pre('save', function(next) {
+  // Agar yangi 'price' yo'q bo'lsa - eskidan olamiz
+  if ((this.price === undefined || this.price === 0) && this.currentPrice > 0) {
+    this.price = this.currentPrice;
   }
-}
+  if ((this.price === undefined || this.price === 0) && this.pieceworkPrice > 0) {
+    this.price = this.pieceworkPrice;
+    if (!this.type) this.type = 'piecework';
+  }
+  if ((this.price === undefined || this.price === 0) && this.dailyPrice > 0) {
+    this.price = this.dailyPrice;
+    if (!this.type) this.type = 'daily';
+  }
 
-mongoose.connection.once('open', () => {
-  migrateDirections();
+  // currentPrice ni saqlash backward compat uchun
+  if (this.price > 0) {
+    this.currentPrice = this.price;
+  }
+
+  next();
 });
 
-if (mongoose.connection.readyState === 1) {
-  migrateDirections();
-}
-
-module.exports = Direction;
+module.exports = mongoose.models.Direction || mongoose.model('Direction', directionSchema);

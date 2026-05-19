@@ -1,106 +1,157 @@
 /**
  * CyberCoderCRM - Recalculate Service
- * Endi: kunlik xodim daromadi yo'nalishning dailyPrice'idan olinadi
+ *
+ * Piecework yo'nalishlar:
+ *   umumiy_summa = umumiy_mahsulot × yo'nalish_narxi
+ *   1_smena_narx = umumiy_summa / xodimlar_smena_yig'indisi
+ *   xodim_pul = 1_smena_narx × shift
+ *
+ *   Manual override: xodim qo'lda kiritsa, isManual=true bo'ladi.
+ *   - Manual amount < fair_share => deficit -> manual bo'lmagan xodimlarga bonus
+ *   - Manual amount > fair_share => faqat o'sha xodim oladi
+ *
+ * Daily yo'nalishlar:
+ *   xodim_pul = direction.price × shift (smena 0.5 yoki 1)
+ *   Manual qo'lda kiritilganda - shu summa
  */
 
 const DailyAssignment = require('../models/DailyAssignment');
 const DailyProduct = require('../models/DailyProduct');
 const Direction = require('../models/Direction');
 
-async function recalculateDirection(businessId, directionId, dateStr) {
-  const allAssignments = await DailyAssignment.find({
+async function recalculateForDate(businessId, dateStr) {
+  if (!businessId || !dateStr) return;
+
+  // 1) Barcha biriktirishlar
+  const assignments = await DailyAssignment.find({
     businessId,
-    directionId,
     dateString: dateStr,
   });
 
-  if (allAssignments.length === 0) return;
+  if (assignments.length === 0) return;
 
-  // Yo'nalishni olamiz - kunlik narxi uchun
-  const direction = await Direction.findById(directionId);
-  const dailyPrice = direction?.dailyPrice || 0;
-  const pieceworkPrice = direction?.pieceworkPrice || direction?.currentPrice || 0;
+  // 2) Mahsulotlar (faqat piecework hisoblash uchun)
+  const products = await DailyProduct.find({ businessId, dateString: dateStr });
+  const totalQuantity = products.reduce((s, p) => s + (p.quantity || 0), 0);
 
-  // 1. Kunlik xodimlar
-  const dailyAssignments = allAssignments.filter(a => a.type === 'daily');
+  // 3) Yo'nalishlar ID'lari - narxlarni olamiz
+  const directionIds = [...new Set(assignments.map(a => String(a.directionId)))];
+  const directions = await Direction.find({
+    _id: { $in: directionIds },
+  }).lean();
+  const directionMap = {};
+  directions.forEach(d => {
+    directionMap[String(d._id)] = d;
+  });
+
+  // ===========================================
+  // DAILY assignments - har biri alohida
+  // ===========================================
+  const dailyAssignments = assignments.filter(a => a.type === 'daily');
   for (const a of dailyAssignments) {
-    // Yo'nalishdagi kunlik narxni ishlatamiz
+    const direction = directionMap[String(a.directionId)];
+    if (!direction) continue;
+
+    const dailyPrice = direction.price || direction.currentPrice || direction.dailyPrice || 0;
     const baseAmount = dailyPrice * a.shift;
-    a.dailyAmount = dailyPrice; // yangilash
-    if (a.isManual && a.manualAmount !== null && a.manualAmount !== undefined) {
-      a.earning = a.manualAmount;
-    } else {
+
+    a.priceSnapshot = dailyPrice;
+
+    // Manual qo'lda kiritilgan bo'lsa, ushlab qolamiz
+    if (!a.isManual) {
       a.earning = baseAmount;
     }
     a.fairShare = baseAmount;
     a.bonus = 0;
+
     await a.save();
   }
 
-  // 2. Piecework xodimlar
-  const pieceworkAssignments = allAssignments.filter(a => a.type !== 'daily');
-  if (pieceworkAssignments.length === 0) return;
+  // ===========================================
+  // PIECEWORK assignments - umumiy hisoblash
+  // ===========================================
+  const pieceworkAssignments = assignments.filter(a => a.type === 'piecework' || (!a.type && !a.directionSnapshot?.type));
 
-  const products = await DailyProduct.find({
-    businessId,
-    dateString: dateStr,
-  });
+  if (pieceworkAssignments.length > 0) {
+    // Piecework bo'lim uchun umumiy narx (har bir yo'nalishning narxi × o'sha yo'nalishdagi shift yig'indisi)
+    // EMAS - bizning logikamiz: barcha piecework xodimlarga umumiy puldan teng taqsimlash
 
-  const totalQuantity = products.reduce((sum, p) => sum + p.quantity, 0);
-  const totalAmount = totalQuantity * pieceworkPrice;
+    // Aslida har yo'nalishning narxi har xil. Lekin oldingi logika "umumiy puldan" edi
+    // Demak biz har xodimga unga tegishli yo'nalish narxida hisoblaymiz, lekin
+    // fairShare = (totalQuantity * direction.price) / totalShiftsForThatDirection
+    // bo'lishi kerak
 
-  const employeeCount = pieceworkAssignments.length;
-  const oneShiftPrice = employeeCount > 0 ? totalAmount / employeeCount : 0;
+    // Yo'nalishlar bo'yicha guruh
+    const groupsByDirection = {};
+    pieceworkAssignments.forEach(a => {
+      const did = String(a.directionId);
+      if (!groupsByDirection[did]) groupsByDirection[did] = [];
+      groupsByDirection[did].push(a);
+    });
 
-  let deficitPool = 0;
-  const processed = pieceworkAssignments.map(a => {
-    const fairShare = oneShiftPrice * a.shift;
-    if (a.isManual && a.manualAmount !== null && a.manualAmount !== undefined) {
-      const diff = fairShare - a.manualAmount;
-      if (diff > 0) deficitPool += diff;
-      return { assignment: a, fairShare, isManual: true };
+    for (const [dirId, group] of Object.entries(groupsByDirection)) {
+      const direction = directionMap[dirId];
+      if (!direction) continue;
+
+      const pieceworkPrice = direction.price || direction.currentPrice || direction.pieceworkPrice || 0;
+
+      // Umumiy summa shu yo'nalish uchun = umumiy_mahsulot × narx
+      const totalAmount = totalQuantity * pieceworkPrice;
+
+      // Shu yo'nalishdagi umumiy shift
+      const totalShifts = group.reduce((s, a) => s + (a.shift || 0), 0);
+      if (totalShifts <= 0) continue;
+
+      // 1 smena narxi
+      const oneShiftPrice = totalAmount / totalShifts;
+
+      // Manual va non-manual ajratish
+      const manualOnes = group.filter(a => a.isManual);
+      const nonManualOnes = group.filter(a => !a.isManual);
+
+      // Manual xodimlar fair share dan ortig'ini olganmi yoki kamini?
+      let totalManualEarning = 0;
+      let totalManualFairShare = 0;
+      manualOnes.forEach(a => {
+        const fairShare = oneShiftPrice * (a.shift || 0);
+        a.fairShare = fairShare;
+        a.priceSnapshot = pieceworkPrice;
+        const manualAmount = a.manualAmount !== undefined && a.manualAmount !== null ? a.manualAmount : a.earning;
+        totalManualEarning += manualAmount;
+        totalManualFairShare += fairShare;
+      });
+
+      // Manual'lardan qolgan summa non-manual'larga
+      const remainingForNonManual = totalAmount - totalManualEarning;
+      const totalNonManualShifts = nonManualOnes.reduce((s, a) => s + (a.shift || 0), 0);
+
+      let newOneShiftPriceForNonManual = 0;
+      if (totalNonManualShifts > 0) {
+        newOneShiftPriceForNonManual = Math.max(0, remainingForNonManual) / totalNonManualShifts;
+      }
+
+      // Manual xodimlarga - manual amount
+      for (const a of manualOnes) {
+        const manualAmount = a.manualAmount !== undefined && a.manualAmount !== null ? a.manualAmount : a.earning;
+        a.earning = manualAmount;
+        const fairShare = oneShiftPrice * (a.shift || 0);
+        a.fairShare = fairShare;
+        a.bonus = Math.max(0, manualAmount - fairShare); // ortiq olgani
+        await a.save();
+      }
+
+      // Non-manual xodimlarga - qaytadan hisoblangan summa
+      for (const a of nonManualOnes) {
+        const fairShare = oneShiftPrice * (a.shift || 0);
+        const newEarning = newOneShiftPriceForNonManual * (a.shift || 0);
+        a.earning = newEarning;
+        a.fairShare = fairShare;
+        a.bonus = Math.max(0, newEarning - fairShare); // manual'lardan kelgan bonus
+        a.priceSnapshot = pieceworkPrice;
+        await a.save();
+      }
     }
-    return { assignment: a, fairShare, isManual: false };
-  });
-
-  const nonManualCount = processed.filter(p => !p.isManual).length;
-  const bonusPerEmployee = nonManualCount > 0 ? deficitPool / nonManualCount : 0;
-
-  for (const p of processed) {
-    const a = p.assignment;
-    a.priceSnapshot = pieceworkPrice;
-    if (p.isManual) {
-      a.fairShare = p.fairShare;
-      a.earning = a.manualAmount;
-      a.bonus = 0;
-    } else {
-      a.fairShare = p.fairShare;
-      a.bonus = bonusPerEmployee;
-      a.earning = p.fairShare + bonusPerEmployee;
-    }
-    await a.save();
   }
-
-  return {
-    totalQuantity, pieceworkPrice, totalAmount, oneShiftPrice,
-    deficitPool, bonusPerEmployee,
-    pieceworkCount: pieceworkAssignments.length,
-    dailyCount: dailyAssignments.length,
-  };
 }
 
-async function recalculateDay(businessId, dateStr) {
-  const directionIds = await DailyAssignment.find({
-    businessId,
-    dateString: dateStr,
-  }).distinct('directionId');
-
-  const results = [];
-  for (const directionId of directionIds) {
-    const result = await recalculateDirection(businessId, directionId, dateStr);
-    if (result) results.push({ directionId, ...result });
-  }
-  return results;
-}
-
-module.exports = { recalculateDirection, recalculateDay };
+module.exports = { recalculateForDate };

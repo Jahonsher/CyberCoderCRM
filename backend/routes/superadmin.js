@@ -1,6 +1,6 @@
 /**
  * CyberCoderCRM - SuperAdmin Routes
- * YANGI: enabledWorkTypes (piecework + daily) qabul qilinadi
+ * v2: enabledWorkTypes OLIB TASHLANDI, faqat enabledModules (directionsPiecework, directionsDaily)
  */
 
 const express = require('express');
@@ -21,29 +21,6 @@ const { getAllModules } = require('../config/modules');
 
 router.use(verifyToken, requireSuperAdmin);
 
-// enabledWorkTypes ni parse qiluvchi yordamchi
-function parseWorkTypes(input) {
-  if (!input) {
-    return { piecework: true, daily: true };
-  }
-  // FormData orqali keladi - JSON string yoki object
-  let obj = input;
-  if (typeof input === 'string') {
-    try {
-      obj = JSON.parse(input);
-    } catch (e) {
-      return { piecework: true, daily: true };
-    }
-  }
-  const pw = obj.piecework === true || obj.piecework === 'true';
-  const d = obj.daily === true || obj.daily === 'true';
-  // Kamida bittasi yoqilgan bo'lishi kerak
-  if (!pw && !d) {
-    return { piecework: true, daily: true };
-  }
-  return { piecework: pw, daily: d };
-}
-
 router.get('/modules', (req, res) => {
   res.json(getAllModules());
 });
@@ -56,7 +33,6 @@ router.get('/stats', async (req, res) => {
       Business.countDocuments({ status: 'suspended' }),
       Employee.countDocuments({ status: { $ne: 'deleted' } }),
     ]);
-
     res.json({
       totalBusinesses: total,
       activeBusinesses: active,
@@ -72,7 +48,6 @@ router.get('/stats', async (req, res) => {
 router.get('/businesses', async (req, res) => {
   try {
     const businesses = await Business.find().select('-password').sort('-createdAt');
-
     const result = await Promise.all(
       businesses.map(async (biz) => {
         const employeeCount = await Employee.countDocuments({
@@ -80,17 +55,12 @@ router.get('/businesses', async (req, res) => {
           status: { $ne: 'deleted' },
         });
         const obj = biz.toObject();
-        // enabledWorkTypes - default bilan
-        if (!obj.enabledWorkTypes) {
-          obj.enabledWorkTypes = { piecework: true, daily: true };
-        }
         return {
           ...obj,
           stats: { employees: employeeCount },
         };
       })
     );
-
     res.json(result);
   } catch (err) {
     console.error('Businesses xato:', err);
@@ -100,7 +70,7 @@ router.get('/businesses', async (req, res) => {
 
 router.post('/businesses', upload.single('logo'), async (req, res) => {
   try {
-    const { name, phone, login, password, defaultLanguage, note, enabledModules, enabledWorkTypes } = req.body;
+    const { name, phone, login, password, defaultLanguage, note, enabledModules } = req.body;
 
     console.log('📝 Yangi biznes yaratish:', { name, login, hasPassword: !!password });
 
@@ -136,9 +106,6 @@ router.post('/businesses', upload.single('logo'), async (req, res) => {
       modules = getAllModules().filter(m => m.default).map(m => m.key);
     }
 
-    const workTypes = parseWorkTypes(enabledWorkTypes);
-    console.log('🛠 Work types:', workTypes);
-
     const hashedPassword = await bcrypt.hash(passwordStr, 10);
 
     const business = new Business({
@@ -149,18 +116,15 @@ router.post('/businesses', upload.single('logo'), async (req, res) => {
       defaultLanguage: defaultLanguage || 'uz-lat',
       note: note ? String(note).trim() : '',
       enabledModules: modules,
-      enabledWorkTypes: workTypes,
       logo: req.file ? req.file.filename : null,
       status: 'active',
     });
 
     await business.save();
-
     console.log(`✅ Biznes yaratildi: ${business.name} (${loginLower})`);
 
     const result = business.toObject();
     delete result.password;
-
     res.status(201).json(result);
   } catch (err) {
     console.error('❌ Business yaratishda xato:', err);
@@ -171,7 +135,7 @@ router.post('/businesses', upload.single('logo'), async (req, res) => {
 router.put('/businesses/:id', upload.single('logo'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, phone, login, password, defaultLanguage, note, enabledModules, enabledWorkTypes } = req.body;
+    const { name, phone, login, password, defaultLanguage, note, enabledModules } = req.body;
 
     const business = await Business.findById(id);
     if (!business) return res.status(404).json({ error: 'Biznes topilmadi' });
@@ -201,13 +165,6 @@ router.put('/businesses/:id', upload.single('logo'), async (req, res) => {
       try {
         business.enabledModules = JSON.parse(enabledModules);
       } catch (e) {}
-    }
-
-    // YANGI: enabledWorkTypes ni yangilash
-    if (enabledWorkTypes !== undefined) {
-      const workTypes = parseWorkTypes(enabledWorkTypes);
-      business.enabledWorkTypes = workTypes;
-      console.log('🛠 Work types yangilandi:', workTypes);
     }
 
     if (req.file) {
@@ -252,13 +209,11 @@ router.put('/businesses/:id/modules', async (req, res) => {
     if (!Array.isArray(enabledModules)) {
       return res.status(400).json({ error: "enabledModules array bo'lishi kerak" });
     }
-
     const business = await Business.findByIdAndUpdate(
       req.params.id,
       { enabledModules },
       { new: true }
     ).select('-password');
-
     if (!business) return res.status(404).json({ error: 'Biznes topilmadi' });
     res.json(business);
   } catch (err) {
@@ -270,7 +225,6 @@ router.put('/businesses/:id/modules', async (req, res) => {
 router.delete('/businesses/:id', async (req, res) => {
   try {
     const { id } = req.params;
-
     await Promise.all([
       Employee.deleteMany({ businessId: id }),
       Direction.deleteMany({ businessId: id }),
@@ -280,7 +234,6 @@ router.delete('/businesses/:id', async (req, res) => {
       Archive.deleteMany({ businessId: id }),
       Business.findByIdAndDelete(id),
     ]);
-
     console.log(`🗑️ Biznes o'chirildi: ${id}`);
     res.json({ success: true });
   } catch (err) {
