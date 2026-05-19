@@ -843,7 +843,7 @@ function setupDirectionsPage() {
     });
   }
 
-  // Direction - YANGI 2 ta type bilan
+  // Direction - YANGI 2 ta type bilan + biznes ruxsati
   document.getElementById('dirAddBtn').addEventListener('click', () => {
     if (!state.selectedDepartmentId) {
       toast(t('dept.selectFirst'), 'error');
@@ -854,13 +854,15 @@ function setupDirectionsPage() {
     document.getElementById('dirEditingId').value = '';
     document.getElementById('dirModalTitle').textContent = t('dir.add');
 
-    // Default values
-    document.getElementById('dirPieceworkEnabled').checked = true;
+    // YANGI: Biznes ruxsatlariga qarab default values
+    const bizWT = state.business?.enabledWorkTypes || { piecework: true, daily: true };
+    document.getElementById('dirPieceworkEnabled').checked = bizWT.piecework;
     document.getElementById('dirDailyEnabled').checked = false;
     document.getElementById('dirPieceworkPrice').value = '';
     document.getElementById('dirDailyPrice').value = '';
 
     fillDepartmentSelect('dirDepartment', state.selectedDepartmentId);
+    applyBusinessWorkTypeRestrictions(); // YANGI
     toggleDirPieceworkWrap();
     toggleDirDailyWrap();
 
@@ -963,10 +965,75 @@ function openDirEdit(id) {
   const deptId = dir.departmentId?._id || dir.departmentId || state.selectedDepartmentId;
   fillDepartmentSelect('dirDepartment', deptId);
 
+  applyBusinessWorkTypeRestrictions(); // YANGI
   toggleDirPieceworkWrap();
   toggleDirDailyWrap();
 
   openModal('dirModal');
+}
+
+// YANGI: Biznes yoqgan ish turlariga qarab toggle'larni cheklash
+function applyBusinessWorkTypeRestrictions() {
+  const bizWT = state.business?.enabledWorkTypes || { piecework: true, daily: true };
+
+  const pwCheckbox = document.getElementById('dirPieceworkEnabled');
+  const pwToggleWrap = pwCheckbox?.closest('.type-toggle-wrap');
+  const pwLabel = pwToggleWrap?.querySelector('label');
+
+  const dCheckbox = document.getElementById('dirDailyEnabled');
+  const dToggleWrap = document.getElementById('dirDailyToggleWrap');
+  const dLabel = dToggleWrap?.querySelector('label');
+
+  // Piecework
+  if (pwCheckbox && pwToggleWrap) {
+    if (!bizWT.piecework) {
+      pwCheckbox.checked = false;
+      pwCheckbox.disabled = true;
+      pwToggleWrap.style.opacity = '0.4';
+      pwToggleWrap.style.cursor = 'not-allowed';
+      if (pwLabel) pwLabel.style.cursor = 'not-allowed';
+      // Hint badge
+      const existingHint = pwToggleWrap.querySelector('.biz-disabled-hint');
+      if (!existingHint) {
+        const hint = document.createElement('div');
+        hint.className = 'biz-disabled-hint mono text-[10px] px-3 py-2 text-amber-400/80';
+        hint.textContent = "⚠ Biznesda Shtuk turi yoqilmagan (SuperAdmin)";
+        pwToggleWrap.appendChild(hint);
+      }
+    } else {
+      pwCheckbox.disabled = false;
+      pwToggleWrap.style.opacity = '';
+      pwToggleWrap.style.cursor = '';
+      if (pwLabel) pwLabel.style.cursor = 'pointer';
+      const hint = pwToggleWrap.querySelector('.biz-disabled-hint');
+      if (hint) hint.remove();
+    }
+  }
+
+  // Daily
+  if (dCheckbox && dToggleWrap) {
+    if (!bizWT.daily) {
+      dCheckbox.checked = false;
+      dCheckbox.disabled = true;
+      dToggleWrap.style.opacity = '0.4';
+      dToggleWrap.style.cursor = 'not-allowed';
+      if (dLabel) dLabel.style.cursor = 'not-allowed';
+      const existingHint = dToggleWrap.querySelector('.biz-disabled-hint');
+      if (!existingHint) {
+        const hint = document.createElement('div');
+        hint.className = 'biz-disabled-hint mono text-[10px] px-3 py-2 text-amber-400/80';
+        hint.textContent = "⚠ Biznesda Kunlik turi yoqilmagan (SuperAdmin)";
+        dToggleWrap.appendChild(hint);
+      }
+    } else {
+      dCheckbox.disabled = false;
+      dToggleWrap.style.opacity = '';
+      dToggleWrap.style.cursor = '';
+      if (dLabel) dLabel.style.cursor = 'pointer';
+      const hint = dToggleWrap.querySelector('.biz-disabled-hint');
+      if (hint) hint.remove();
+    }
+  }
 }
 
 function fillDepartmentSelect(selectId, selectedId) {
