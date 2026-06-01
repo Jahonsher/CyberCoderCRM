@@ -1,8 +1,3 @@
-/**
- * CyberCoderCRM - SuperAdmin Routes
- * v2: enabledWorkTypes OLIB TASHLANDI, faqat enabledModules (directionsPiecework, directionsDaily)
- */
-
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const router = express.Router();
@@ -47,20 +42,21 @@ router.get('/stats', async (req, res) => {
 
 router.get('/businesses', async (req, res) => {
   try {
-    const businesses = await Business.find().select('-password').sort('-createdAt');
-    const result = await Promise.all(
-      businesses.map(async (biz) => {
-        const employeeCount = await Employee.countDocuments({
-          businessId: biz._id,
-          status: { $ne: 'deleted' },
-        });
-        const obj = biz.toObject();
-        return {
-          ...obj,
-          stats: { employees: employeeCount },
-        };
-      })
-    );
+    const [businesses, empCounts] = await Promise.all([
+      Business.find().select('-password').sort('-createdAt').lean(),
+      Employee.aggregate([
+        { $match: { status: { $ne: 'deleted' } } },
+        { $group: { _id: '$businessId', count: { $sum: 1 } } },
+      ]),
+    ]);
+
+    const countMap = {};
+    empCounts.forEach(c => { countMap[String(c._id)] = c.count; });
+
+    const result = businesses.map(biz => ({
+      ...biz,
+      stats: { employees: countMap[String(biz._id)] || 0 },
+    }));
     res.json(result);
   } catch (err) {
     console.error('Businesses xato:', err);

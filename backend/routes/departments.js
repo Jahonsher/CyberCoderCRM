@@ -1,8 +1,3 @@
-/**
- * CyberCoderCRM - Departments Routes
- * YANGI: ?type=piecework|daily filter va body'da type majburiy
- */
-
 const express = require('express');
 const router = express.Router();
 
@@ -47,23 +42,21 @@ router.get('/', async (req, res) => {
       type: type, // aniq match
     };
 
-    const departments = await Department.find(filter).sort('name').lean();
+    const [departments, dirCounts] = await Promise.all([
+      Department.find(filter).sort('name').lean(),
+      Direction.aggregate([
+        { $match: { businessId: req.businessId, type: type, isArchived: { $ne: true } } },
+        { $group: { _id: '$departmentId', count: { $sum: 1 } } },
+      ]),
+    ]);
 
-    // JS darajasida ham filter (qo'shimcha xavfsizlik)
-    const filtered = departments.filter(d => d.type === type);
+    const countMap = {};
+    dirCounts.forEach(c => { countMap[String(c._id)] = c.count; });
 
-    // Har bir bo'lim uchun direction count'ni hisoblash (faqat shu type)
-    const result = await Promise.all(
-      filtered.map(async (d) => {
-        const count = await Direction.countDocuments({
-          businessId: req.businessId,
-          departmentId: d._id,
-          isArchived: { $ne: true },
-          type: type, // qattiq filter
-        });
-        return { ...d, directionCount: count };
-      })
-    );
+    const result = departments.map(d => ({
+      ...d,
+      directionCount: countMap[String(d._id)] || 0,
+    }));
 
     res.json(result);
   } catch (err) {

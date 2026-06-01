@@ -1,20 +1,3 @@
-/**
- * CyberCoderCRM - Recalculate Service
- *
- * Piecework yo'nalishlar:
- *   umumiy_summa = umumiy_mahsulot × yo'nalish_narxi
- *   1_smena_narx = umumiy_summa / xodimlar_smena_yig'indisi
- *   xodim_pul = 1_smena_narx × shift
- *
- *   Manual override: xodim qo'lda kiritsa, isManual=true bo'ladi.
- *   - Manual amount < fair_share => deficit -> manual bo'lmagan xodimlarga bonus
- *   - Manual amount > fair_share => faqat o'sha xodim oladi
- *
- * Daily yo'nalishlar:
- *   xodim_pul = direction.price × shift (smena 0.5 yoki 1)
- *   Manual qo'lda kiritilganda - shu summa
- */
-
 const DailyAssignment = require('../models/DailyAssignment');
 const DailyProduct = require('../models/DailyProduct');
 const Direction = require('../models/Direction');
@@ -44,9 +27,8 @@ async function recalculateForDate(businessId, dateStr) {
     directionMap[String(d._id)] = d;
   });
 
-  // ===========================================
-  // DAILY assignments - har biri alohida
-  // ===========================================
+  const bulkOps = [];
+
   const dailyAssignments = assignments.filter(a => a.type === 'daily');
   for (const a of dailyAssignments) {
     const direction = directionMap[String(a.directionId)];
@@ -55,16 +37,18 @@ async function recalculateForDate(businessId, dateStr) {
     const dailyPrice = direction.price || direction.currentPrice || direction.dailyPrice || 0;
     const baseAmount = dailyPrice * a.shift;
 
-    a.priceSnapshot = dailyPrice;
-
-    // Manual qo'lda kiritilgan bo'lsa, ushlab qolamiz
+    const update = {
+      priceSnapshot: dailyPrice,
+      fairShare: baseAmount,
+      bonus: 0,
+    };
     if (!a.isManual) {
-      a.earning = baseAmount;
+      update.earning = baseAmount;
     }
-    a.fairShare = baseAmount;
-    a.bonus = 0;
 
-    await a.save();
+    bulkOps.push({
+      updateOne: { filter: { _id: a._id }, update: { $set: update } },
+    });
   }
 
   // ===========================================
@@ -130,27 +114,42 @@ async function recalculateForDate(businessId, dateStr) {
         newOneShiftPriceForNonManual = Math.max(0, remainingForNonManual) / totalNonManualShifts;
       }
 
-      // Manual xodimlarga - manual amount
       for (const a of manualOnes) {
         const manualAmount = a.manualAmount !== undefined && a.manualAmount !== null ? a.manualAmount : a.earning;
-        a.earning = manualAmount;
         const fairShare = oneShiftPrice * (a.shift || 0);
-        a.fairShare = fairShare;
-        a.bonus = Math.max(0, manualAmount - fairShare); // ortiq olgani
-        await a.save();
+        bulkOps.push({
+          updateOne: {
+            filter: { _id: a._id },
+            update: { $set: {
+              earning: manualAmount,
+              fairShare: fairShare,
+              bonus: Math.max(0, manualAmount - fairShare),
+              priceSnapshot: pieceworkPrice,
+            }},
+          },
+        });
       }
 
-      // Non-manual xodimlarga - qaytadan hisoblangan summa
       for (const a of nonManualOnes) {
         const fairShare = oneShiftPrice * (a.shift || 0);
         const newEarning = newOneShiftPriceForNonManual * (a.shift || 0);
-        a.earning = newEarning;
-        a.fairShare = fairShare;
-        a.bonus = Math.max(0, newEarning - fairShare); // manual'lardan kelgan bonus
-        a.priceSnapshot = pieceworkPrice;
-        await a.save();
+        bulkOps.push({
+          updateOne: {
+            filter: { _id: a._id },
+            update: { $set: {
+              earning: newEarning,
+              fairShare: fairShare,
+              bonus: Math.max(0, newEarning - fairShare),
+              priceSnapshot: pieceworkPrice,
+            }},
+          },
+        });
       }
     }
+  }
+
+  if (bulkOps.length > 0) {
+    await DailyAssignment.bulkWrite(bulkOps);
   }
 }
 

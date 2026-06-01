@@ -1,7 +1,3 @@
-/**
- * CyberCoderCRM - Employees routes
- */
-
 const express = require('express');
 const router = express.Router();
 
@@ -37,7 +33,10 @@ router.get('/', async (req, res) => {
       ];
     }
 
-    const employees = await Employee.find(filter).sort('-createdAt');
+    const employees = await Employee.find(filter)
+      .select('firstName lastName code phone createdAt')
+      .sort('-createdAt')
+      .lean();
     res.json(employees);
   } catch (err) {
     console.error('Employees GET xato:', err);

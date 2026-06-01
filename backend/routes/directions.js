@@ -1,11 +1,3 @@
-/**
- * CyberCoderCRM - Direction routes
- * YANGI:
- *   - ?type=piecework|daily filter (majburiy GET da)
- *   - POST/PUT body'da type kerak
- *   - Modul ruxsati: piecework -> directionsPiecework, daily -> directionsDaily
- */
-
 const express = require('express');
 const router = express.Router();
 
@@ -56,12 +48,7 @@ router.get('/', async (req, res) => {
       .sort('-createdAt')
       .lean();
 
-    // Qo'shimcha xavfsizlik - JS darajasida ham filter qilish
-    const filtered = directions.filter(d => d.type === type);
-
-    console.log(`[Directions] business=${req.businessId} type=${type} dept=${departmentId || '-'} count=${filtered.length}`);
-
-    res.json(filtered);
+    res.json(directions);
   } catch (err) {
     console.error('Directions GET xato:', err);
     res.status(500).json({ error: 'Server xatosi' });
