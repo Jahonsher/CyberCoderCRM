@@ -1,9 +1,3 @@
-/**
- * CyberCoderCRM - Admin Application (SPA)
- * YANGI: 2 ta alohida yo'nalish sahifasi (directionsPiecework, directionsDaily)
- * Har biri o'z bo'limlari, yo'nalishlari va ADD modal ga ega
- */
-
 const API_BASE = window.API_BASE || '';
 
 function apiUrl(path) {
@@ -18,6 +12,7 @@ const STORAGE = {
 
 const MODULE_ICONS = {
   employees: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>`,
+  directions: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>`,
   directionsPiecework: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`,
   directionsDaily: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
   dailyReport: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
@@ -34,7 +29,6 @@ const state = {
 
   employees: [],
 
-  // YANGI: 2 ta alohida sahifa state'i
   departments_pw: [],
   directions_pw: [],
   selectedDepartmentId_pw: null,
@@ -43,16 +37,12 @@ const state = {
   directions_d: [],
   selectedDepartmentId_d: null,
 
-  // Modal context - qaysi turdan ochilgan
   dirModalType: 'piecework',
   deptModalType: 'piecework',
 
   dailyData: null,
   dailyDate: null,
-  monthData: null,
   monthlyData: null,
-  monthSelected: new Set(),
-  monthSelectedDays: new Set(),
   archives: [],
 
   _assignDirections: [],
@@ -342,8 +332,8 @@ function buildSidebar(enabledModules, modulesInfo) {
   nav.innerHTML = `<div class="mono text-[10px] text-zinc-500 px-3 mb-2 uppercase tracking-widest">${t('nav.modules')}</div>`;
 
   const order = ['employees', 'directionsPiecework', 'directionsDaily', 'dailyReport', 'monthlyReport', 'archive'];
+  const directionKeys = ['directionsPiecework', 'directionsDaily'];
 
-  // Backward compat: eski 'directions' yoqilgan bo'lsa, ikkalasini ham qo'shamiz
   let effectiveModules = [...enabledModules];
   if (enabledModules.includes('directions') && !enabledModules.includes('directionsPiecework') && !enabledModules.includes('directionsDaily')) {
     effectiveModules = effectiveModules.filter(m => m !== 'directions');
@@ -351,16 +341,58 @@ function buildSidebar(enabledModules, modulesInfo) {
   }
 
   const sortedKeys = order.filter(k => effectiveModules.includes(k));
+  const activeDirectionKeys = directionKeys.filter(k => sortedKeys.includes(k));
 
-  const items = sortedKeys.map(key => {
-    const icon = MODULE_ICONS[key] || MODULE_ICONS.employees;
-    const label = t(`nav.${key}`);
-    return `<a href="#" class="nav-item" data-page="${key}">${icon}<span>${label}</span></a>`;
-  }).join('');
+  var directionGroupInserted = false;
+  var html = '';
 
-  nav.insertAdjacentHTML('beforeend', items);
-  nav.querySelectorAll('[data-page]').forEach(el => {
-    el.addEventListener('click', (e) => {
+  sortedKeys.forEach(function(key) {
+    if (directionKeys.indexOf(key) !== -1) {
+      if (!directionGroupInserted) {
+        directionGroupInserted = true;
+        if (activeDirectionKeys.length > 0) {
+          var dirIcon = MODULE_ICONS.directions;
+          var chevron = '<svg class="nav-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>';
+          var isCurrentDir = directionKeys.indexOf(state.currentPage) !== -1;
+
+          html += '<div class="nav-group">';
+          html += '<a href="#" class="nav-item nav-group-toggle' + (isCurrentDir ? ' expanded' : '') + '" data-group="directions">' + dirIcon + '<span>' + t('nav.directions') + '</span><span class="ml-auto">' + chevron + '</span></a>';
+          html += '<div class="nav-group-items' + (isCurrentDir ? '' : ' collapsed') + '" data-group-items="directions">';
+
+          activeDirectionKeys.forEach(function(dk) {
+            var icon = MODULE_ICONS[dk] || MODULE_ICONS.employees;
+            var label = t('nav.' + dk);
+            html += '<a href="#" class="nav-item nav-sub-item" data-page="' + dk + '">' + icon + '<span>' + label + '</span></a>';
+          });
+
+          html += '</div></div>';
+        }
+      }
+      return;
+    }
+
+    var icon = MODULE_ICONS[key] || MODULE_ICONS.employees;
+    var label = t('nav.' + key);
+    html += '<a href="#" class="nav-item" data-page="' + key + '">' + icon + '<span>' + label + '</span></a>';
+  });
+
+  nav.insertAdjacentHTML('beforeend', html);
+
+  nav.querySelectorAll('.nav-group-toggle').forEach(function(el) {
+    el.addEventListener('click', function(e) {
+      e.preventDefault();
+      var group = el.dataset.group;
+      var groupItems = nav.querySelector('[data-group-items="' + group + '"]');
+      if (groupItems) {
+        var isOpen = !groupItems.classList.contains('collapsed');
+        groupItems.classList.toggle('collapsed', isOpen);
+        el.classList.toggle('expanded', !isOpen);
+      }
+    });
+  });
+
+  nav.querySelectorAll('[data-page]').forEach(function(el) {
+    el.addEventListener('click', function(e) {
       e.preventDefault();
       navigateTo(el.dataset.page);
     });
@@ -386,6 +418,16 @@ function navigateTo(pageKey) {
   document.querySelectorAll('[data-page]').forEach(el => {
     el.classList.toggle('active', el.dataset.page === pageKey);
   });
+
+  var dirKeys = ['directionsPiecework', 'directionsDaily'];
+  if (dirKeys.indexOf(pageKey) !== -1) {
+    var groupToggle = document.querySelector('.nav-group-toggle[data-group="directions"]');
+    var groupItems = document.querySelector('[data-group-items="directions"]');
+    if (groupToggle && groupItems) {
+      groupItems.classList.remove('collapsed');
+      groupToggle.classList.add('expanded');
+    }
+  }
 
   document.getElementById('pageTitle').textContent = t(`nav.${pageKey}`);
   document.getElementById('pageSubtitle').textContent = '';
@@ -569,7 +611,7 @@ function confirmDeleteEmployee(id, name) {
 }
 
 // ============================================
-// DEPARTMENTS + DIRECTIONS - YANGI (har tur uchun alohida)
+// DEPARTMENTS + DIRECTIONS
 // ============================================
 
 function suffixForType(type) {
@@ -936,7 +978,6 @@ function setupDirectionsDaily() {
 }
 
 function setupDirectionForms() {
-  // Department form (umumiy)
   document.getElementById('deptForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('deptSubmitBtn');
@@ -944,7 +985,7 @@ function setupDirectionForms() {
     const body = {
       name: document.getElementById('deptName').value.trim(),
       description: document.getElementById('deptDescription').value.trim(),
-      type: state.deptModalType || 'piecework', // YANGI: qaysi sahifadan ochilganini
+      type: state.deptModalType || 'piecework',
     };
     btn.disabled = true;
     spinner.classList.remove('hidden');
@@ -965,7 +1006,6 @@ function setupDirectionForms() {
     }
   });
 
-  // Direction form
   document.getElementById('dirForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('dirSubmitBtn');
@@ -1446,12 +1486,8 @@ function confirmDeleteProduct(id) {
 }
 
 // ============================================
-// MONTHLY REPORT - HTML strukturasiga mos
+// MONTHLY REPORT
 // ============================================
-
-function todayDateStr() {
-  return todayISO();
-}
 
 function firstDayOfMonthStr() {
   var d = new Date();
@@ -1465,7 +1501,7 @@ function initMonthlyReport() {
   var startInput = document.getElementById('monthStart');
   var endInput = document.getElementById('monthEnd');
   if (startInput && !startInput.value) startInput.value = firstDayOfMonthStr();
-  if (endInput && !endInput.value) endInput.value = todayDateStr();
+  if (endInput && !endInput.value) endInput.value = todayISO();
 
   // Avtomatik yuklash
   loadMonthlyReport();
@@ -1805,7 +1841,7 @@ function exportMonthlyToExcel() {
 
 
 async function loadArchive() {
-  var container = document.getElementById('archiveContainer');
+  var container = document.getElementById('archiveResultsContainer');
   if (!container) return;
   container.innerHTML = '<div class="p-6"><div class="skeleton h-32"></div></div>';
   try {
@@ -1819,7 +1855,7 @@ async function loadArchive() {
 }
 
 function renderArchive(archives) {
-  var container = document.getElementById('archiveContainer');
+  var container = document.getElementById('archiveResultsContainer');
   if (archives.length === 0) {
     container.innerHTML = '<div class="p-12 text-center text-zinc-500">' + t('common.emptyData') + '</div>';
     return;

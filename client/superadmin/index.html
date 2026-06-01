@@ -336,6 +336,39 @@
     .switch.on { background: #8b5cf6; }
     .switch.on::after { left: 19px; }
 
+    .module-group-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: rgba(139, 92, 246, 0.05);
+      border: 1px solid rgba(139, 92, 246, 0.15);
+      cursor: pointer; transition: all 0.2s;
+    }
+    .module-group-header:hover { border-color: rgba(139, 92, 246, 0.3); }
+    .module-group-header.has-enabled {
+      background: rgba(139, 92, 246, 0.12);
+      border-color: rgba(139, 92, 246, 0.35);
+    }
+    .module-group-chevron {
+      transition: transform 0.25s ease;
+      flex-shrink: 0;
+    }
+    .module-group-header.expanded .module-group-chevron {
+      transform: rotate(90deg);
+    }
+    .module-group-items {
+      overflow: hidden;
+      max-height: 200px;
+      transition: max-height 0.3s ease, opacity 0.2s ease;
+      margin-top: 6px;
+      padding-left: 16px;
+    }
+    .module-group-items.collapsed {
+      max-height: 0;
+      opacity: 0;
+      margin-top: 0;
+    }
+
     @media (max-width: 1023px) {
       .sidebar {
         position: fixed; left: 0; top: 0; bottom: 0;
@@ -674,7 +707,7 @@
   </div>
 
   <script>
-    window.API_BASE = 'https://cybercodercrm-production.up.railway.app';
+    window.API_BASE = '';
   </script>
 
   <script src="/superadmin/app.js"></script>

@@ -361,6 +361,27 @@
       border: 1px solid rgba(139, 92, 246, 0.25);
     }
 
+    .nav-group-items {
+      overflow: hidden;
+      max-height: 200px;
+      transition: max-height 0.3s ease, opacity 0.2s ease;
+    }
+    .nav-group-items.collapsed {
+      max-height: 0;
+      opacity: 0;
+    }
+    .nav-sub-item {
+      padding-left: 38px !important;
+      font-size: 13px;
+    }
+    .nav-chevron {
+      transition: transform 0.25s ease;
+      flex-shrink: 0;
+    }
+    .nav-group-toggle.expanded .nav-chevron {
+      transform: rotate(90deg);
+    }
+
     .stat-card {
       background: var(--glass-bg);
       border: 1px solid var(--glass-border);
@@ -1382,7 +1403,7 @@
     </div>
   </div>
 
-  <!-- MODAL: DIRECTION - YANGI 2 ta type bilan -->
+  <!-- MODAL: DIRECTION -->
   <div id="dirModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
     <div class="modal-content w-full max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
       <div class="p-6 border-b border-purple-500/10 flex items-center justify-between">
@@ -1431,7 +1452,7 @@
     </div>
   </div>
 
-  <!-- MODAL: ASSIGN - YANGI tartib (Xodim → Ish turi → Bo'lim → Yo'nalish → Smena) -->
+  <!-- MODAL: ASSIGN -->
   <div id="assignModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
     <div class="modal-content w-full max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
       <div class="p-6 border-b border-purple-500/10 flex items-center justify-between">
@@ -1649,7 +1670,7 @@
   </div>
 
   <script>
-    window.API_BASE = 'https://cybercodercrm-production.up.railway.app';
+    window.API_BASE = '';
   </script>
 
   <script src="/shared/translations.js"></script>

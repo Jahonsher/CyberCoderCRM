@@ -1,8 +1,3 @@
-/**
- * CyberCoderCRM - Translations
- * 3 ta til: O'zbek (Lotin), Ўзбек (Кирилл), Русский
- */
-
 const TRANSLATIONS = {
   'uz-lat': {
     'common.loading': 'Yuklanmoqda...',
@@ -35,6 +30,7 @@ const TRANSLATIONS = {
     'common.note': 'Izoh',
     'common.language': 'Til',
     'common.emptyData': "Ma'lumot yo'q",
+    'common.logoutConfirm': 'Chiqishni tasdiqlaysizmi?',
     'common.notFound': 'Topilmadi',
     'common.error': 'Xato',
     'common.success': 'Muvaffaqiyatli',
@@ -85,7 +81,6 @@ const TRANSLATIONS = {
     'dir.priceChanged': "Narx o'zgartirildi - eski kunlar eski narxda qoladi",
     'dir.table.type': 'Turi',
     'dir.table.price': 'Kunlik Narxi',
-    // YANGI - 2 ta type uchun
     'dir.pieceworkType': 'Dona turi',
     'dir.dailyType': 'Kunlik turi',
     'dir.pieceworkPrice': "Dona narxi (so'm/dona)",
@@ -132,7 +127,6 @@ const TRANSLATIONS = {
     'month.empty': "Bu davrda ma'lumot yo'q",
 
     'archive.title': 'Arxiv',
-    'archive.empty': "Arxivda hech narsa yo'q",
     'archive.period': 'Davr',
     'archive.archivedAt': 'Arxivlangan vaqt',
     'archive.view': "Ko'rish",
@@ -245,6 +239,7 @@ const TRANSLATIONS = {
     'common.note': 'Изоҳ',
     'common.language': 'Тил',
     'common.emptyData': 'Маълумот йўқ',
+    'common.logoutConfirm': 'Чиқишни тасдиқлайсизми?',
     'common.notFound': 'Топилмади',
     'common.error': 'Хато',
     'common.success': 'Муваффақиятли',
@@ -341,7 +336,6 @@ const TRANSLATIONS = {
     'month.empty': 'Бу даврда маълумот йўқ',
 
     'archive.title': 'Архив',
-    'archive.empty': 'Архивда ҳеч нарса йўқ',
     'archive.period': 'Давр',
     'archive.archivedAt': 'Архивланган вақт',
     'archive.view': 'Кўриш',
@@ -454,6 +448,7 @@ const TRANSLATIONS = {
     'common.note': 'Примечание',
     'common.language': 'Язык',
     'common.emptyData': 'Нет данных',
+    'common.logoutConfirm': 'Подтвердите выход?',
     'common.notFound': 'Не найдено',
     'common.error': 'Ошибка',
     'common.success': 'Успешно',
@@ -550,7 +545,6 @@ const TRANSLATIONS = {
     'month.empty': 'Нет данных за этот период',
 
     'archive.title': 'Архив',
-    'archive.empty': 'В архиве ничего нет',
     'archive.period': 'Период',
     'archive.archivedAt': 'Время архивации',
     'archive.view': 'Просмотр',

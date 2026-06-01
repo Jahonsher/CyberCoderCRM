@@ -5,11 +5,6 @@ function apiUrl(path) {
   return API_BASE.replace(/\/$/, "") + path;
 }
 
-/**
- * CyberCoderCRM - SuperAdmin Application
- * YANGI: enabledWorkTypes (piecework + daily) qo'shildi
- */
-
 const STORAGE = {
   token: 'cc_sa_token',
   user: 'cc_sa_user',
@@ -24,6 +19,7 @@ const state = {
   deleteTargetId: null,
   logoFile: null,
   selectedModules: new Set(),
+  _dirGroupOpen: false,
 };
 
 // ============================================
@@ -423,9 +419,15 @@ function setupSearch() {
 
 function renderModulesInForm() {
   const container = document.getElementById('modulesContainer');
-  container.innerHTML = state.allModules.map(mod => {
+  const directionKeys = ['directionsPiecework', 'directionsDaily'];
+  const directionModules = state.allModules.filter(m => directionKeys.includes(m.key));
+  const otherModules = state.allModules.filter(m => !directionKeys.includes(m.key));
+
+  let html = '';
+
+  otherModules.forEach(mod => {
     const enabled = state.selectedModules.has(mod.key);
-    return `
+    html += `
       <div class="module-toggle ${enabled ? 'enabled' : ''}" data-module="${mod.key}">
         <div class="flex-1 min-w-0">
           <div class="font-medium text-sm">${escapeHtml(mod.name)}</div>
@@ -434,7 +436,46 @@ function renderModulesInForm() {
         <div class="switch ${enabled ? 'on' : ''}"></div>
       </div>
     `;
-  }).join('');
+  });
+
+  if (directionModules.length > 0) {
+    const anyDirEnabled = directionModules.some(m => state.selectedModules.has(m.key));
+    const isExpanded = state._dirGroupOpen || false;
+    const chevron = '<svg class="module-group-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>';
+
+    html += `
+      <div class="col-span-full">
+        <div class="module-group-header ${anyDirEnabled ? 'has-enabled' : ''} ${isExpanded ? 'expanded' : ''}" data-group-toggle="directions">
+          <div class="flex items-center gap-3 flex-1 min-w-0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-purple-400"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+            <div>
+              <div class="font-medium text-sm">Yo'nalish</div>
+              <div class="mono text-[10px] text-zinc-500 mt-0.5">${anyDirEnabled ? directionModules.filter(m => state.selectedModules.has(m.key)).map(m => m.name).join(', ') : "o'chirilgan"}</div>
+            </div>
+          </div>
+          ${chevron}
+        </div>
+        <div class="module-group-items ${isExpanded ? '' : 'collapsed'}" data-group-items="directions">
+          <div class="space-y-2">
+            ${directionModules.map(mod => {
+              const enabled = state.selectedModules.has(mod.key);
+              return `
+                <div class="module-toggle ${enabled ? 'enabled' : ''}" data-module="${mod.key}">
+                  <div class="flex-1 min-w-0">
+                    <div class="font-medium text-sm">${escapeHtml(mod.name)}</div>
+                    <div class="mono text-[10px] text-zinc-500 mt-0.5">${escapeHtml(mod.key)}</div>
+                  </div>
+                  <div class="switch ${enabled ? 'on' : ''}"></div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  container.innerHTML = html;
 
   container.querySelectorAll('[data-module]').forEach(el => {
     el.addEventListener('click', () => {
@@ -445,6 +486,17 @@ function renderModulesInForm() {
         state.selectedModules.add(key);
       }
       renderModulesInForm();
+    });
+  });
+
+  container.querySelectorAll('[data-group-toggle="directions"]').forEach(el => {
+    el.addEventListener('click', () => {
+      state._dirGroupOpen = !state._dirGroupOpen;
+      const itemsEl = container.querySelector('[data-group-items="directions"]');
+      if (itemsEl) {
+        itemsEl.classList.toggle('collapsed', !state._dirGroupOpen);
+        el.classList.toggle('expanded', state._dirGroupOpen);
+      }
     });
   });
 }
