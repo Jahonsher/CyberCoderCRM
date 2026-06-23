@@ -3,11 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CyberCoderCRM</title>
+  <title>CyberCoderCRM · Admin</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -17,1662 +16,571 @@
       --bg-primary: #0a0a0f;
       --bg-secondary: #12121a;
       --accent: #8b5cf6;
-      --text-primary: #f4f4f6;
-      --text-secondary: #a1a1aa;
-      --glass-bg: rgba(22, 22, 34, 0.5);
-      --glass-border: rgba(139, 92, 246, 0.12);
-      --sidebar-bg: rgba(18, 18, 26, 0.7);
+      --accent-bright: #c4b5fd;
+      --text-primary: #ffffff;
+      --text-secondary: #e4e4e7;
+      --text-muted: #d4d4d8;
+      --glass-bg: rgba(22, 22, 34, 0.55);
+      --glass-border: rgba(139, 92, 246, 0.28);
+      --sidebar-bg: rgba(18, 18, 26, 0.75);
       --input-bg: rgba(10, 10, 15, 0.6);
-      --input-border: rgba(139, 92, 246, 0.2);
-      --scroll-thumb: rgba(139, 92, 246, 0.3);
-      --hover-bg: rgba(139, 92, 246, 0.08);
-      --table-head-bg: rgba(139, 92, 246, 0.08);
+      --input-border: rgba(139, 92, 246, 0.35);
+      --card-bg: rgba(22, 22, 34, 0.6);
     }
-
     [data-theme="light"] {
       --bg-primary: #f1f3f8;
       --bg-secondary: #ffffff;
       --accent: #6d28d9;
+      --accent-bright: #5b21b6;
       --text-primary: #0f172a;
-      --text-secondary: #334155;
+      --text-secondary: #1e293b;
+      --text-muted: #334155;
       --glass-bg: rgba(255, 255, 255, 0.95);
-      --glass-border: rgba(71, 85, 105, 0.25);
+      --glass-border: rgba(71, 85, 105, 0.3);
       --sidebar-bg: rgba(255, 255, 255, 0.98);
       --input-bg: #ffffff;
-      --input-border: rgba(71, 85, 105, 0.35);
-      --scroll-thumb: rgba(109, 40, 217, 0.4);
-      --hover-bg: rgba(109, 40, 217, 0.08);
-      --table-head-bg: rgba(109, 40, 217, 0.08);
-    }
-
-    [data-theme="light"] .bg-mesh {
-      background:
-        radial-gradient(circle at 15% 20%, rgba(124, 58, 237, 0.06) 0%, transparent 40%),
-        radial-gradient(circle at 85% 80%, rgba(168, 85, 247, 0.05) 0%, transparent 40%) !important;
-    }
-
-    [data-theme="light"] .bg-grid {
-      background-image:
-        linear-gradient(rgba(124, 58, 237, 0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(124, 58, 237, 0.04) 1px, transparent 1px) !important;
-    }
-
-    [data-theme="light"] .input-field::placeholder { color: #64748b; }
-    [data-theme="light"] ::-webkit-scrollbar-track { background: rgba(0,0,0,0.05) !important; }
-
-    [data-theme="light"] .nav-item {
-      color: #1e293b;
-      font-weight: 500;
-    }
-    [data-theme="light"] .nav-item:hover {
-      color: #0f172a;
-      background: rgba(109, 40, 217, 0.1);
-    }
-    [data-theme="light"] .nav-item.active {
-      background: linear-gradient(135deg, rgba(109, 40, 217, 0.18), rgba(109, 40, 217, 0.08));
-      color: #6d28d9;
-      border: 1px solid rgba(109, 40, 217, 0.35);
-      font-weight: 600;
-    }
-
-    [data-theme="light"] .modal-content {
-      background: #ffffff !important;
-      color: var(--text-primary);
-      border: 1px solid rgba(71, 85, 105, 0.25) !important;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    }
-
-    [data-theme="light"] .modal-backdrop {
-      background: rgba(15, 23, 42, 0.5) !important;
-    }
-
-    [data-theme="light"] .data-table thead {
-      background: rgba(109, 40, 217, 0.1);
-    }
-    [data-theme="light"] .data-table th {
-      color: #1e293b;
-      font-weight: 700;
-      border-bottom: 2px solid rgba(71, 85, 105, 0.3);
-    }
-    [data-theme="light"] .data-table td {
-      color: #0f172a;
-      border-bottom: 1px solid rgba(71, 85, 105, 0.18);
-    }
-    [data-theme="light"] .data-table tbody tr:hover {
-      background: rgba(109, 40, 217, 0.06);
-    }
-
-    [data-theme="light"] .logo-placeholder {
-      background: linear-gradient(135deg, #6d28d9, #4f46e5);
-    }
-
-    [data-theme="light"] .field-label {
-      color: #1e293b;
-      font-weight: 700;
-    }
-
-    [data-theme="light"] .input-field {
-      color: #0f172a;
-      font-weight: 500;
-    }
-    [data-theme="light"] .input-field:focus {
-      border-color: #6d28d9;
-      box-shadow: 0 0 0 4px rgba(109, 40, 217, 0.12);
-    }
-
-    [data-theme="light"] .card,
-    [data-theme="light"] .stat-card,
-    [data-theme="light"] .glass {
-      border-color: rgba(71, 85, 105, 0.2);
-      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
-    }
-
-    [data-theme="light"] .sidebar {
-      border-right: 1px solid rgba(71, 85, 105, 0.2);
-      box-shadow: 2px 0 10px rgba(15, 23, 42, 0.04);
-    }
-
-    [data-theme="light"] .biz-card {
-      background: #ffffff;
-      border: 1px solid rgba(71, 85, 105, 0.22);
-      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
-    }
-    [data-theme="light"] .biz-card:hover {
-      border-color: #6d28d9;
-      box-shadow: 0 10px 25px rgba(109, 40, 217, 0.15);
-    }
-
-    [data-theme="light"] .text-zinc-400 { color: #475569 !important; }
-    [data-theme="light"] .text-zinc-500 { color: #334155 !important; font-weight: 500; }
-    [data-theme="light"] .text-zinc-600 { color: #1e293b !important; }
-    [data-theme="light"] .text-zinc-300 { color: #0f172a !important; }
-
-    [data-theme="light"] .text-purple-300 { color: #6d28d9 !important; font-weight: 600; }
-    [data-theme="light"] .text-purple-400 { color: #5b21b6 !important; }
-
-    [data-theme="light"] .text-emerald-400 { color: #047857 !important; font-weight: 700; }
-    [data-theme="light"] .text-amber-400 { color: #b45309 !important; font-weight: 600; }
-    [data-theme="light"] .text-red-300 { color: #b91c1c !important; }
-    [data-theme="light"] .text-red-400 { color: #991b1b !important; }
-
-    [data-theme="light"] .bg-purple-500\/5 {
-      background-color: rgba(109, 40, 217, 0.05) !important;
-    }
-    [data-theme="light"] .bg-purple-500\/10 {
-      background-color: rgba(109, 40, 217, 0.1) !important;
-    }
-    [data-theme="light"] .bg-purple-500\/20 {
-      background-color: rgba(109, 40, 217, 0.15) !important;
-    }
-    [data-theme="light"] .border-purple-500\/10 {
-      border-color: rgba(71, 85, 105, 0.22) !important;
-    }
-    [data-theme="light"] .border-purple-500\/20 {
-      border-color: rgba(109, 40, 217, 0.3) !important;
-    }
-
-    [data-theme="light"] .bg-amber-500\/5 {
-      background-color: rgba(180, 83, 9, 0.08) !important;
-    }
-    [data-theme="light"] .border-amber-500\/10 {
-      border-color: rgba(180, 83, 9, 0.2) !important;
-    }
-    [data-theme="light"] .text-amber-300\/70 { color: #92400e !important; font-weight: 600; }
-
-    [data-theme="light"] h1,
-    [data-theme="light"] h2,
-    [data-theme="light"] h3 {
-      color: #0f172a;
-    }
-
-    [data-theme="light"] .btn-icon {
-      background: rgba(109, 40, 217, 0.08);
-      border: 1px solid rgba(71, 85, 105, 0.25);
-      color: #1e293b;
-    }
-    [data-theme="light"] .btn-icon:hover {
-      background: rgba(109, 40, 217, 0.15);
-      color: #6d28d9;
-      border-color: #6d28d9;
-    }
-    [data-theme="light"] .btn-icon.danger:hover {
-      background: rgba(185, 28, 28, 0.1);
-      color: #991b1b;
-      border-color: #991b1b;
-    }
-
-    [data-theme="light"] .btn-ghost {
-      background: rgba(109, 40, 217, 0.1);
-      color: #5b21b6;
-      border: 1px solid rgba(71, 85, 105, 0.25);
-      font-weight: 600;
-    }
-    [data-theme="light"] .btn-ghost:hover {
-      background: rgba(109, 40, 217, 0.2);
-      border-color: #6d28d9;
-    }
-
-    [data-theme="light"] .btn-danger {
-      background: rgba(185, 28, 28, 0.1);
-      color: #991b1b;
-      border: 1px solid rgba(185, 28, 28, 0.3);
-      font-weight: 600;
-    }
-
-    [data-theme="light"] .toast-success {
-      background: #ffffff;
-      border: 2px solid #047857;
-      color: #047857;
-      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
-    }
-    [data-theme="light"] .toast-error {
-      background: #ffffff;
-      border: 2px solid #991b1b;
-      color: #991b1b;
-      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
-    }
-
-    [data-theme="light"] .lang-switch {
-      background: rgba(109, 40, 217, 0.08);
-      border: 1px solid rgba(71, 85, 105, 0.2);
-    }
-    [data-theme="light"] .lang-switch button {
-      color: #475569;
-    }
-    [data-theme="light"] .lang-switch button:hover {
-      color: #0f172a;
-    }
-    [data-theme="light"] .lang-switch button.active {
-      background: #6d28d9;
-      color: #ffffff;
-      font-weight: 700;
-    }
-
-    [data-theme="light"] #themeToggle {
-      color: #1e293b;
-      border-color: rgba(71, 85, 105, 0.25) !important;
-    }
-    [data-theme="light"] #themeToggle:hover {
-      background: rgba(109, 40, 217, 0.1) !important;
-      color: #6d28d9 !important;
-      border-color: #6d28d9 !important;
-    }
-
-    [data-theme="light"] #logoutBtn {
-      color: #1e293b;
-    }
-
-    [data-theme="light"] .glass {
-      border: 1px solid rgba(71, 85, 105, 0.2);
-      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.1);
-    }
-
-    [data-theme="light"] #loginError {
-      background: #fef2f2;
-      border: 1px solid #dc2626;
-      color: #991b1b;
-    }
-
-    [data-theme="light"] .badge-active,
-    [data-theme="light"] .badge-success {
-      background: rgba(4, 120, 87, 0.1);
-      color: #047857;
-      border: 1px solid rgba(4, 120, 87, 0.3);
-    }
-    [data-theme="light"] .badge-suspended,
-    [data-theme="light"] .badge-warning {
-      background: rgba(180, 83, 9, 0.1);
-      color: #b45309;
-      border: 1px solid rgba(180, 83, 9, 0.3);
+      --input-border: rgba(71, 85, 105, 0.4);
+      --card-bg: #ffffff;
     }
 
     * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-
-    html, body {
-      margin: 0;
-      padding: 0;
-      overflow-x: hidden;
-      max-width: 100vw;
-    }
+    html, body { margin: 0; padding: 0; overflow-x: hidden; }
 
     body {
       font-family: 'Space Grotesk', sans-serif;
+      font-weight: 500;
       background: var(--bg-primary);
       color: var(--text-primary);
-      height: 100vh;
-      overflow: hidden;
+      min-height: 100vh;
       transition: background 0.3s ease, color 0.3s ease;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
+    .mono { font-family: 'JetBrains Mono', monospace; font-weight: 500; }
 
-    .mono { font-family: 'JetBrains Mono', monospace; }
+    /* Tailwind text-zinc-* ranglarini brightroq qilish (dark theme) */
+    .text-zinc-300, .text-zinc-400 { color: var(--text-secondary) !important; }
+    .text-zinc-500 { color: var(--text-muted) !important; }
+    .text-zinc-600 { color: var(--text-muted) !important; }
+
+    /* Light theme override — zinclarni qora-yaqin qilish */
+    [data-theme="light"] .text-zinc-300,
+    [data-theme="light"] .text-zinc-400 { color: #1e293b !important; }
+    [data-theme="light"] .text-zinc-500,
+    [data-theme="light"] .text-zinc-600 { color: #334155 !important; }
+
+    /* Heading weight */
+    h1, h2, h3, h4 { font-weight: 700; letter-spacing: -0.01em; }
+
+    /* Accent ranglarni yorqin qilish */
+    .text-purple-300 { color: #c4b5fd !important; font-weight: 600; }
+    .text-purple-400 { color: #a78bfa !important; }
+    .text-emerald-300 { color: #6ee7b7 !important; font-weight: 600; }
+    .text-emerald-400 { color: #34d399 !important; }
+    .text-amber-300 { color: #fcd34d !important; font-weight: 600; }
+    .text-amber-400 { color: #fbbf24 !important; }
+    .text-red-300 { color: #fca5a5 !important; font-weight: 600; }
+    .text-red-400 { color: #f87171 !important; }
+    [data-theme="light"] .text-purple-300 { color: #6d28d9 !important; }
+    [data-theme="light"] .text-emerald-300, [data-theme="light"] .text-emerald-400 { color: #047857 !important; }
+    [data-theme="light"] .text-amber-400 { color: #b45309 !important; }
+    [data-theme="light"] .text-red-300, [data-theme="light"] .text-red-400 { color: #b91c1c !important; }
 
     .bg-mesh {
-      position: fixed; inset: 0; z-index: 0;
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
       background:
         radial-gradient(circle at 15% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 40%),
         radial-gradient(circle at 85% 80%, rgba(168, 85, 247, 0.08) 0%, transparent 40%);
-      pointer-events: none;
     }
 
-    .bg-grid {
-      position: fixed; inset: 0; z-index: 1;
-      background-image:
-        linear-gradient(rgba(139, 92, 246, 0.025) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(139, 92, 246, 0.025) 1px, transparent 1px);
-      background-size: 60px 60px;
-      mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
-      pointer-events: none;
-    }
+    .glass { background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--glass-border); }
+    .sidebar { background: var(--sidebar-bg); border-right: 1px solid var(--glass-border); }
+    .card { background: var(--card-bg); border: 1px solid var(--glass-border); border-radius: 1rem; }
+    .stat-card { background: var(--card-bg); border: 1px solid var(--glass-border); border-radius: 1rem; padding: 1.25rem; }
 
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
-    ::-webkit-scrollbar-thumb { background: rgba(139, 92, 246, 0.3); border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.5); }
+    .input-field { background: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-primary); font-family: 'Space Grotesk', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s; }
+    .input-field:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18); }
+    .input-field::placeholder { color: var(--text-muted); opacity: 0.7; }
+    .field-label { display: block; font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.06em; }
 
-    .glass {
-      background: var(--glass-bg);
-      backdrop-filter: blur(20px) saturate(1.4);
-      -webkit-backdrop-filter: blur(20px) saturate(1.4);
-      border: 1px solid var(--glass-border);
-      transition: background 0.3s ease, border-color 0.3s ease;
-    }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), #a78bfa); color: white; font-weight: 700; border: none; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; letter-spacing: 0.01em; }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 10px 30px -10px rgba(139, 92, 246, 0.5); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
-    .sidebar {
-      background: var(--sidebar-bg);
-      backdrop-filter: blur(20px) saturate(1.4);
-      -webkit-backdrop-filter: blur(20px) saturate(1.4);
-      border-right: 1px solid var(--glass-border);
-      transition: background 0.3s ease;
-    }
-    .sidebar::-webkit-scrollbar { width: 4px; }
+    .btn-ghost { background: transparent; border: 1px solid var(--input-border); color: var(--text-primary); cursor: pointer; transition: all 0.2s; font-weight: 600; }
+    .btn-ghost:hover { background: rgba(139, 92, 246, 0.12); border-color: var(--accent); }
 
-    .nav-item {
-      display: flex; align-items: center; gap: 12px;
-      padding: 10px 14px;
-      border-radius: 10px;
-      color: var(--text-secondary);
-      font-size: 14px; font-weight: 500;
-      transition: all 0.2s; cursor: pointer;
-    }
-    .nav-item:hover { background: rgba(139, 92, 246, 0.08); color: var(--text-primary); }
-    .nav-item.active {
-      background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.05));
-      color: #a78bfa;
-      border: 1px solid rgba(139, 92, 246, 0.25);
-    }
+    .btn-danger { font-weight: 700; }
 
-    .nav-group-items {
-      overflow: hidden;
-      max-height: 200px;
-      transition: max-height 0.3s ease, opacity 0.2s ease;
-    }
-    .nav-group-items.collapsed {
-      max-height: 0;
-      opacity: 0;
-    }
-    .nav-sub-item {
-      padding-left: 38px !important;
-      font-size: 13px;
-    }
-    .nav-chevron {
-      transition: transform 0.25s ease;
-      flex-shrink: 0;
-    }
-    .nav-group-toggle.expanded .nav-chevron {
-      transform: rotate(90deg);
-    }
+    .btn-danger { background: linear-gradient(135deg, #dc2626, #ef4444); color: white; border: none; cursor: pointer; font-weight: 600; }
+    .btn-danger:hover { transform: translateY(-1px); }
 
-    .stat-card {
-      background: var(--glass-bg);
-      border: 1px solid var(--glass-border);
-      border-radius: 16px;
-      padding: 20px;
-      transition: all 0.3s;
-      position: relative;
-      overflow: hidden;
-    }
-    .stat-card::before {
-      content: ''; position: absolute;
-      top: 0; left: 0; right: 0; height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.5), transparent);
-    }
+    .btn-icon { width: 36px; height: 36px; border-radius: 0.5rem; background: transparent; border: 1px solid var(--input-border); color: var(--text-secondary); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s; }
+    .btn-icon:hover { color: var(--accent-bright); border-color: var(--accent); background: rgba(139, 92, 246, 0.06); }
+    .btn-icon.danger:hover { color: #f87171; border-color: rgba(248, 113, 113, 0.4); background: rgba(248, 113, 113, 0.06); }
 
-    .card {
-      background: var(--glass-bg);
-      backdrop-filter: blur(20px);
-      border: 1px solid var(--glass-border);
-      border-radius: 16px;
-      transition: background 0.3s ease;
-    }
-
-    .input-field {
-      background: var(--input-bg);
-      border: 1px solid var(--input-border);
-      color: var(--text-primary);
-      font-family: 'Space Grotesk', sans-serif;
-      transition: all 0.2s;
-    }
-    .input-field:focus {
-      outline: none;
-      border-color: var(--accent);
-      background: rgba(10, 10, 15, 0.8);
-      box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
-    }
-    .input-field::placeholder { color: #71717a; }
-
-    .field-label {
-      display: block;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--text-secondary);
-      margin-bottom: 6px;
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-      color: white; font-weight: 600;
-      transition: all 0.2s;
-      border: none;
-      cursor: pointer;
-    }
-    .btn-primary:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.4);
-    }
-    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
-
-    .btn-ghost {
-      background: rgba(139, 92, 246, 0.08);
-      color: #a78bfa;
-      border: 1px solid rgba(139, 92, 246, 0.2);
-      transition: all 0.2s;
-      cursor: pointer;
-    }
-    .btn-ghost:hover {
-      background: rgba(139, 92, 246, 0.15);
-      border-color: rgba(139, 92, 246, 0.4);
-    }
-
-    .btn-danger {
-      background: rgba(239, 68, 68, 0.1);
-      color: #fca5a5;
-      border: 1px solid rgba(239, 68, 68, 0.2);
-      transition: all 0.2s;
-      cursor: pointer;
-    }
-    .btn-danger:hover {
-      background: rgba(239, 68, 68, 0.2);
-      border-color: rgba(239, 68, 68, 0.4);
-    }
-
-    .btn-icon {
-      width: 36px; height: 36px;
-      display: inline-flex;
-      align-items: center; justify-content: center;
-      border-radius: 10px;
-      background: rgba(139, 92, 246, 0.08);
-      color: var(--text-secondary);
-      border: 1px solid rgba(139, 92, 246, 0.15);
-      transition: all 0.2s; cursor: pointer;
-      flex-shrink: 0;
-    }
-    .btn-icon:hover {
-      background: rgba(139, 92, 246, 0.15);
-      color: #a78bfa;
-      border-color: rgba(139, 92, 246, 0.3);
-    }
-    .btn-icon.danger:hover {
-      background: rgba(239, 68, 68, 0.15);
-      color: #fca5a5;
-      border-color: rgba(239, 68, 68, 0.3);
-    }
-
-    .modal-backdrop { background: rgba(10, 10, 15, 0.8); backdrop-filter: blur(8px); }
-    .modal-content {
-      background: linear-gradient(135deg, #12121a, #1a1a26);
-      border: 1px solid rgba(139, 92, 246, 0.2);
-      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(139, 92, 246, 0.15);
-    }
-
-    .spinner {
-      width: 18px; height: 18px;
-      border: 2px solid rgba(255, 255, 255, 0.2);
-      border-top-color: white;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .fade-in { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; opacity: 0; }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .shake { animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      20%, 60% { transform: translateX(-8px); }
-      40%, 80% { transform: translateX(8px); }
-    }
-
-    .logo-placeholder {
-      background: linear-gradient(135deg, #8b5cf6, #6366f1);
-      color: white;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    }
-
-    .logo-pulse { animation: logoPulse 3s ease-in-out infinite; }
-    @keyframes logoPulse {
-      0%, 100% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.4); }
-      50% { box-shadow: 0 0 60px rgba(139, 92, 246, 0.6); }
-    }
-
-    .orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(60px);
-      opacity: 0.4;
-      animation: orbFloat 15s ease-in-out infinite;
-      pointer-events: none;
-    }
-    .orb-1 { width: 300px; height: 300px; background: #8b5cf6; top: -150px; left: -100px; }
-    .orb-2 { width: 400px; height: 400px; background: #6366f1; bottom: -200px; right: -150px; animation-delay: -5s; }
-    @keyframes orbFloat {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      33% { transform: translate(30px, -30px) scale(1.1); }
-      66% { transform: translate(-20px, 20px) scale(0.95); }
-    }
-
-    .badge {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 11px; font-weight: 600;
-      letter-spacing: 0.05em;
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .toast {
-      position: fixed; bottom: 24px; right: 24px;
-      padding: 14px 20px;
-      border-radius: 12px;
-      font-size: 14px; font-weight: 500;
-      z-index: 9999;
-      backdrop-filter: blur(20px);
-      animation: toastIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      max-width: calc(100vw - 48px);
-    }
-    .toast-success { background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #6ee7b7; }
-    .toast-error { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; }
-    @keyframes toastIn {
-      from { opacity: 0; transform: translateX(100%); }
-      to { opacity: 1; transform: translateX(0); }
-    }
-
-    @media (max-width: 1023px) {
-      .sidebar {
-        position: fixed; left: 0; top: 0; bottom: 0;
-        width: 280px; z-index: 50;
-        transform: translateX(-100%);
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-      .sidebar.open { transform: translateX(0); }
-    }
-
-    .skeleton {
-      background: linear-gradient(90deg,
-        rgba(139, 92, 246, 0.05) 0%,
-        rgba(139, 92, 246, 0.1) 50%,
-        rgba(139, 92, 246, 0.05) 100%);
-      background-size: 200% 100%;
-      animation: shimmer 1.5s infinite;
-      border-radius: 12px;
-    }
-    @keyframes shimmer { to { background-position: -200% 0; } }
-
-    .table-wrap {
-      width: 100%;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .data-table {
-      width: 100%;
-      min-width: 500px;
-      border-collapse: separate;
-      border-spacing: 0;
-    }
-    .data-table thead { background: rgba(139, 92, 246, 0.08); }
-    .data-table th {
-      padding: 14px 16px;
-      text-align: left;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--text-secondary);
-      font-family: 'JetBrains Mono', monospace;
-      border-bottom: 1px solid rgba(139, 92, 246, 0.15);
-      white-space: nowrap;
-    }
-    .data-table td {
-      padding: 14px 16px;
-      font-size: 14px;
-      border-bottom: 1px solid rgba(139, 92, 246, 0.08);
-    }
-    .data-table tbody tr:hover { background: rgba(139, 92, 246, 0.04); }
-    .data-table tbody tr:last-child td { border-bottom: none; }
-
-    .lang-switch {
-      display: inline-flex;
-      background: rgba(139, 92, 246, 0.08);
-      border: 1px solid rgba(139, 92, 246, 0.15);
-      border-radius: 10px;
-      padding: 3px;
-      gap: 2px;
-    }
-    .lang-switch button {
-      padding: 6px 10px;
-      border-radius: 8px;
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-secondary);
-      font-family: 'JetBrains Mono', monospace;
-      transition: all 0.2s;
-      cursor: pointer;
-      border: none;
-      background: transparent;
-    }
-    .lang-switch button:hover { color: var(--text-primary); }
-    .lang-switch button.active {
-      background: rgba(139, 92, 246, 0.25);
-      color: #e9d5ff;
-    }
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 0.5rem; color: var(--text-secondary); text-decoration: none; font-size: 14px; font-weight: 600; transition: all 0.15s; cursor: pointer; }
+    .nav-item:hover { background: rgba(139, 92, 246, 0.12); color: var(--text-primary); }
+    .nav-item.active { background: rgba(139, 92, 246, 0.2); color: #ffffff; border: 1px solid rgba(139, 92, 246, 0.45); font-weight: 700; }
+    [data-theme="light"] .nav-item.active { color: #4c1d95; background: rgba(139, 92, 246, 0.15); }
 
     .page { display: none; }
     .page.active { display: block; }
 
-    .dept-card {
-      background: var(--glass-bg);
-      border: 1px solid var(--glass-border);
-      border-radius: 14px;
-      padding: 16px;
-      cursor: pointer;
-      transition: all 0.25s;
-      position: relative;
-    }
-    .dept-card:hover {
-      border-color: rgba(139, 92, 246, 0.4);
-      transform: translateY(-2px);
-    }
-    .dept-card.selected {
-      background: rgba(139, 92, 246, 0.15);
-      border-color: #8b5cf6;
-      box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.25);
-    }
-    [data-theme="light"] .dept-card.selected {
-      background: rgba(109, 40, 217, 0.1);
-      border-color: #6d28d9;
-      box-shadow: 0 0 0 2px rgba(109, 40, 217, 0.25);
-    }
-    .dept-card-actions {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      display: flex;
-      gap: 4px;
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-    .dept-card:hover .dept-card-actions {
-      opacity: 1;
-    }
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); z-index: 50; display: none; align-items: center; justify-content: center; padding: 1rem; }
+    .modal-backdrop.flex { display: flex; }
+    .modal-content { background: var(--bg-secondary); border: 1px solid var(--glass-border); border-radius: 1rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
 
-    .archive-month-card {
-      background: var(--glass-bg);
-      border: 1px solid var(--glass-border);
-      border-radius: 16px;
-      overflow: hidden;
-      margin-bottom: 20px;
-    }
-    .archive-month-header {
-      padding: 16px 20px;
-      background: rgba(139, 92, 246, 0.08);
-      border-bottom: 1px solid var(--glass-border);
-    }
-    [data-theme="light"] .archive-month-header {
-      background: rgba(109, 40, 217, 0.08);
-    }
-    .archive-payment-row {
-      padding: 14px 20px;
-      border-bottom: 1px solid var(--glass-border);
-      transition: background 0.15s;
-    }
-    .archive-payment-row:last-child { border-bottom: none; }
-    .archive-payment-row:hover {
-      background: rgba(139, 92, 246, 0.04);
-    }
-    [data-theme="light"] .archive-payment-row:hover {
-      background: rgba(109, 40, 217, 0.04);
-    }
+    .toast { position: fixed; top: 1.25rem; right: 1.25rem; z-index: 100; padding: 12px 18px; border-radius: 0.75rem; font-size: 14px; font-weight: 500; color: white; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.4); transition: all 0.3s; animation: slideIn 0.3s; }
+    .toast-success { background: linear-gradient(135deg, #10b981, #059669); }
+    .toast-error   { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
 
-    .daily-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-      padding: 2px 7px;
-      border-radius: 6px;
-      font-size: 9px;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      font-family: 'JetBrains Mono', monospace;
-      background: rgba(16, 185, 129, 0.18);
-      color: #34d399;
-      border: 1px solid rgba(16, 185, 129, 0.4);
-      text-transform: uppercase;
-    }
-    [data-theme="light"] .daily-badge {
-      background: rgba(4, 120, 87, 0.12);
-      color: #047857;
-      border-color: rgba(4, 120, 87, 0.4);
-    }
+    .spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    .day-row { transition: all 0.2s; }
-    .day-row.paid { opacity: 0.5; }
-    .day-row.paid td {
-      text-decoration: line-through;
-      text-decoration-color: rgba(255, 255, 255, 0.2);
-    }
-    .day-checkbox {
-      width: 18px;
-      height: 18px;
-      border-radius: 4px;
-      cursor: pointer;
-      accent-color: #8b5cf6;
-    }
-    [data-theme="light"] .day-checkbox { accent-color: #6d28d9; }
+    table.data-table { width: 100%; border-collapse: collapse; }
+    .data-table th { text-align: left; padding: 14px 16px; font-size: 11px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--glass-border); }
+    .data-table td { padding: 14px 16px; border-bottom: 1px solid var(--glass-border); font-size: 14px; font-weight: 500; color: var(--text-primary); }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tbody tr:hover { background: rgba(139, 92, 246, 0.06); }
 
-    .bonus-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-      padding: 2px 7px;
-      border-radius: 6px;
-      font-size: 10px;
-      font-weight: 700;
-      font-family: 'JetBrains Mono', monospace;
-      background: rgba(16, 185, 129, 0.15);
-      color: #34d399;
-      border: 1px solid rgba(16, 185, 129, 0.3);
-    }
-    [data-theme="light"] .bonus-badge {
-      background: rgba(4, 120, 87, 0.1);
-      color: #047857;
-      border-color: rgba(4, 120, 87, 0.35);
-    }
-    .deficit-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-      padding: 2px 7px;
-      border-radius: 6px;
-      font-size: 10px;
-      font-weight: 700;
-      font-family: 'JetBrains Mono', monospace;
-      background: rgba(185, 28, 28, 0.15);
-      color: #f87171;
-      border: 1px solid rgba(185, 28, 28, 0.3);
-    }
-    [data-theme="light"] .deficit-badge {
-      background: rgba(185, 28, 28, 0.1);
-      color: #991b1b;
-      border-color: rgba(185, 28, 28, 0.35);
-    }
+    .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; }
+    .badge-on { background: rgba(16, 185, 129, 0.18); border: 1px solid rgba(16, 185, 129, 0.5); color: #6ee7b7; }
+    .badge-off { background: rgba(245, 158, 11, 0.18); border: 1px solid rgba(245, 158, 11, 0.5); color: #fcd34d; }
+    [data-theme="light"] .badge-on { color: #047857; }
+    [data-theme="light"] .badge-off { color: #b45309; }
 
-    .product-card {
-      background: var(--glass-bg);
-      border: 1px solid var(--glass-border);
-      border-radius: 12px;
-      padding: 14px 16px;
-      transition: all 0.2s;
-    }
-    .product-card:hover { border-color: rgba(139, 92, 246, 0.35); }
+    .switch { position: relative; width: 44px; height: 24px; background: rgba(139, 92, 246, 0.2); border-radius: 999px; cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
+    .switch.on { background: var(--accent); }
+    .switch::after { content: ''; position: absolute; left: 2px; top: 2px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: all 0.2s; }
+    .switch.on::after { left: 22px; }
 
-    .emp-row { transition: all 0.2s; }
-    .emp-row.paid { opacity: 0.55; }
-    .emp-row.paid .pay-checkbox { pointer-events: none; opacity: 0.5; }
-    .pay-checkbox {
-      width: 20px;
-      height: 20px;
-      border-radius: 5px;
-      cursor: pointer;
-      accent-color: #8b5cf6;
-    }
-    [data-theme="light"] .pay-checkbox { accent-color: #6d28d9; }
+    .dept-card { background: var(--card-bg); border: 1px solid var(--glass-border); border-radius: 0.875rem; padding: 1rem; position: relative; cursor: pointer; transition: all 0.2s; }
+    .dept-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .dept-card.selected { border-color: var(--accent); background: rgba(139, 92, 246, 0.12); box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.3); }
 
-    .paid-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 3px 8px;
-      border-radius: 999px;
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      background: rgba(16, 185, 129, 0.12);
-      color: #6ee7b7;
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      font-family: 'JetBrains Mono', monospace;
-    }
-    [data-theme="light"] .paid-badge {
-      background: rgba(4, 120, 87, 0.1);
-      color: #047857;
-      border-color: rgba(4, 120, 87, 0.35);
-    }
+    .tab-item { padding: 0.55rem 1rem; border-radius: 0.5rem; background: var(--card-bg); border: 1px solid var(--glass-border); color: var(--text-secondary); cursor: pointer; transition: all 0.15s; font-size: 13px; font-weight: 600; white-space: nowrap; }
+    .tab-item:hover { color: var(--text-primary); border-color: var(--accent); }
+    .tab-item.active { background: rgba(139, 92, 246, 0.2); border-color: var(--accent); color: #ffffff; font-weight: 700; }
+    [data-theme="light"] .tab-item.active { color: #4c1d95; }
 
-    /* Type toggle wraps - yo'nalish modali */
-    .type-toggle-wrap {
-      border-radius: 12px;
-      overflow: hidden;
-      border: 1px solid;
-      transition: all 0.2s;
-    }
-    .type-toggle-wrap.piecework {
-      border-color: rgba(139, 92, 246, 0.25);
-    }
-    .type-toggle-wrap.piecework.disabled {
-      border-color: rgba(139, 92, 246, 0.1);
-      opacity: 0.55;
-    }
-    .type-toggle-wrap.daily {
-      border-color: rgba(16, 185, 129, 0.3);
-    }
-    .type-toggle-wrap.daily.disabled {
-      border-color: rgba(16, 185, 129, 0.1);
-      opacity: 0.55;
-    }
-    [data-theme="light"] .type-toggle-wrap.piecework {
-      border-color: rgba(109, 40, 217, 0.3);
-    }
-    [data-theme="light"] .type-toggle-wrap.daily {
-      border-color: rgba(4, 120, 87, 0.35);
+    .stat-card .text-2xl, .stat-card .font-bold { font-weight: 800; }
+
+    /* Card backgrounds — biroz qattiqroq */
+    .card, .stat-card { background: var(--card-bg) !important; }
+    [data-theme="dark"] .card, [data-theme="dark"] .stat-card { background: rgba(28, 28, 42, 0.7) !important; }
+
+    [data-lang].active { background: rgba(139, 92, 246, 0.15); border-color: var(--accent); color: var(--accent-bright); }
+
+    @media (max-width: 1023px) {
+      #sidebar { position: fixed; left: -100%; top: 0; bottom: 0; z-index: 60; transition: left 0.3s; }
+      #sidebar.open { left: 0; }
     }
   </style>
 </head>
 <body>
   <div class="bg-mesh"></div>
-  <div class="bg-grid"></div>
 
   <!-- LOGIN VIEW -->
-  <div id="loginView" class="relative z-10 min-h-screen flex items-center justify-center px-4 py-12">
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-
-    <div class="relative w-full max-w-md">
-      <div class="text-center mb-8 fade-in">
-        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 mono text-xs text-purple-300">
-          <span class="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>
-          <span>BUSINESS ADMIN</span>
-        </div>
-      </div>
-
-      <div class="glass rounded-3xl p-10 fade-in" id="loginCard">
-        <div class="flex flex-col items-center mb-10">
-          <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500 via-purple-600 to-indigo-600 flex items-center justify-center logo-pulse mb-5">
-            <span class="text-4xl font-bold text-white">L</span>
+  <div id="loginView" class="relative z-10 min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md">
+      <div class="glass rounded-3xl p-8">
+        <div class="text-center mb-8">
+          <div class="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center mb-4">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
           </div>
           <h1 class="text-2xl font-bold">CyberCoderCRM</h1>
-          <p class="mono text-xs text-zinc-500 mt-2">Admin Panel · v1.0</p>
+          <p class="mono text-xs text-zinc-500 mt-1">Admin Panel</p>
         </div>
 
-        <div id="loginError" class="hidden mb-6 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm"></div>
+        <div id="loginError" class="hidden mb-4 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm"></div>
 
-        <form id="loginForm" class="space-y-5">
+        <form id="loginForm" class="space-y-4">
           <div>
             <label class="field-label" data-i18n="login.username">Username</label>
-            <input type="text" id="loginUsername" class="input-field w-full px-4 py-3.5 rounded-xl" autocomplete="username" required />
+            <input type="text" id="loginUsername" class="input-field w-full px-4 py-3 rounded-xl" autocomplete="username" required />
           </div>
-
           <div>
-            <label class="field-label" data-i18n="login.password">Password</label>
-            <div class="relative">
-              <input type="password" id="loginPassword" class="input-field w-full px-4 py-3.5 pr-12 rounded-xl" placeholder="••••••••••" autocomplete="current-password" required />
-              <button type="button" id="togglePassword" class="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-zinc-500 hover:text-purple-400 transition" tabindex="-1">
-                <svg id="eyeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/>
-                  <circle cx="12" cy="12" r="3"/>
-                </svg>
-              </button>
-            </div>
+            <label class="field-label" data-i18n="login.password">Parol</label>
+            <input type="password" id="loginPassword" class="input-field w-full px-4 py-3 rounded-xl mono" autocomplete="current-password" required />
           </div>
-
-          <div class="pt-3">
-            <button type="submit" id="loginBtn" class="btn-primary w-full py-3.5 rounded-xl flex items-center justify-center gap-2">
-              <span id="loginBtnText" data-i18n="login.signIn">Kirish</span>
-              <span id="loginSpinner" class="spinner hidden"></span>
-            </button>
-          </div>
+          <button type="submit" id="loginBtn" class="btn-primary w-full py-3 rounded-xl">
+            <span id="loginBtnText" data-i18n="login.signIn">Kirish</span>
+            <span id="loginSpinner" class="spinner hidden ml-2"></span>
+          </button>
         </form>
 
-        <div class="mt-8 pt-6 border-t border-purple-500/10 text-center">
-          <span class="mono text-xs text-zinc-600">© 2026 CyberCoderCRM</span>
+        <div class="mt-6 pt-4 border-t border-purple-500/10 flex justify-center gap-2">
+          <button data-lang="uz-lat" class="px-3 py-1.5 rounded-lg text-xs border border-transparent">O'zbek</button>
+          <button data-lang="uz-cyr" class="px-3 py-1.5 rounded-lg text-xs border border-transparent">Ўзбек</button>
+          <button data-lang="ru" class="px-3 py-1.5 rounded-lg text-xs border border-transparent">Русский</button>
         </div>
       </div>
     </div>
   </div>
 
   <!-- APP VIEW -->
-  <div id="appView" class="hidden relative z-10 flex w-full max-w-full h-screen overflow-hidden">
-
-    <aside id="sidebar" class="sidebar w-64 shrink-0 flex flex-col p-5 h-screen overflow-y-auto">
-      <div class="flex items-center gap-3 px-2 mb-8">
-        <div id="businessLogo" class="w-10 h-10 rounded-xl overflow-hidden shrink-0">
-          <div class="logo-placeholder w-full h-full">L</div>
-        </div>
+  <div id="appView" class="hidden relative z-10 flex w-full h-screen overflow-hidden">
+    <aside id="sidebar" class="sidebar w-64 shrink-0 flex flex-col p-4">
+      <div class="flex items-center gap-3 px-2 mb-6">
+        <div id="businessLogo" class="w-10 h-10 rounded-xl overflow-hidden shrink-0 bg-gradient-to-br from-purple-500 to-indigo-600"></div>
         <div class="min-w-0">
-          <div class="text-sm font-bold leading-tight truncate" id="businessName">Business</div>
-          <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider">Admin</div>
+          <div class="text-sm font-bold truncate" id="businessName">Business</div>
+          <div class="mono text-[10px] text-zinc-500 uppercase">CRM</div>
         </div>
       </div>
 
-      <nav class="flex flex-col gap-1 flex-1" id="sidebarNav"></nav>
+      <nav class="flex flex-col gap-1 flex-1 overflow-y-auto" id="sidebarNav"></nav>
 
-      <div class="mt-auto pt-4 border-t border-purple-500/10">
-        <button type="button" id="themeToggle" class="w-full mb-3 px-3 py-2.5 rounded-lg text-sm text-zinc-400 hover:text-purple-400 hover:bg-purple-500/10 transition flex items-center justify-center gap-2 border border-purple-500/10 hover:border-purple-500/30">
-          <svg id="themeIconDark" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="4"/>
-            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
-          </svg>
-          <svg id="themeIconLight" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="hidden">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-          </svg>
+      <div class="mt-auto pt-4 border-t border-purple-500/10 space-y-2">
+        <div class="flex gap-1">
+          <button data-lang="uz-lat" class="flex-1 py-1.5 rounded-lg text-[11px] btn-ghost">UZ</button>
+          <button data-lang="uz-cyr" class="flex-1 py-1.5 rounded-lg text-[11px] btn-ghost">ЎЗ</button>
+          <button data-lang="ru" class="flex-1 py-1.5 rounded-lg text-[11px] btn-ghost">RU</button>
+        </div>
+        <button id="themeToggle" class="w-full py-2 rounded-lg text-xs btn-ghost flex items-center justify-center gap-2">
           <span id="themeText">Light Mode</span>
         </button>
-
-        <div class="mb-3 px-2">
-          <div class="lang-switch w-full">
-            <button type="button" data-lang="uz-lat" class="flex-1">UZ</button>
-            <button type="button" data-lang="uz-cyr" class="flex-1">ЎЗ</button>
-            <button type="button" data-lang="ru" class="flex-1">RU</button>
-          </div>
-        </div>
-
-        <button id="logoutBtn" type="button" class="w-full px-3 py-2.5 rounded-lg text-sm text-zinc-400 hover:text-red-300 hover:bg-red-500/10 transition flex items-center gap-2 border border-transparent hover:border-red-500/20">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
-          </svg>
-          <span data-i18n="common.logout">Chiqish</span>
-        </button>
+        <button id="logoutBtn" class="w-full py-2 rounded-lg text-xs btn-ghost text-red-300 hover:border-red-500" data-i18n="common.logout">Chiqish</button>
       </div>
     </aside>
 
-    <div id="sidebarBackdrop" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden"></div>
+    <div id="sidebarBackdrop" class="fixed inset-0 bg-black/50 z-50 hidden lg:hidden"></div>
 
-    <main class="flex-1 min-w-0 overflow-x-hidden overflow-y-auto h-screen" id="mainContent">
-      <header class="sticky top-0 z-30 glass border-b border-purple-500/10 px-4 sm:px-6 lg:px-10 py-4 sm:py-5">
+    <main class="flex-1 overflow-y-auto">
+      <header class="glass sticky top-0 z-30 px-4 sm:px-6 lg:px-8 py-4 border-b border-purple-500/10">
         <div class="flex items-center justify-between gap-3">
           <div class="flex items-center gap-3 min-w-0">
-            <button id="menuToggle" type="button" class="lg:hidden btn-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <line x1="3" y1="6" x2="21" y2="6"/>
-                <line x1="3" y1="12" x2="21" y2="12"/>
-                <line x1="3" y1="18" x2="21" y2="18"/>
-              </svg>
+            <button id="menuToggle" class="lg:hidden btn-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
             </button>
             <div class="min-w-0">
-              <h1 class="text-lg sm:text-xl lg:text-2xl font-bold truncate" id="pageTitle">Dashboard</h1>
+              <h1 class="text-lg sm:text-xl font-bold truncate" id="pageTitle">—</h1>
               <p class="mono text-xs text-zinc-500 mt-0.5 truncate" id="pageSubtitle"></p>
             </div>
           </div>
-
           <div id="headerActions" class="flex items-center gap-2 shrink-0"></div>
         </div>
       </header>
 
-      <div class="px-4 sm:px-6 lg:px-10 py-6 max-w-full overflow-x-hidden" id="pageContent">
+      <div class="p-4 sm:p-6 lg:p-8" id="pageContent">
+
+        <!-- GUIDE PAGE -->
+        <div class="page" data-page="guide">
+          <div id="guideContent"></div>
+        </div>
 
         <!-- EMPLOYEES PAGE -->
         <div class="page" data-page="employees">
-          <div class="mb-6 flex flex-wrap gap-3 items-center">
-            <div class="relative flex-1 min-w-[200px] max-w-md">
-              <svg class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="8"/>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-              <input type="text" id="empSearch" class="input-field w-full pl-11 pr-4 py-3 rounded-xl text-sm" data-i18n-placeholder="common.search" />
-            </div>
-            <button id="empAddBtn" type="button" class="btn-primary px-5 py-3 rounded-xl flex items-center gap-2 text-sm whitespace-nowrap">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <line x1="12" y1="5" x2="12" y2="19"/>
-                <line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
-              <span data-i18n="emp.add">Xodim qo'shish</span>
-            </button>
+          <div class="flex flex-col sm:flex-row gap-3 mb-6">
+            <input type="text" id="empSearch" class="input-field flex-1 px-4 py-3 rounded-xl" data-i18n-placeholder="common.search" />
+            <select id="empDeptFilter" class="input-field px-4 py-3 rounded-xl text-sm sm:max-w-xs"></select>
+            <button id="empAddBtn" class="btn-primary px-5 py-3 rounded-xl text-sm whitespace-nowrap">+ <span data-i18n="emp.add">Xodim qo'shish</span></button>
           </div>
-
-          <div class="card overflow-hidden" id="empTableContainer">
-            <div class="p-6"><div class="skeleton h-32"></div></div>
-          </div>
+          <div class="card overflow-hidden" id="empTableContainer"></div>
         </div>
 
         <!-- DIRECTIONS PAGE -->
-        <!-- DIRECTIONS PIECEWORK PAGE (Dona ish) -->
-        <div class="page" data-page="directionsPiecework">
-          <div class="mb-6 flex items-center justify-between flex-wrap gap-3">
-            <h2 class="text-lg font-bold" data-i18n="dept.title">Bo'limlar</h2>
-            <button id="deptAddBtn_pw" type="button" class="btn-primary px-5 py-3 rounded-xl flex items-center gap-2 text-sm whitespace-nowrap">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <line x1="12" y1="5" x2="12" y2="19"/>
-                <line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
-              <span data-i18n="dept.add">Bo'lim qo'shish</span>
-            </button>
+        <div class="page" data-page="directions">
+          <div class="flex justify-between items-center mb-6">
+            <div>
+              <p class="text-sm text-zinc-500" data-i18n="dept.title">Bo'limlar</p>
+            </div>
+            <button id="deptAddBtn" class="btn-primary px-5 py-3 rounded-xl text-sm">+ <span data-i18n="dept.add">Bo'lim qo'shish</span></button>
           </div>
+          <div id="deptContainer" class="mb-8"></div>
 
-          <div id="departmentsContainer_pw" class="mb-8">
-            <div class="skeleton h-24"></div>
-          </div>
-
-          <div id="directionsSection_pw" class="hidden">
-            <div class="mb-6 flex items-center justify-between flex-wrap gap-3">
+          <div id="dirSection" class="hidden">
+            <div class="flex justify-between items-center mb-4 pt-6 border-t border-purple-500/10">
               <div>
-                <h2 class="text-lg font-bold" id="currentDeptName_pw" data-i18n="dir.title">Yo'nalishlar</h2>
-                <p class="mono text-xs text-zinc-500 mt-1" id="currentDeptHint_pw" data-i18n="dir.selectDept">Bo'limni tanlang</p>
+                <h2 class="text-lg font-bold" id="dirSectionTitle">—</h2>
+                <p class="mono text-xs text-zinc-500" id="dirSectionHint"></p>
               </div>
-              <button id="dirAddBtn_pw" type="button" class="btn-primary px-5 py-3 rounded-xl flex items-center gap-2 text-sm whitespace-nowrap">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <line x1="12" y1="5" x2="12" y2="19"/>
-                  <line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                <span data-i18n="dir.add">Yo'nalish qo'shish</span>
-              </button>
+              <button id="dirAddBtn" class="btn-primary px-4 py-2.5 rounded-xl text-sm">+ <span data-i18n="dir.add">Yo'nalish qo'shish</span></button>
             </div>
-
-            <div class="card overflow-hidden" id="dirTableContainer_pw">
-              <div class="p-6"><div class="skeleton h-32"></div></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- DIRECTIONS DAILY PAGE (Kunlik ish) -->
-        <div class="page" data-page="directionsDaily">
-          <div class="mb-6 flex items-center justify-between flex-wrap gap-3">
-            <h2 class="text-lg font-bold" data-i18n="dept.title">Bo'limlar</h2>
-            <button id="deptAddBtn_d" type="button" class="btn-primary px-5 py-3 rounded-xl flex items-center gap-2 text-sm whitespace-nowrap">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <line x1="12" y1="5" x2="12" y2="19"/>
-                <line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
-              <span data-i18n="dept.add">Bo'lim qo'shish</span>
-            </button>
-          </div>
-
-          <div id="departmentsContainer_d" class="mb-8">
-            <div class="skeleton h-24"></div>
-          </div>
-
-          <div id="directionsSection_d" class="hidden">
-            <div class="mb-6 flex items-center justify-between flex-wrap gap-3">
-              <div>
-                <h2 class="text-lg font-bold" id="currentDeptName_d" data-i18n="dir.title">Yo'nalishlar</h2>
-                <p class="mono text-xs text-zinc-500 mt-1" id="currentDeptHint_d" data-i18n="dir.selectDept">Bo'limni tanlang</p>
-              </div>
-              <button id="dirAddBtn_d" type="button" class="btn-primary px-5 py-3 rounded-xl flex items-center gap-2 text-sm whitespace-nowrap">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <line x1="12" y1="5" x2="12" y2="19"/>
-                  <line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                <span data-i18n="dir.add">Yo'nalish qo'shish</span>
-              </button>
-            </div>
-
-            <div class="card overflow-hidden" id="dirTableContainer_d">
-              <div class="p-6"><div class="skeleton h-32"></div></div>
-            </div>
+            <div class="card overflow-hidden" id="dirContainer"></div>
           </div>
         </div>
 
         <!-- DAILY REPORT PAGE -->
         <div class="page" data-page="dailyReport">
-          <div class="card p-4 mb-6">
-            <div class="flex items-center gap-3 flex-wrap">
-              <button id="datePrevBtn" type="button" class="btn-icon" title="Oldingi kun">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <polyline points="15 18 9 12 15 6"/>
-                </svg>
-              </button>
-              <input type="date" id="dailyDateInput" class="input-field px-4 py-2.5 rounded-xl text-sm flex-1 max-w-xs" />
-              <button id="dateNextBtn" type="button" class="btn-icon" title="Keyingi kun">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <polyline points="9 18 15 12 9 6"/>
-                </svg>
-              </button>
-              <button id="dateTodayBtn" type="button" class="btn-ghost px-4 py-2.5 rounded-xl text-sm">
-                <span data-i18n="common.today">Bugun</span>
-              </button>
-              <div class="ml-auto">
-                <div class="mono text-xs text-zinc-500" id="dailyDateLabel">—</div>
-              </div>
-            </div>
+          <div class="flex flex-col lg:flex-row gap-3 mb-6">
+            <input type="date" id="dailyDateInput" class="input-field px-4 py-3 rounded-xl text-sm" />
+            <button id="dailyTodayBtn" class="btn-ghost px-4 py-3 rounded-xl text-sm" data-i18n="common.today">Bugun</button>
+            <div class="text-xs text-zinc-500 self-center" id="dailyDateLabel"></div>
           </div>
-
-          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-            <div class="stat-card">
-              <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2" data-i18n="daily.assigned">Biriktirilgan</div>
-              <div class="text-2xl font-bold" id="dailyStatAssigned">0</div>
-            </div>
-            <div class="stat-card">
-              <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2" data-i18n="daily.unassigned">Biriktirilmagan</div>
-              <div class="text-2xl font-bold text-amber-400" id="dailyStatUnassigned">0</div>
-            </div>
-            <div class="stat-card">
-              <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2" data-i18n="daily.totalEarning">Jami daromad</div>
-              <div class="text-2xl font-bold text-emerald-400" id="dailyStatEarning">0</div>
-            </div>
-            <div class="stat-card">
-              <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2" data-i18n="daily.totalProducts">Mahsulotlar</div>
-              <div class="text-2xl font-bold text-purple-400" id="dailyStatProducts">0</div>
-            </div>
-          </div>
-
-          <div class="card mb-6">
-            <div class="p-5 border-b border-purple-500/10 flex items-center justify-between flex-wrap gap-3">
-              <h3 class="font-bold" data-i18n="daily.products">Kunlik mahsulotlar</h3>
-              <button id="productAddBtn" type="button" class="btn-primary px-4 py-2 rounded-xl text-sm flex items-center gap-2">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <line x1="12" y1="5" x2="12" y2="19"/>
-                  <line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                <span data-i18n="daily.addProduct">Mahsulot qo'shish</span>
-              </button>
-            </div>
-            <div id="productsContainer">
-              <div class="p-5"><div class="skeleton h-16"></div></div>
-            </div>
-          </div>
-
-          <div class="grid lg:grid-cols-2 gap-6">
-            <div class="card">
-              <div class="p-5 border-b border-purple-500/10">
-                <h3 class="font-bold" data-i18n="daily.assigned">Biriktirilgan xodimlar</h3>
-              </div>
-              <div class="p-5" id="assignedList">
-                <div class="skeleton h-24"></div>
-              </div>
-            </div>
-
-            <div class="card">
-              <div class="p-5 border-b border-purple-500/10">
-                <h3 class="font-bold" data-i18n="daily.unassigned">Biriktirilmagan xodimlar</h3>
-              </div>
-              <div class="p-5" id="unassignedList">
-                <div class="skeleton h-24"></div>
-              </div>
-            </div>
+          <div class="flex gap-2 mb-6 overflow-x-auto pb-2" id="dailyDeptTabs"></div>
+          <div id="dailyContent">
+            <p class="text-center text-zinc-500 py-12" data-i18n="daily.selectDept">Bo'limni tanlang</p>
           </div>
         </div>
 
         <!-- MONTHLY REPORT PAGE -->
         <div class="page" data-page="monthlyReport">
-          <div class="card p-5 mb-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="card p-4 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div>
                 <label class="field-label" data-i18n="month.startDate">Boshlanish</label>
-                <input type="date" id="monthStart" class="input-field w-full px-4 py-3 rounded-xl text-sm" />
+                <input type="date" id="monthStart" class="input-field w-full px-4 py-2.5 rounded-xl text-sm" />
               </div>
               <div>
                 <label class="field-label" data-i18n="month.endDate">Tugash</label>
-                <input type="date" id="monthEnd" class="input-field w-full px-4 py-3 rounded-xl text-sm" />
+                <input type="date" id="monthEnd" class="input-field w-full px-4 py-2.5 rounded-xl text-sm" />
               </div>
               <div>
-                <label class="field-label" data-i18n="month.codeSearch">Kod qidirish</label>
-                <input type="text" id="monthCode" class="input-field w-full px-4 py-3 rounded-xl text-sm mono" data-i18n-placeholder="month.codePlaceholder" />
+                <label class="field-label" data-i18n="month.code">Kod</label>
+                <input type="text" id="monthCode" class="input-field w-full px-4 py-2.5 rounded-xl mono text-sm" />
               </div>
               <div class="flex items-end">
-                <button id="monthLoadBtn" type="button" class="btn-primary w-full py-3 rounded-xl text-sm" data-i18n="common.search">Qidirish</button>
-              </div>
-            </div>
-            <div class="flex flex-wrap gap-2 mt-4">
-              <button type="button" class="btn-ghost px-3 py-1.5 rounded-lg text-xs" data-preset="today" data-i18n="common.today">Bugun</button>
-              <button type="button" class="btn-ghost px-3 py-1.5 rounded-lg text-xs" data-preset="yesterday" data-i18n="common.yesterday">Kecha</button>
-              <button type="button" class="btn-ghost px-3 py-1.5 rounded-lg text-xs" data-preset="week" data-i18n="common.week">Hafta</button>
-              <button type="button" class="btn-ghost px-3 py-1.5 rounded-lg text-xs" data-preset="month" data-i18n="common.month">Oy</button>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-            <div class="stat-card">
-              <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2" data-i18n="month.totalEarning">Jami daromad</div>
-              <div class="text-2xl font-bold text-emerald-400" id="monthStatEarning">0</div>
-            </div>
-            <div class="stat-card">
-              <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2" data-i18n="nav.employees">Xodimlar</div>
-              <div class="text-2xl font-bold" id="monthStatEmployees">0</div>
-            </div>
-            <div class="stat-card">
-              <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2">Berilgan</div>
-              <div class="text-2xl font-bold text-emerald-400" id="monthStatPaid">0</div>
-            </div>
-            <div class="stat-card">
-              <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2" data-i18n="daily.totalProducts">Mahsulotlar</div>
-              <div class="text-2xl font-bold text-purple-400" id="monthStatProducts">0</div>
-            </div>
-          </div>
-
-          <div class="card p-4 mb-4 hidden" id="monthActionBar">
-            <div class="flex items-center justify-between flex-wrap gap-3">
-              <div class="flex items-center gap-3">
-                <label class="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" id="monthSelectAll" class="w-5 h-5 rounded cursor-pointer accent-purple-600" />
-                  <span class="text-sm font-medium" data-i18n="month.selectAll">Hammasini tanlash</span>
-                </label>
-                <span class="mono text-xs text-zinc-500" id="monthSelectedCount">0</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <button id="monthExportBtn" type="button" class="btn-ghost px-4 py-2.5 rounded-xl text-sm flex items-center gap-2">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                    <polyline points="7 10 12 15 17 10"/>
-                    <line x1="12" y1="15" x2="12" y2="3"/>
-                  </svg>
-                  <span data-i18n="month.exportExcel">Excel</span>
-                </button>
-                <button id="monthPayBtn" type="button" class="btn-primary px-5 py-2.5 rounded-xl text-sm flex items-center gap-2" disabled>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
-                  </svg>
-                  <span>Qolganini to'lash</span>
-                </button>
+                <button id="monthSearchBtn" class="btn-primary w-full py-2.5 rounded-xl text-sm" data-i18n="month.search">Qidirish</button>
               </div>
             </div>
           </div>
-
-          <div class="card overflow-hidden" id="monthResultsContainer">
-            <div class="p-10 text-center text-zinc-500">
-              <p class="text-sm" data-i18n="month.empty">Ma'lumot yo'q</p>
-            </div>
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+            <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1" data-i18n="month.earning">Daromad</div><div class="text-2xl font-bold text-emerald-400" id="monthStatEarning">0</div></div>
+            <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1" data-i18n="emp.title">Xodimlar</div><div class="text-2xl font-bold" id="monthStatEmployees">0</div></div>
+            <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1" data-i18n="month.paid">To'langan</div><div class="text-2xl font-bold text-emerald-400" id="monthStatPaid">0</div></div>
+            <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1" data-i18n="month.remaining">Qoldiq</div><div class="text-2xl font-bold text-amber-400" id="monthStatRemaining">0</div></div>
           </div>
+          <div class="card overflow-hidden" id="monthResults"></div>
+        </div>
 
-          <div class="card overflow-hidden mt-6 hidden" id="monthDetailsContainer">
-            <div class="p-5 border-b border-purple-500/10 flex items-center justify-between flex-wrap gap-3">
-              <div>
-                <h3 class="font-bold" data-i18n="month.dayDetails">Kunlik ma'lumot</h3>
-                <p class="mono text-xs text-zinc-500 mt-0.5" id="monthDetailsSubtitle">—</p>
-              </div>
-              <button id="monthExportDetailBtn" type="button" class="btn-ghost px-4 py-2 rounded-xl text-sm flex items-center gap-2">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                  <polyline points="7 10 12 15 17 10"/>
-                  <line x1="12" y1="15" x2="12" y2="3"/>
-                </svg>
-                <span data-i18n="month.exportExcel">Excel</span>
-              </button>
+        <!-- SALARY PAGE -->
+        <div class="page" data-page="salary">
+          <div id="salaryListView">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+              <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1" data-i18n="salary.earning">Jami topdi</div><div class="text-2xl font-bold text-emerald-400" id="salStatEarned">0</div></div>
+              <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1" data-i18n="salary.paid">To'langan</div><div class="text-2xl font-bold" id="salStatPaid">0</div></div>
+              <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1" data-i18n="salary.remaining">Qoldiq</div><div class="text-2xl font-bold text-amber-400" id="salStatRemaining">0</div></div>
+              <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1" data-i18n="emp.title">Xodimlar</div><div class="text-2xl font-bold" id="salStatEmployees">0</div></div>
             </div>
-            <div id="monthDetailsTable"></div>
+            <div class="card overflow-hidden" id="salaryList"></div>
           </div>
+          <div id="salaryDetailView" class="hidden"></div>
         </div>
 
         <!-- ARCHIVE PAGE -->
         <div class="page" data-page="archive">
-          <div class="card p-5 mb-6">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label class="field-label" data-i18n="archive.month">Oy</label>
-                <input type="month" id="archiveMonth" class="input-field w-full px-4 py-3 rounded-xl text-sm" />
-              </div>
-              <div>
-                <label class="field-label" data-i18n="month.codeSearch">Kod qidirish</label>
-                <input type="text" id="archiveCode" class="input-field w-full px-4 py-3 rounded-xl text-sm mono" placeholder="001, 002..." />
-              </div>
-              <div class="flex items-end gap-2">
-                <button id="archiveLoadBtn" type="button" class="btn-primary flex-1 py-3 rounded-xl text-sm" data-i18n="common.search">Qidirish</button>
-                <button id="archiveResetBtn" type="button" class="btn-ghost py-3 px-4 rounded-xl text-sm" title="Tozalash">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="1 4 1 10 7 10"/>
-                    <path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
+          <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+            <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1" data-i18n="common.total">Jami</div><div class="text-2xl font-bold text-emerald-400" id="archStatAmount">0</div></div>
+            <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1" data-i18n="archive.payments">To'lov</div><div class="text-2xl font-bold" id="archStatPayments">0</div></div>
+            <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1" data-i18n="archive.month">Oy</div><div class="text-2xl font-bold" id="archStatMonths">0</div></div>
           </div>
-
-          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-            <div class="stat-card">
-              <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2" data-i18n="archive.totalPayments">Jami to'lovlar</div>
-              <div class="text-2xl font-bold text-purple-400" id="archiveStatPayments">0</div>
-            </div>
-            <div class="stat-card">
-              <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2" data-i18n="archive.totalAmount">Jami summa</div>
-              <div class="text-2xl font-bold text-emerald-400" id="archiveStatAmount">0</div>
-            </div>
-            <div class="stat-card">
-              <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2" data-i18n="archive.uniqueEmployees">Xodimlar</div>
-              <div class="text-2xl font-bold" id="archiveStatEmployees">0</div>
-            </div>
-            <div class="stat-card">
-              <div class="mono text-[10px] text-zinc-500 uppercase tracking-wider mb-2" data-i18n="archive.months">Oylar</div>
-              <div class="text-2xl font-bold" id="archiveStatMonths">0</div>
-            </div>
-          </div>
-
-          <div id="archiveResultsContainer">
-            <div class="card p-10 text-center text-zinc-500">
-              <p class="text-sm" data-i18n="archive.empty">Hali to'lovlar yo'q</p>
-            </div>
-          </div>
+          <div id="archiveList"></div>
         </div>
 
-        </main>
+      </div>
+    </main>
   </div>
 
   <!-- MODAL: EMPLOYEE -->
-  <div id="empModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
-    <div class="modal-content w-full max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
-      <div class="p-6 border-b border-purple-500/10 flex items-center justify-between">
-        <h2 id="empModalTitle" class="text-xl font-bold" data-i18n="emp.add">Xodim qo'shish</h2>
-        <button type="button" data-close="empModal" class="btn-icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
-      </div>
-      <form id="empForm" class="p-6 space-y-4">
+  <div id="empModal" class="modal-backdrop">
+    <div class="modal-content w-full max-w-md p-6">
+      <h2 class="text-xl font-bold mb-5" id="empModalTitle" data-i18n="emp.add">Xodim qo'shish</h2>
+      <form id="empForm" class="space-y-4">
         <input type="hidden" id="empEditingId" />
-        <input type="hidden" id="empLastName" value="" />
         <div>
-          <label class="field-label" data-i18n="emp.firstName">Ism</label>
-          <input type="text" id="empFirstName" required maxlength="50" class="input-field w-full px-4 py-3 rounded-xl" />
+          <label class="field-label" data-i18n="emp.fullName">Ism Familiya</label>
+          <input type="text" id="empFullName" class="input-field w-full px-4 py-3 rounded-xl" data-i18n-placeholder="emp.fullNamePlaceholder" required maxlength="120" />
         </div>
         <div>
           <label class="field-label" data-i18n="emp.code">Kod</label>
-          <input type="text" id="empCode" required maxlength="50" class="input-field w-full px-4 py-3 rounded-xl mono" />
-          <p class="mono text-xs text-zinc-500 mt-1.5" data-i18n="emp.codeHint">Harflar, raqamlar yoki belgilar</p>
+          <input type="text" id="empCode" class="input-field w-full px-4 py-3 rounded-xl mono" data-i18n-placeholder="emp.codePlaceholder" required maxlength="50" />
         </div>
         <div>
-          <label class="field-label" data-i18n="common.phone">Telefon</label>
-          <input type="text" id="empPhone" maxlength="20" class="input-field w-full px-4 py-3 rounded-xl" placeholder="+998..." />
+          <label class="field-label" data-i18n="emp.phone">Telefon</label>
+          <input type="text" id="empPhone" class="input-field w-full px-4 py-3 rounded-xl mono" maxlength="20" />
+        </div>
+        <div>
+          <label class="field-label" data-i18n="emp.department">Bo'lim</label>
+          <select id="empDepartmentId" class="input-field w-full px-4 py-3 rounded-xl" required></select>
         </div>
         <div class="flex gap-3 pt-2">
-          <button type="button" data-close="empModal" class="flex-1 btn-ghost py-3 rounded-xl" data-i18n="common.cancel">Bekor qilish</button>
-          <button type="submit" id="empSubmitBtn" class="flex-1 btn-primary py-3 rounded-xl flex items-center justify-center gap-2">
-            <span id="empSubmitText" data-i18n="common.save">Saqlash</span>
-            <span id="empSubmitSpinner" class="spinner hidden"></span>
-          </button>
+          <button type="button" data-close="empModal" class="flex-1 btn-ghost py-3 rounded-xl" data-i18n="common.cancel">Bekor</button>
+          <button type="submit" class="flex-1 btn-primary py-3 rounded-xl" data-i18n="common.save">Saqlash</button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- MODAL: DEPARTMENT -->
-  <div id="deptModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
-    <div class="modal-content w-full max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
-      <div class="p-6 border-b border-purple-500/10 flex items-center justify-between">
-        <h2 id="deptModalTitle" class="text-xl font-bold" data-i18n="dept.add">Bo'lim qo'shish</h2>
-        <button type="button" data-close="deptModal" class="btn-icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
-      </div>
-      <form id="deptForm" class="p-6 space-y-4">
+  <div id="deptModal" class="modal-backdrop">
+    <div class="modal-content w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+      <h2 class="text-xl font-bold mb-5" id="deptModalTitle" data-i18n="dept.add">Bo'lim qo'shish</h2>
+      <form id="deptForm" class="space-y-4">
         <input type="hidden" id="deptEditingId" />
         <div>
           <label class="field-label" data-i18n="dept.name">Bo'lim nomi</label>
-          <input type="text" id="deptName" required maxlength="100" class="input-field w-full px-4 py-3 rounded-xl" placeholder="Masalan: Yozgi stanoklar" />
+          <input type="text" id="deptName" class="input-field w-full px-4 py-3 rounded-xl" required maxlength="100" />
         </div>
         <div>
-          <label class="field-label" data-i18n="dept.description">Tavsif (ixtiyoriy)</label>
-          <textarea id="deptDescription" maxlength="500" rows="2" class="input-field w-full px-4 py-3 rounded-xl resize-none"></textarea>
+          <label class="field-label" data-i18n="dept.description">Tasnifi</label>
+          <textarea id="deptDescription" class="input-field w-full px-4 py-3 rounded-xl" rows="2" maxlength="500"></textarea>
         </div>
+        <div>
+          <label class="field-label" data-i18n="dept.budget">Jami byudjet</label>
+          <input type="number" id="deptBudget" class="input-field w-full px-4 py-3 rounded-xl mono" min="0" step="1000" placeholder="0" />
+          <p class="text-xs text-zinc-500 mt-1" data-i18n="dept.budgetHint">Bo'lim doirasida jami berilishi mumkin</p>
+        </div>
+
+        <div class="card p-3 flex items-center justify-between gap-3">
+          <div class="flex-1">
+            <div class="font-semibold text-sm" data-i18n="dept.allowDirections">Yo'nalish qo'sha olish</div>
+            <div class="text-xs text-zinc-500 mt-0.5" id="deptAllowHint">YOQILGAN — yo'nalishlarga bo'linadi</div>
+          </div>
+          <div class="switch on" id="deptAllowSwitch"></div>
+          <input type="hidden" id="deptAllowDirections" value="true" />
+        </div>
+
+        <div id="deptPricePerUnitWrap" class="hidden">
+          <label class="field-label" data-i18n="dept.pricePerUnit">1 birlik narxi</label>
+          <input type="number" id="deptPricePerUnit" class="input-field w-full px-4 py-3 rounded-xl mono" min="0" step="100" placeholder="0" />
+          <p class="text-xs text-zinc-500 mt-1" data-i18n="dept.pricePerUnitHint">OFF rejimda har xodim mahsuloti uchun narx</p>
+        </div>
+
         <div class="flex gap-3 pt-2">
-          <button type="button" data-close="deptModal" class="flex-1 btn-ghost py-3 rounded-xl" data-i18n="common.cancel">Bekor qilish</button>
-          <button type="submit" id="deptSubmitBtn" class="flex-1 btn-primary py-3 rounded-xl flex items-center justify-center gap-2">
-            <span id="deptSubmitText" data-i18n="common.save">Saqlash</span>
-            <span id="deptSubmitSpinner" class="spinner hidden"></span>
-          </button>
+          <button type="button" data-close="deptModal" class="flex-1 btn-ghost py-3 rounded-xl" data-i18n="common.cancel">Bekor</button>
+          <button type="submit" class="flex-1 btn-primary py-3 rounded-xl" data-i18n="common.save">Saqlash</button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- MODAL: DIRECTION -->
-  <div id="dirModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
-    <div class="modal-content w-full max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
-      <div class="p-6 border-b border-purple-500/10 flex items-center justify-between">
-        <h2 id="dirModalTitle" class="text-xl font-bold" data-i18n="dir.add">Yo'nalish qo'shish</h2>
-        <button type="button" data-close="dirModal" class="btn-icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
-      </div>
-      <form id="dirForm" class="p-6 space-y-4">
+  <div id="dirModal" class="modal-backdrop">
+    <div class="modal-content w-full max-w-md p-6">
+      <h2 class="text-xl font-bold mb-5" id="dirModalTitle" data-i18n="dir.add">Yo'nalish qo'shish</h2>
+      <form id="dirForm" class="space-y-4">
         <input type="hidden" id="dirEditingId" />
-        <input type="hidden" id="dirType" value="piecework" />
-
-        <!-- Type badge - foydalanuvchiga ko'rsatish uchun -->
-        <div id="dirTypeBadge" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium">
-          <span id="dirTypeBadgeText">Dona ish</span>
-        </div>
-
-        <div>
-          <label class="field-label" data-i18n="dept.select">Bo'lim</label>
-          <select id="dirDepartment" required class="input-field w-full px-4 py-3 rounded-xl">
-            <option value="">—</option>
-          </select>
-        </div>
-
         <div>
           <label class="field-label" data-i18n="dir.name">Yo'nalish nomi</label>
-          <input type="text" id="dirName" required maxlength="100" class="input-field w-full px-4 py-3 rounded-xl" />
+          <input type="text" id="dirName" class="input-field w-full px-4 py-3 rounded-xl" required maxlength="100" />
         </div>
-
         <div>
-          <label class="field-label" id="dirPriceLabel">Narx (so'm)</label>
-          <input type="number" id="dirPrice" required min="0" class="input-field w-full px-4 py-3 rounded-xl mono" placeholder="250" />
-          <p class="mono text-xs text-zinc-500 mt-1.5" id="dirPriceHint">narx × mahsulot</p>
+          <label class="field-label" data-i18n="dir.price">1 dona narxi</label>
+          <input type="number" id="dirPrice" class="input-field w-full px-4 py-3 rounded-xl mono" min="0" step="100" required placeholder="250" />
+          <p class="text-xs text-zinc-500 mt-1" data-i18n="dir.priceHint">1 ta mahsulot uchun ishchi haqi (so'm)</p>
         </div>
-
         <div class="flex gap-3 pt-2">
-          <button type="button" data-close="dirModal" class="flex-1 btn-ghost py-3 rounded-xl" data-i18n="common.cancel">Bekor qilish</button>
-          <button type="submit" id="dirSubmitBtn" class="flex-1 btn-primary py-3 rounded-xl flex items-center justify-center gap-2">
-            <span id="dirSubmitText" data-i18n="common.save">Saqlash</span>
-            <span id="dirSubmitSpinner" class="spinner hidden"></span>
-          </button>
+          <button type="button" data-close="dirModal" class="flex-1 btn-ghost py-3 rounded-xl" data-i18n="common.cancel">Bekor</button>
+          <button type="submit" class="flex-1 btn-primary py-3 rounded-xl" data-i18n="common.save">Saqlash</button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- MODAL: ASSIGN -->
-  <div id="assignModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
-    <div class="modal-content w-full max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
-      <div class="p-6 border-b border-purple-500/10 flex items-center justify-between">
-        <h2 class="text-xl font-bold" data-i18n="daily.assign">Biriktirish</h2>
-        <button type="button" data-close="assignModal" class="btn-icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
-      </div>
-      <form id="assignForm" class="p-6 space-y-4">
+  <div id="assignModal" class="modal-backdrop">
+    <div class="modal-content w-full max-w-md p-6">
+      <h2 class="text-xl font-bold mb-2" data-i18n="daily.assign">Biriktirish</h2>
+      <p class="text-sm text-zinc-500 mb-5" id="assignEmployeeName">—</p>
+      <form id="assignForm" class="space-y-4">
         <input type="hidden" id="assignEmployeeId" />
-
-        <!-- 1. Xodim -->
-        <div>
-          <label class="field-label" data-i18n="daily.employee">Xodim</label>
-          <div class="input-field w-full px-4 py-3 rounded-xl mono" id="assignEmployeeName">—</div>
-        </div>
-
-        <!-- 2. ISH TURI (xodimdan keyin, bo'limdan oldin) -->
-        <div>
-          <label class="field-label" data-i18n="daily.workType">Ish turi</label>
-          <div class="grid grid-cols-2 gap-2" id="assignWorkTypeWrap">
-            <label class="cursor-pointer" id="assignWorkTypePwLabel">
-              <input type="radio" name="workType" value="piecework" class="hidden peer" checked />
-              <div class="px-4 py-3 rounded-xl border-2 border-purple-500/20 text-center text-sm font-medium peer-checked:border-purple-500 peer-checked:bg-purple-500/10 peer-checked:text-purple-300 transition">
-                <span data-i18n="daily.piecework">Dona ish</span>
-              </div>
-            </label>
-            <label class="cursor-pointer" id="assignWorkTypeDLabel">
-              <input type="radio" name="workType" value="daily" class="hidden peer" />
-              <div class="px-4 py-3 rounded-xl border-2 border-purple-500/20 text-center text-sm font-medium peer-checked:border-emerald-500 peer-checked:bg-emerald-500/10 peer-checked:text-emerald-300 transition">
-                <span data-i18n="daily.dailyWork">Kunlik ish</span>
-              </div>
-            </label>
-          </div>
-          <p class="mono text-[10px] text-zinc-500 mt-1.5" id="assignWorkTypeHint">Yo'nalish shu turdan tanlanadi</p>
-        </div>
-
-        <!-- 3. Bo'lim (ish turiga qarab filterlangan) -->
-        <div>
-          <label class="field-label" data-i18n="dept.select">Bo'lim</label>
-          <select id="assignDepartment" required class="input-field w-full px-4 py-3 rounded-xl">
-            <option value="">—</option>
-          </select>
-        </div>
-
-        <!-- 4. Yo'nalish (bo'lim va ish turiga qarab) -->
-        <div>
+        <div id="assignDirectionWrap">
           <label class="field-label" data-i18n="daily.direction">Yo'nalish</label>
-          <select id="assignDirection" required class="input-field w-full px-4 py-3 rounded-xl" disabled>
-            <option value="">—</option>
-          </select>
+          <select id="assignDirection" class="input-field w-full px-4 py-3 rounded-xl"></select>
         </div>
-
-        <!-- 5. Smena -->
+        <div id="assignProductWrap" class="hidden">
+          <label class="field-label" data-i18n="daily.productCount">Mahsulot soni</label>
+          <input type="number" id="assignProductCount" class="input-field w-full px-4 py-3 rounded-xl mono" min="0" value="0" />
+        </div>
         <div>
           <label class="field-label" data-i18n="daily.shift">Smena</label>
-          <div class="grid grid-cols-2 gap-2">
-            <label class="cursor-pointer">
-              <input type="radio" name="shift" value="1" class="sr-only peer" checked />
-              <div class="p-4 rounded-xl border border-purple-500/20 peer-checked:bg-purple-500/20 peer-checked:border-purple-500/50 text-center transition">
-                <div class="font-bold text-2xl">1</div>
-                <div class="mono text-xs text-zinc-500 mt-1" data-i18n="daily.shift.full">To'liq</div>
-              </div>
+          <div class="flex gap-2">
+            <label class="flex-1 card p-3 flex items-center justify-center gap-2 cursor-pointer">
+              <input type="radio" name="shift" value="1" checked />
+              <span class="text-sm" data-i18n="daily.shiftFull">1 (to'liq)</span>
             </label>
-            <label class="cursor-pointer">
-              <input type="radio" name="shift" value="0.5" class="sr-only peer" />
-              <div class="p-4 rounded-xl border border-purple-500/20 peer-checked:bg-purple-500/20 peer-checked:border-purple-500/50 text-center transition">
-                <div class="font-bold text-2xl">0.5</div>
-                <div class="mono text-xs text-zinc-500 mt-1" data-i18n="daily.shift.half">Yarim</div>
-              </div>
+            <label class="flex-1 card p-3 flex items-center justify-center gap-2 cursor-pointer">
+              <input type="radio" name="shift" value="0.5" />
+              <span class="text-sm" data-i18n="daily.shiftHalf">0.5 (yarim)</span>
             </label>
           </div>
         </div>
-
         <div class="flex gap-3 pt-2">
-          <button type="button" data-close="assignModal" class="flex-1 btn-ghost py-3 rounded-xl" data-i18n="common.cancel">Bekor qilish</button>
-          <button type="submit" id="assignSubmitBtn" class="flex-1 btn-primary py-3 rounded-xl flex items-center justify-center gap-2">
-            <span id="assignSubmitText" data-i18n="daily.assign">Biriktirish</span>
-            <span id="assignSubmitSpinner" class="spinner hidden"></span>
-          </button>
+          <button type="button" data-close="assignModal" class="flex-1 btn-ghost py-3 rounded-xl" data-i18n="common.cancel">Bekor</button>
+          <button type="submit" class="flex-1 btn-primary py-3 rounded-xl" data-i18n="daily.assign">Biriktirish</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- MODAL: PRODUCT -->
-  <div id="productModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
-    <div class="modal-content w-full max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
-      <div class="p-6 border-b border-purple-500/10 flex items-center justify-between">
-        <h2 id="productModalTitle" class="text-xl font-bold" data-i18n="daily.addProduct">Mahsulot qo'shish</h2>
-        <button type="button" data-close="productModal" class="btn-icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
-      </div>
-      <form id="productForm" class="p-6 space-y-4">
-        <input type="hidden" id="productEditingId" />
-        <div>
-          <label class="field-label" data-i18n="daily.productName">Mahsulot nomi</label>
-          <input type="text" id="productName" required maxlength="100" class="input-field w-full px-4 py-3 rounded-xl" />
-        </div>
-        <div>
-          <label class="field-label" data-i18n="daily.quantity">Soni</label>
-          <input type="number" id="productQty" required min="0" class="input-field w-full px-4 py-3 rounded-xl mono" />
-        </div>
-        <div class="flex gap-3 pt-2">
-          <button type="button" data-close="productModal" class="flex-1 btn-ghost py-3 rounded-xl" data-i18n="common.cancel">Bekor qilish</button>
-          <button type="submit" id="productSubmitBtn" class="flex-1 btn-primary py-3 rounded-xl flex items-center justify-center gap-2">
-            <span id="productSubmitText" data-i18n="common.save">Saqlash</span>
-            <span id="productSubmitSpinner" class="spinner hidden"></span>
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- MODAL: EARNING EDIT -->
-  <div id="earningModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
-    <div class="modal-content w-full max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
-      <div class="p-6 border-b border-purple-500/10 flex items-center justify-between">
-        <h2 class="text-xl font-bold" data-i18n="daily.editEarning">Narxni tahrirlash</h2>
-        <button type="button" data-close="earningModal" class="btn-icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
-      </div>
-      <form id="earningForm" class="p-6 space-y-4">
+  <!-- MODAL: EARNING/PRODUCT EDIT -->
+  <div id="earningModal" class="modal-backdrop">
+    <div class="modal-content w-full max-w-md p-6">
+      <h2 class="text-xl font-bold mb-2" data-i18n="daily.editEarning">Daromadni tahrirlash</h2>
+      <p class="text-sm text-zinc-500 mb-5" id="earningEmployeeName">—</p>
+      <form id="earningForm" class="space-y-4">
         <input type="hidden" id="earningAssignmentId" />
-        <div>
-          <label class="field-label" data-i18n="daily.employee">Xodim</label>
-          <div class="input-field w-full px-4 py-3 rounded-xl mono" id="earningEmployeeName">—</div>
+        <div id="earningProductWrap" class="hidden">
+          <label class="field-label" data-i18n="daily.productCount">Mahsulot soni</label>
+          <input type="number" id="earningProductCount" class="input-field w-full px-4 py-3 rounded-xl mono" min="0" />
         </div>
         <div>
-          <label class="field-label" data-i18n="daily.direction">Yo'nalish</label>
-          <div class="input-field w-full px-4 py-3 rounded-xl" id="earningDirectionName">—</div>
-        </div>
-        <div>
-          <label class="field-label" data-i18n="daily.earning">Daromad (so'm)</label>
-          <input type="number" id="earningAmount" required min="0" class="input-field w-full px-4 py-3 rounded-xl mono text-lg font-bold" />
-          <p class="mono text-xs text-zinc-500 mt-1.5" data-i18n="daily.earningHint">Qo'lda kiritishingiz mumkin</p>
+          <label class="field-label" data-i18n="daily.earning">Daromad</label>
+          <input type="number" id="earningAmount" class="input-field w-full px-4 py-3 rounded-xl mono" min="0" required />
         </div>
         <div class="flex gap-3 pt-2">
-          <button type="button" data-close="earningModal" class="flex-1 btn-ghost py-3 rounded-xl" data-i18n="common.cancel">Bekor qilish</button>
-          <button type="submit" id="earningSubmitBtn" class="flex-1 btn-primary py-3 rounded-xl flex items-center justify-center gap-2">
-            <span id="earningSubmitText" data-i18n="common.save">Saqlash</span>
-            <span id="earningSubmitSpinner" class="spinner hidden"></span>
-          </button>
+          <button type="button" data-close="earningModal" class="flex-1 btn-ghost py-3 rounded-xl" data-i18n="common.cancel">Bekor</button>
+          <button type="submit" class="flex-1 btn-primary py-3 rounded-xl" data-i18n="common.save">Saqlash</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: QUANTITY -->
+  <div id="quantityModal" class="modal-backdrop">
+    <div class="modal-content w-full max-w-md p-6">
+      <h2 class="text-xl font-bold mb-2" data-i18n="daily.quantity">Umumiy mahsulot</h2>
+      <p class="text-sm text-zinc-500 mb-5" id="quantityDirName">—</p>
+      <form id="quantityForm" class="space-y-4">
+        <input type="hidden" id="quantityDirectionId" />
+        <div>
+          <label class="field-label" data-i18n="daily.quantity">Umumiy mahsulot</label>
+          <input type="number" id="quantityValue" class="input-field w-full px-4 py-3 rounded-xl mono" min="0" required />
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button type="button" data-close="quantityModal" class="flex-1 btn-ghost py-3 rounded-xl" data-i18n="common.cancel">Bekor</button>
+          <button type="submit" class="flex-1 btn-primary py-3 rounded-xl" data-i18n="common.save">Saqlash</button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- MODAL: PAY -->
-  <div id="payModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
-    <div class="modal-content w-full max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
-      <div class="p-6 border-b border-purple-500/10 flex items-center justify-between">
-        <h2 class="text-xl font-bold">Qolgan summalarni to'lash</h2>
-        <button type="button" data-close="payModal" class="btn-icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
-      </div>
-      <form id="payForm" class="p-6 space-y-4">
-        <div class="p-4 rounded-xl bg-purple-500/5 border border-purple-500/15">
-          <div class="mono text-xs text-zinc-500 mb-1" data-i18n="month.selectAll">Tanlangan</div>
-          <div class="text-2xl font-bold text-purple-400"><span id="payCountLabel">0</span> xodim</div>
-          <div class="mono text-sm text-emerald-400 mt-2">
-            <span data-i18n="month.totalEarning">Jami</span>:
-            <span id="payTotalLabel">0</span>
-          </div>
+  <div id="payModal" class="modal-backdrop">
+    <div class="modal-content w-full max-w-md p-6">
+      <h2 class="text-xl font-bold mb-2" data-i18n="salary.payUntil">Sanagacha to'lash</h2>
+      <p class="text-sm text-zinc-500 mb-5" id="payEmployeeName">—</p>
+      <form id="payForm" class="space-y-4">
+        <input type="hidden" id="payEmployeeId" />
+        <div>
+          <label class="field-label" data-i18n="common.date">Sana</label>
+          <input type="date" id="payUntilDate" class="input-field w-full px-4 py-3 rounded-xl" required />
+          <p class="text-xs text-zinc-500 mt-1" data-i18n="salary.payUntilHint">Tanlangan sanagacha qoldiq bitta to'lov sifatida</p>
         </div>
-
-        <div id="payList" class="max-h-60 overflow-y-auto space-y-2"></div>
-
         <div class="flex gap-3 pt-2">
-          <button type="button" data-close="payModal" class="flex-1 btn-ghost py-3 rounded-xl" data-i18n="common.cancel">Bekor qilish</button>
-          <button type="submit" id="paySubmitBtn" class="flex-1 btn-primary py-3 rounded-xl flex items-center justify-center gap-2">
-            <span id="paySubmitText" data-i18n="common.confirm">Tasdiqlash</span>
-            <span id="paySubmitSpinner" class="spinner hidden"></span>
-          </button>
+          <button type="button" data-close="payModal" class="flex-1 btn-ghost py-3 rounded-xl" data-i18n="common.cancel">Bekor</button>
+          <button type="submit" class="flex-1 btn-primary py-3 rounded-xl" data-i18n="common.save">Saqlash</button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- MODAL: CONFIRM -->
-  <div id="confirmModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
-    <div class="modal-content w-full max-w-md rounded-2xl p-6">
-      <div class="flex items-start gap-4 mb-4">
-        <div class="w-12 h-12 rounded-full bg-red-500/15 border border-red-500/25 flex items-center justify-center shrink-0">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-red-400">
-            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-            <line x1="12" y1="9" x2="12" y2="13"/>
-            <line x1="12" y1="17" x2="12.01" y2="17"/>
-          </svg>
-        </div>
-        <div class="flex-1">
-          <h3 class="text-lg font-bold" id="confirmTitle"></h3>
-          <p class="text-sm text-zinc-400 mt-1" id="confirmText"></p>
-        </div>
-      </div>
-      <div class="flex gap-3 mt-6">
-        <button type="button" data-close="confirmModal" class="flex-1 btn-ghost py-2.5 rounded-xl font-medium" data-i18n="common.cancel">Bekor qilish</button>
-        <button id="confirmOkBtn" type="button" class="flex-1 btn-danger py-2.5 rounded-xl font-medium flex items-center justify-center gap-2">
-          <span id="confirmOkText" data-i18n="common.delete">O'chirish</span>
-          <span id="confirmOkSpinner" class="spinner hidden"></span>
-        </button>
+  <div id="confirmModal" class="modal-backdrop">
+    <div class="modal-content w-full max-w-md p-6">
+      <h3 class="text-lg font-bold mb-2" id="confirmTitle">—</h3>
+      <p class="text-sm text-zinc-400 mb-6" id="confirmText">—</p>
+      <div class="flex gap-3">
+        <button type="button" data-close="confirmModal" class="flex-1 btn-ghost py-2.5 rounded-xl" data-i18n="common.cancel">Bekor</button>
+        <button type="button" id="confirmOkBtn" class="flex-1 btn-danger py-2.5 rounded-xl" data-i18n="common.delete">O'chirish</button>
       </div>
     </div>
   </div>
 
-  <script>
-    window.API_BASE = '';
-  </script>
-
+  <script>window.API_BASE = '';</script>
   <script src="/shared/translations.js"></script>
   <script src="/admin/app.js"></script>
 </body>

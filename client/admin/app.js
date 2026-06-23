@@ -1,23 +1,23 @@
+/**
+ * CyberCoderCRM — Admin App (v2)
+ * 6 modul: employees, directions, dailyReport, monthlyReport, salary, archive
+ */
+
+// ============================================
+// CONFIG & STATE
+// ============================================
 const API_BASE = window.API_BASE || '';
-
-function apiUrl(path) {
-  if (!API_BASE) return path;
-  return API_BASE.replace(/\/$/, '') + path;
-}
-
-const STORAGE = {
-  token: 'cc_admin_token',
-  user: 'cc_admin_user',
-};
+const STORAGE = { token: 'cc_admin_token', user: 'cc_admin_user' };
+const THEME_KEY = 'cc_theme';
 
 const MODULE_ICONS = {
-  employees: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>`,
-  directions: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>`,
-  directionsPiecework: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`,
-  directionsDaily: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
-  dailyReport: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
-  monthlyReport: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 12l4-4 4 4 5-5"/></svg>`,
-  archive: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>`,
+  guide: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>',
+  employees: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>',
+  directions: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>',
+  dailyReport: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+  monthlyReport: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><polyline points="7 14 11 10 15 14 21 8"/></svg>',
+  salary: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>',
+  archive: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>',
 };
 
 const state = {
@@ -27,160 +27,82 @@ const state = {
   currentPage: null,
   confirmCallback: null,
 
+  departments: [],
+  directions: [],
   employees: [],
 
-  departments_pw: [],
-  directions_pw: [],
-  selectedDepartmentId_pw: null,
-
-  departments_d: [],
-  directions_d: [],
-  selectedDepartmentId_d: null,
-
-  dirModalType: 'piecework',
-  deptModalType: 'piecework',
-
-  dailyData: null,
+  selectedDeptId: null,           // Directions sahifasi uchun
+  dailySelectedDeptId: null,      // Daily Report uchun
   dailyDate: null,
+  dailyData: null,
+
   monthlyData: null,
-  archives: [],
-
-  _assignDirections: [],
-
-  editingEmpId: null,
-  editingDirId: null,
-  editingDeptId: null,
-  editingProductId: null,
+  salaryData: null,
+  salaryDetail: null,
+  archiveData: null,
 };
 
 // ============================================
 // UTILS
 // ============================================
-
-function escapeHtml(str) {
-  if (str === null || str === undefined) return '';
-  return String(str)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+function apiUrl(p) { return (API_BASE || '').replace(/\/$/, '') + p; }
+function t(key) { return (window._t ? window._t(key) : key); }
+function escapeHtml(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
-
-function formatMoney(amount) {
-  if (typeof amount !== 'number' || isNaN(amount)) return '0';
-  return amount.toLocaleString('uz-UZ');
+function formatMoney(n) {
+  if (typeof n !== 'number' || isNaN(n)) n = 0;
+  return Math.round(n).toLocaleString('uz-UZ');
 }
-
 function todayISO() {
   const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
-
-function formatDate(dateStr, opts = {}) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr;
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = d.getFullYear();
-  if (opts.withTime) {
-    const h = String(d.getHours()).padStart(2, '0');
-    const m = String(d.getMinutes()).padStart(2, '0');
-    return `${day}.${month}.${year} ${h}:${m}`;
-  }
-  return `${day}.${month}.${year}`;
+function firstDayOfMonth() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
 }
-
-function toast(message, type = 'success') {
-  const existing = document.querySelector('.toast');
-  if (existing) existing.remove();
+function formatDate(s) {
+  if (!s) return '';
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return s;
+  return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
+}
+function toast(msg, type = 'success') {
+  document.querySelectorAll('.toast').forEach(el => el.remove());
   const el = document.createElement('div');
   el.className = `toast toast-${type}`;
-  el.textContent = message;
+  el.textContent = msg;
   document.body.appendChild(el);
-  setTimeout(() => {
-    el.style.transition = 'opacity 0.3s, transform 0.3s';
-    el.style.opacity = '0';
-    el.style.transform = 'translateX(100%)';
-    setTimeout(() => el.remove(), 300);
-  }, 3500);
+  setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 3500);
 }
-
-async function api(endpoint, options = {}) {
+async function api(endpoint, opts = {}) {
   const url = apiUrl(endpoint);
-  const headers = {
-    Authorization: `Bearer ${state.token}`,
-    ...(options.headers || {}),
-  };
-  if (!(options.body instanceof FormData) && options.body) {
-    headers['Content-Type'] = 'application/json';
-  }
-  try {
-    const res = await fetch(url, { ...options, headers });
-    const data = await res.json().catch(() => ({}));
-    if (res.status === 401) {
-      logout();
-      return null;
-    }
-    if (!res.ok) {
-      throw new Error(data.error || `HTTP ${res.status}`);
-    }
-    return data;
-  } catch (err) {
-    console.error(`API [${endpoint}]:`, err);
-    throw err;
-  }
-}
-
-function t(key) {
-  if (window.TRANSLATIONS) {
-    const lang = localStorage.getItem('cc_lang') || 'uz-lat';
-    const dict = window.TRANSLATIONS[lang] || window.TRANSLATIONS['uz-lat'];
-    return (dict && dict[key]) || key;
-  }
-  return key;
+  const headers = { Authorization: `Bearer ${state.token}`, ...(opts.headers || {}) };
+  if (!(opts.body instanceof FormData) && opts.body) headers['Content-Type'] = 'application/json';
+  const res = await fetch(url, { ...opts, headers });
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 401) { logout(); throw new Error(data.error || 'Unauthorized'); }
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
 }
 
 // ============================================
 // THEME
 // ============================================
-
-const THEME_KEY = 'cc_theme';
-
-function getCurrentTheme() { return localStorage.getItem(THEME_KEY) || 'dark'; }
+function getTheme() { return localStorage.getItem(THEME_KEY) || 'dark'; }
 function setTheme(theme) {
   localStorage.setItem(THEME_KEY, theme);
   document.documentElement.setAttribute('data-theme', theme);
-  updateThemeButton();
+  const el = document.getElementById('themeText');
+  if (el) el.textContent = theme === 'dark' ? t('theme.light') : t('theme.dark');
 }
-function toggleTheme() { setTheme(getCurrentTheme() === 'dark' ? 'light' : 'dark'); }
-function updateThemeButton() {
-  const theme = getCurrentTheme();
-  const iconDark = document.getElementById('themeIconDark');
-  const iconLight = document.getElementById('themeIconLight');
-  const text = document.getElementById('themeText');
-  if (!iconDark || !iconLight || !text) return;
-  if (theme === 'dark') {
-    iconDark.classList.remove('hidden');
-    iconLight.classList.add('hidden');
-    text.textContent = t('theme.light');
-  } else {
-    iconDark.classList.add('hidden');
-    iconLight.classList.remove('hidden');
-    text.textContent = t('theme.dark');
-  }
-}
-function setupThemeToggle() {
-  const btn = document.getElementById('themeToggle');
-  if (btn) btn.addEventListener('click', toggleTheme);
-  setTheme(getCurrentTheme());
-}
+function toggleTheme() { setTheme(getTheme() === 'dark' ? 'light' : 'dark'); }
 
 // ============================================
-// VIEW SWITCHER & LANG
+// VIEWS
 // ============================================
-
 function showLogin() {
   document.getElementById('loginView').classList.remove('hidden');
   document.getElementById('appView').classList.add('hidden');
@@ -190,73 +112,22 @@ function showApp() {
   document.getElementById('appView').classList.remove('hidden');
 }
 
-function setupLangSwitchers() {
-  document.querySelectorAll('[data-lang]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const lang = btn.dataset.lang;
-      if (typeof window.setLang === 'function') window.setLang(lang);
-      updateLangButtonsActive();
-      updateThemeButton();
-
-      if (state.business && state.business.enabledModules) {
-        buildSidebar(state.business.enabledModules, state.business.modulesInfo || []);
-        if (state.currentPage) {
-          document.querySelectorAll('[data-page]').forEach(el => {
-            el.classList.toggle('active', el.dataset.page === state.currentPage);
-          });
-        }
-      }
-      if (state.currentPage) navigateTo(state.currentPage);
-      else applyStaticTranslations();
-    });
-  });
-  updateLangButtonsActive();
-}
-function updateLangButtonsActive() {
-  const currentLang = (typeof window.getCurrentLang === 'function') ? window.getCurrentLang() : 'uz-lat';
-  document.querySelectorAll('[data-lang]').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.lang === currentLang);
-  });
-}
-function applyStaticTranslations() {
-  if (typeof window.applyTranslations === 'function') window.applyTranslations();
-}
-
 // ============================================
 // LOGIN
 // ============================================
-
 function setupLogin() {
-  const togglePw = document.getElementById('togglePassword');
-  const pwInput = document.getElementById('loginPassword');
-  const eyeIcon = document.getElementById('eyeIcon');
-
-  togglePw.addEventListener('click', () => {
-    const isPassword = pwInput.type === 'password';
-    pwInput.type = isPassword ? 'text' : 'password';
-    eyeIcon.innerHTML = isPassword
-      ? '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-10-7-10-7a18.45 18.45 0 015.16-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 10 7 10 7a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="2" y1="2" x2="22" y2="22"/>'
-      : '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>';
-  });
-
   const form = document.getElementById('loginForm');
-  const errorEl = document.getElementById('loginError');
+  const err = document.getElementById('loginError');
   const btn = document.getElementById('loginBtn');
   const btnText = document.getElementById('loginBtnText');
   const spinner = document.getElementById('loginSpinner');
-  const card = document.getElementById('loginCard');
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    err.classList.add('hidden');
     const username = document.getElementById('loginUsername').value.trim();
     const password = document.getElementById('loginPassword').value;
-    errorEl.classList.add('hidden');
-
-    if (!username || !password) {
-      errorEl.textContent = t('msg.error');
-      errorEl.classList.remove('hidden');
-      return;
-    }
+    if (!username || !password) return;
 
     btn.disabled = true;
     btnText.textContent = t('login.signingIn');
@@ -269,27 +140,23 @@ function setupLogin() {
         body: JSON.stringify({ username, password }),
       });
       const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || t('msg.loginWrong'));
-      if (data.user.role !== 'admin') throw new Error('SuperAdmin: /superadmin/');
+      if (!res.ok || !data.success) throw new Error(data.error || t('login.wrong'));
+      if (data.user.role !== 'admin') throw new Error('SuperAdmin → /superadmin/');
 
       state.token = data.token;
       state.user = data.user;
       localStorage.setItem(STORAGE.token, data.token);
       localStorage.setItem(STORAGE.user, JSON.stringify(data.user));
 
-      if (data.user.defaultLanguage && typeof window.setLang === 'function') {
-        const savedLang = localStorage.getItem('cc_lang');
-        if (!savedLang) window.setLang(data.user.defaultLanguage);
+      if (data.user.defaultLanguage && !localStorage.getItem('cc_lang')) {
+        window.setLang(data.user.defaultLanguage);
       }
 
       btnText.textContent = t('login.welcome');
-      spinner.classList.add('hidden');
       setTimeout(() => initApp(), 300);
-    } catch (err) {
-      errorEl.textContent = err.message || t('msg.error');
-      errorEl.classList.remove('hidden');
-      card.classList.add('shake');
-      setTimeout(() => card.classList.remove('shake'), 500);
+    } catch (e2) {
+      err.textContent = e2.message;
+      err.classList.remove('hidden');
       btn.disabled = false;
       btnText.textContent = t('login.signIn');
       spinner.classList.add('hidden');
@@ -307,1592 +174,1195 @@ function logout() {
 }
 
 // ============================================
-// WHITE LABEL
+// BRANDING & SIDEBAR
 // ============================================
-
-function applyBranding(business) {
-  document.title = `${business.name} · CyberCoderCRM`;
+function applyBranding(b) {
+  document.title = `${b.name} · CRM`;
+  document.getElementById('businessName').textContent = b.name || 'Business';
   const logoEl = document.getElementById('businessLogo');
-  const firstLetter = (business.name || '?').charAt(0).toUpperCase();
-  if (business.logo) {
-    const logoUrl = apiUrl(`/uploads/${business.logo}`);
-    logoEl.innerHTML = `<img src="${logoUrl}" alt="${escapeHtml(business.name)}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<div class=\\'logo-placeholder w-full h-full\\'>${firstLetter}</div>'" />`;
+  const firstLetter = (b.name || '?').charAt(0).toUpperCase();
+  if (b.logo) {
+    logoEl.innerHTML = `<img src="${apiUrl('/uploads/' + b.logo)}" alt="logo" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<div class=\\'w-full h-full flex items-center justify-center text-white font-bold\\'>${firstLetter}</div>'" />`;
   } else {
-    logoEl.innerHTML = `<div class="logo-placeholder w-full h-full">${firstLetter}</div>`;
+    logoEl.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white font-bold">${firstLetter}</div>`;
   }
-  document.getElementById('businessName').textContent = business.name;
 }
 
-// ============================================
-// SIDEBAR
-// ============================================
+function buildSidebar(enabledModules) {
+  const order = ['guide', 'employees', 'directions', 'dailyReport', 'monthlyReport', 'salary', 'archive'];
+  const effective = order.filter(k => enabledModules.includes(k));
+  state.business.effectiveModules = effective;
 
-function buildSidebar(enabledModules, modulesInfo) {
   const nav = document.getElementById('sidebarNav');
-  nav.innerHTML = `<div class="mono text-[10px] text-zinc-500 px-3 mb-2 uppercase tracking-widest">${t('nav.modules')}</div>`;
-
-  const order = ['employees', 'directionsPiecework', 'directionsDaily', 'dailyReport', 'monthlyReport', 'archive'];
-  const directionKeys = ['directionsPiecework', 'directionsDaily'];
-
-  let effectiveModules = [...enabledModules];
-  if (enabledModules.includes('directions') && !enabledModules.includes('directionsPiecework') && !enabledModules.includes('directionsDaily')) {
-    effectiveModules = effectiveModules.filter(m => m !== 'directions');
-    effectiveModules.push('directionsPiecework', 'directionsDaily');
-  }
-
-  const sortedKeys = order.filter(k => effectiveModules.includes(k));
-  const activeDirectionKeys = directionKeys.filter(k => sortedKeys.includes(k));
-
-  var directionGroupInserted = false;
-  var html = '';
-
-  sortedKeys.forEach(function(key) {
-    if (directionKeys.indexOf(key) !== -1) {
-      if (!directionGroupInserted) {
-        directionGroupInserted = true;
-        if (activeDirectionKeys.length > 0) {
-          var dirIcon = MODULE_ICONS.directions;
-          var chevron = '<svg class="nav-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>';
-          var isCurrentDir = directionKeys.indexOf(state.currentPage) !== -1;
-
-          html += '<div class="nav-group">';
-          html += '<a href="#" class="nav-item nav-group-toggle' + (isCurrentDir ? ' expanded' : '') + '" data-group="directions">' + dirIcon + '<span>' + t('nav.directions') + '</span><span class="ml-auto">' + chevron + '</span></a>';
-          html += '<div class="nav-group-items' + (isCurrentDir ? '' : ' collapsed') + '" data-group-items="directions">';
-
-          activeDirectionKeys.forEach(function(dk) {
-            var icon = MODULE_ICONS[dk] || MODULE_ICONS.employees;
-            var label = t('nav.' + dk);
-            html += '<a href="#" class="nav-item nav-sub-item" data-page="' + dk + '">' + icon + '<span>' + label + '</span></a>';
-          });
-
-          html += '</div></div>';
-        }
-      }
-      return;
-    }
-
-    var icon = MODULE_ICONS[key] || MODULE_ICONS.employees;
-    var label = t('nav.' + key);
-    html += '<a href="#" class="nav-item" data-page="' + key + '">' + icon + '<span>' + label + '</span></a>';
+  nav.innerHTML = '';
+  effective.forEach(key => {
+    const a = document.createElement('a');
+    a.className = 'nav-item';
+    a.dataset.page = key;
+    a.innerHTML = `${MODULE_ICONS[key] || ''}<span>${t('nav.' + key)}</span>`;
+    a.addEventListener('click', (e) => { e.preventDefault(); navigateTo(key); });
+    nav.appendChild(a);
   });
-
-  nav.insertAdjacentHTML('beforeend', html);
-
-  nav.querySelectorAll('.nav-group-toggle').forEach(function(el) {
-    el.addEventListener('click', function(e) {
-      e.preventDefault();
-      var group = el.dataset.group;
-      var groupItems = nav.querySelector('[data-group-items="' + group + '"]');
-      if (groupItems) {
-        var isOpen = !groupItems.classList.contains('collapsed');
-        groupItems.classList.toggle('collapsed', isOpen);
-        el.classList.toggle('expanded', !isOpen);
-      }
-    });
-  });
-
-  nav.querySelectorAll('[data-page]').forEach(function(el) {
-    el.addEventListener('click', function(e) {
-      e.preventDefault();
-      navigateTo(el.dataset.page);
-    });
-  });
-
-  state.business.effectiveModules = sortedKeys;
 }
-
-// ============================================
-// ROUTER
-// ============================================
 
 function navigateTo(pageKey) {
-  const effective = state.business?.effectiveModules || state.business?.enabledModules || [];
-  if (!effective.includes(pageKey)) {
-    const firstPage = effective[0];
-    if (firstPage) pageKey = firstPage;
-    else return;
-  }
-
   state.currentPage = pageKey;
-
   document.querySelectorAll('[data-page]').forEach(el => {
     el.classList.toggle('active', el.dataset.page === pageKey);
   });
-
-  var dirKeys = ['directionsPiecework', 'directionsDaily'];
-  if (dirKeys.indexOf(pageKey) !== -1) {
-    var groupToggle = document.querySelector('.nav-group-toggle[data-group="directions"]');
-    var groupItems = document.querySelector('[data-group-items="directions"]');
-    if (groupToggle && groupItems) {
-      groupItems.classList.remove('collapsed');
-      groupToggle.classList.add('expanded');
-    }
-  }
-
-  document.getElementById('pageTitle').textContent = t(`nav.${pageKey}`);
+  document.getElementById('pageTitle').textContent = t('nav.' + pageKey);
   document.getElementById('pageSubtitle').textContent = '';
   document.getElementById('headerActions').innerHTML = '';
-
-  document.querySelectorAll('.page').forEach(p => {
-    p.classList.toggle('active', p.dataset.page === pageKey);
-  });
 
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sidebarBackdrop').classList.add('hidden');
 
-  applyStaticTranslations();
+  if (pageKey === 'guide') renderGuide();
+  else if (pageKey === 'employees') loadEmployeesPage();
+  else if (pageKey === 'directions') loadDirectionsPage();
+  else if (pageKey === 'dailyReport') loadDailyReportPage();
+  else if (pageKey === 'monthlyReport') loadMonthlyReportPage();
+  else if (pageKey === 'salary') loadSalaryPage();
+  else if (pageKey === 'archive') loadArchivePage();
+}
 
-  switch (pageKey) {
-    case 'employees': loadEmployees(); break;
-    case 'directionsPiecework': loadDepartmentsForType('piecework'); break;
-    case 'directionsDaily': loadDepartmentsForType('daily'); break;
-    case 'dailyReport':
-      if (!state.dailyDate) state.dailyDate = todayISO();
-      loadDailyReport(state.dailyDate);
-      break;
-    case 'monthlyReport': initMonthlyReport(); break;
-    case 'archive': loadArchive(); break;
-  }
+// ============================================
+// GUIDE — Yo'riqnoma
+// ============================================
+const GUIDE_MODULES = [
+  {
+    key: 'employees',
+    title: 'Xodimlar',
+    color: 'purple',
+    desc: "Biznesning barcha xodimlarini boshqarish. Ism+Familiya, kod (band qilinadi), telefon va bo'lim biriktirish.",
+    actions: [
+      "Qidirish va bo'lim bo'yicha filterlash",
+      "Yangi xodim qo'shish — ism, kod, telefon, bo'lim majburiy",
+      "O'chirishda kod oy oxirigacha band qilinadi (qaytadan ishlatilmaydi)",
+    ],
+  },
+  {
+    key: 'directions',
+    title: "Yo'nalishlar",
+    color: 'purple',
+    desc: "Ish bo'limlari va ularning yo'nalishlari. Har bo'lim ON yoki OFF rejimda bo'ladi.",
+    actions: [
+      "<strong>Bo'lim ON</strong> — bir nechta yo'nalish bor (filter sifatida). Har yo'nalish: nomi + 1 dona narxi. Kunlik hisobotda umumiy mahsulot soni kiritiladi, narxga ko'paytirilib xodimlar orasida taqsimlanadi.",
+      "<strong>Bo'lim OFF</strong> — yo'nalish yo'q. Bo'limning o'zida <em>pricePerUnit</em> bor. Har xodim qancha mahsulot tayyorlasa, shunga narxga ko'paytirilib pul oladi.",
+      "<strong>Byudjet</strong> — bo'lim doirasida jami berilishi mumkin (cheklov sifatida).",
+      "Bo'limdagi xodimlar bo'lsa, bo'limni o'chirib bo'lmaydi.",
+    ],
+  },
+  {
+    key: 'dailyReport',
+    title: 'Kunlik Hisobot',
+    color: 'emerald',
+    desc: 'Har kunlik biriktirish va daromad. Yuqorida sana picker, ostida bo\'lim tabs.',
+    actions: [
+      "Tanlangan bo'limga ko'ra: ON bo'lim — yo'nalishlar va kunlik mahsulot soni; OFF bo'lim — to'g'ridan-to'g'ri xodim qatorida productCount.",
+      "<strong>Biriktirish</strong> — biriktirilmaganlardan xodimni biriktirish (yo'nalish + smena 1/0.5).",
+      "<strong>Daromadni tahrirlash</strong> — qalam ikoni. Yo'nalish narxidan kam yoki ko'p qila olasiz (qandaydir sabab bilan).",
+      "Kelajak sana mumkin emas. Ish kuni Tashkent vaqti bo'yicha hisoblanadi.",
+    ],
+  },
+  {
+    key: 'monthlyReport',
+    title: 'Oylik Hisobot',
+    color: 'emerald',
+    desc: 'Sana oraliq bo\'yicha xodimlar statistikasi (faqat ko\'rish).',
+    actions: [
+      "Boshlanish va tugash sanasi, ixtiyoriy kod filterli qidiruv",
+      "Har xodim uchun: smena, kun, daromad, to'langan, qoldiq",
+      "To'lash bu yerda emas — Maosh to'lash modulida",
+    ],
+  },
+  {
+    key: 'salary',
+    title: "Maosh to'lash",
+    color: 'amber',
+    desc: 'Xodimlar ro\'yxati va sanagacha to\'lash mexanizmi.',
+    actions: [
+      'Xodim ustiga bosing — tafsilot sahifasi ochiladi (kunlik daromadlar va to\'lov tarixi)',
+      '<strong>Sanagacha to\'lash</strong> — sana tanlang, o\'sha kungacha xodimning jami qoldig\'i bitta to\'lov yozuvi sifatida saqlanadi',
+      "Qoldiq = jami daromad - jami to'langan",
+    ],
+  },
+  {
+    key: 'archive',
+    title: 'Arxiv',
+    color: 'amber',
+    desc: 'Har oyning to\'lovlar tarixi. To\'liq/qisman to\'langan xodimlar ajratilgan.',
+    actions: [
+      "Oy kartochkasi: jami summa, xodimlar soni, to'lovlar soni",
+      "Har xodim: topgan, to'langan, qoldiq + status (full/partial)",
+    ],
+  },
+];
+
+const GUIDE_MODALS = [
+  { title: "Xodim modali", color: 'purple', desc: "Xodim qo'shish/tahrirlash. Bo'lim majburiy — har xodim bitta bo'limga tegishli." },
+  { title: "Bo'lim modali", color: 'purple', desc: "Bo'lim CRUD. ON/OFF toggle bilan rejim tanlanadi. OFF bo'lsa <em>1 birlik narxi</em> kerak. Byudjet — cheklov." },
+  { title: "Yo'nalish modali", color: 'purple', desc: "Faqat ON-bo'lim ichida ochiladi. Yo'nalish nomi + 1 dona narxi (per ishchi). OFF bo'limda ko'rinmaydi." },
+  { title: "Biriktirish modali", color: 'emerald', desc: "Xodimni kunga biriktirish. ON da yo'nalish select, OFF da productCount input. Smena: 1 (to'liq) yoki 0.5 (yarim)." },
+  { title: "Mahsulot soni modali", color: 'emerald', desc: "Faqat ON-bo'limda. Tanlangan yo'nalish uchun kunlik umumiy mahsulot soni. Yangilanganda recalc avtomatik." },
+  { title: "Daromad tahrirlash modali", color: 'emerald', desc: "Qo'lda earning kiritish (manual override). OFF da productCount ham tahrirlanadi. Manual qiymat fairShare dan ortiqcha bo'lsa — bonus, kam bo'lsa — deficit." },
+  { title: "Sanagacha to'lov modali", color: 'amber', desc: "Sana tanlang — o'sha sanagacha bo'lgan barcha daromad - oldingi to'lovlar = qoldiq. Shu summa bitta SalaryPayment yozuvi sifatida saqlanadi." },
+  { title: "Tasdiq modali", color: 'red', desc: "Universal o'chirishni tasdiqlash modali. Xavfli amallar oldidan ko'rinadi." },
+];
+
+const GUIDE_WORKFLOW = [
+  "1. <strong>Yo'nalishlar</strong> bo'limiga kiring → 1-2 ta bo'lim yarating (ON yoki OFF).",
+  "2. ON bo'limga kirib yo'nalishlar qo'shing (Ko'ylak 250 so'm, Shim 300 so'm va h.k.).",
+  "3. <strong>Xodimlar</strong> bo'limida har xodimni mos bo'limga biriktirib qo'shing.",
+  "4. <strong>Kunlik Hisobot</strong>: sana tanlang → bo'lim tab → biriktirilmaganlardan ishchini biriktiring.",
+  "5. ON bo'limda kun oxirida har yo'nalishga umumiy mahsulot soni kiriting — earning avtomatik hisoblanadi.",
+  "6. OFF bo'limda har xodimning productCount'ini tahrirlash modalida kiriting.",
+  "7. Oy oxirida <strong>Maosh to'lash</strong> → har xodimga sanagacha to'lov qiling.",
+  "8. <strong>Arxiv</strong> orqali oyma-oy to'lovlarni ko'rasiz.",
+];
+
+const GUIDE_TIPS = [
+  "<strong>Bo'lim turini o'zgartirib bo'lmaydi.</strong> ON→OFF qilinsa, eski yo'nalishlar arxivlanadi.",
+  "<strong>O'chirilgan xodimning kodi</strong> oy oxirigacha band — yangi xodimga bermaysiz.",
+  "<strong>Manual daromad</strong> kiritsangiz, recalc keyingi marta bu earning'ni avtomatik o'zgartirmaydi.",
+  "<strong>Kelajak sana</strong> mumkin emas — faqat o'tgan va bugungi kunlarga ish yozish mumkin.",
+  "<strong>Til</strong> ni sidebar pastida o'zgartirsangiz — UI darhol qayta yuklanadi.",
+];
+
+function renderGuide() {
+  const container = document.getElementById('guideContent');
+  const colorMap = {
+    purple: { bg: 'rgba(139, 92, 246, 0.08)', border: 'rgba(139, 92, 246, 0.25)', text: '#a78bfa' },
+    emerald: { bg: 'rgba(16, 185, 129, 0.08)', border: 'rgba(16, 185, 129, 0.25)', text: '#34d399' },
+    amber: { bg: 'rgba(245, 158, 11, 0.08)', border: 'rgba(245, 158, 11, 0.25)', text: '#fbbf24' },
+    red: { bg: 'rgba(239, 68, 68, 0.08)', border: 'rgba(239, 68, 68, 0.25)', text: '#f87171' },
+  };
+
+  const modulesHtml = GUIDE_MODULES.map(m => {
+    const c = colorMap[m.color] || colorMap.purple;
+    const icon = MODULE_ICONS[m.key] || '';
+    return `
+      <div class="card p-5" style="background:${c.bg}; border-color:${c.border}">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:${c.bg}; color:${c.text}">${icon}</div>
+          <div>
+            <h3 class="font-bold text-base" style="color:${c.text}">${m.title}</h3>
+            <code class="mono text-[10px] text-zinc-500">${m.key}</code>
+          </div>
+        </div>
+        <p class="text-sm text-zinc-400 mb-3">${m.desc}</p>
+        <ul class="space-y-1.5 text-xs">
+          ${m.actions.map(a => `<li class="flex gap-2"><span style="color:${c.text}">▸</span><span class="text-zinc-200">${a}</span></li>`).join('')}
+        </ul>
+      </div>`;
+  }).join('');
+
+  const modalsHtml = GUIDE_MODALS.map(m => {
+    const c = colorMap[m.color] || colorMap.purple;
+    return `
+      <div class="flex gap-3 p-3 rounded-xl card" style="background:${c.bg}; border-color:${c.border}">
+        <div class="w-1 rounded-full" style="background:${c.text}"></div>
+        <div class="flex-1">
+          <div class="font-semibold text-sm" style="color:${c.text}">${m.title}</div>
+          <div class="text-xs text-zinc-400 mt-1">${m.desc}</div>
+        </div>
+      </div>`;
+  }).join('');
+
+  const workflowHtml = GUIDE_WORKFLOW.map(s => `<li class="text-sm text-zinc-200 leading-relaxed">${s}</li>`).join('');
+  const tipsHtml = GUIDE_TIPS.map(s => `<li class="flex gap-2 text-sm text-zinc-200"><span class="text-amber-400 shrink-0">💡</span><span>${s}</span></li>`).join('');
+
+  container.innerHTML = `
+    <!-- WELCOME -->
+    <div class="card p-6 mb-6" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(168, 85, 247, 0.04))">
+      <div class="flex items-start gap-4">
+        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shrink-0">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+        </div>
+        <div>
+          <h2 class="text-xl font-bold mb-1">${t('guide.welcome.title')}</h2>
+          <p class="text-sm text-zinc-400">${t('guide.welcome.text')}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULES -->
+    <div class="mb-2 flex items-center gap-3">
+      <h2 class="text-lg font-bold">${t('guide.modulesTitle')}</h2>
+      <div class="flex-1 h-px bg-purple-500/10"></div>
+      <span class="mono text-xs text-zinc-500">${GUIDE_MODULES.length}</span>
+    </div>
+    <p class="text-xs text-zinc-500 mb-4">Sidebardagi har bir modul nima qiladi</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+      ${modulesHtml}
+    </div>
+
+    <!-- WORKFLOW -->
+    <div class="mb-2 flex items-center gap-3">
+      <h2 class="text-lg font-bold">${t('guide.workflowTitle')}</h2>
+      <div class="flex-1 h-px bg-emerald-500/10"></div>
+    </div>
+    <p class="text-xs text-zinc-500 mb-4">Bosqichma-bosqich oqim — birinchi marta qanday boshlash kerak</p>
+    <div class="card p-5 mb-8" style="background: rgba(16, 185, 129, 0.04); border-color: rgba(16, 185, 129, 0.2)">
+      <ol class="space-y-2 list-none">${workflowHtml}</ol>
+    </div>
+
+    <!-- MODALS -->
+    <div class="mb-2 flex items-center gap-3">
+      <h2 class="text-lg font-bold">${t('guide.modalsTitle')}</h2>
+      <div class="flex-1 h-px bg-purple-500/10"></div>
+      <span class="mono text-xs text-zinc-500">${GUIDE_MODALS.length}</span>
+    </div>
+    <p class="text-xs text-zinc-500 mb-4">Tugma bosilganda ochiluvchi oynalar va ularning vazifasi</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
+      ${modalsHtml}
+    </div>
+
+    <!-- TIPS -->
+    <div class="mb-2 flex items-center gap-3">
+      <h2 class="text-lg font-bold">${t('guide.tipsTitle')}</h2>
+      <div class="flex-1 h-px bg-amber-500/10"></div>
+    </div>
+    <p class="text-xs text-zinc-500 mb-4">Muhim nuanslar — chalkashlikni oldini olish uchun</p>
+    <div class="card p-5" style="background: rgba(245, 158, 11, 0.04); border-color: rgba(245, 158, 11, 0.2)">
+      <ul class="space-y-3 list-none">${tipsHtml}</ul>
+    </div>`;
 }
 
 // ============================================
 // EMPLOYEES
 // ============================================
+async function loadEmployeesPage() {
+  await loadDepartmentsIntoState();
 
-async function loadEmployees() {
-  const container = document.getElementById('empTableContainer');
-  container.innerHTML = '<div class="p-6"><div class="skeleton h-32"></div></div>';
+  // Filterdropdown
+  const filter = document.getElementById('empDeptFilter');
+  filter.innerHTML = `<option value="">${t('emp.department')} — ${t('common.total')}</option>` +
+    state.departments.map(d => `<option value="${d._id}">${escapeHtml(d.name)}</option>`).join('');
+
+  await fetchAndRenderEmployees();
+}
+
+async function loadDepartmentsIntoState() {
   try {
-    const search = document.getElementById('empSearch').value.trim();
-    const url = search ? `/api/employees?search=${encodeURIComponent(search)}` : '/api/employees';
-    const employees = await api(url);
-    if (!employees) return;
-    state.employees = employees;
-    renderEmployees(employees);
-  } catch (err) {
-    container.innerHTML = `<div class="p-6 text-center text-red-400">${escapeHtml(err.message)}</div>`;
+    state.departments = await api('/api/departments');
+  } catch (e) { state.departments = []; }
+}
+
+async function fetchAndRenderEmployees() {
+  const search = document.getElementById('empSearch').value.trim();
+  const deptId = document.getElementById('empDeptFilter').value;
+  const params = [];
+  if (search) params.push(`search=${encodeURIComponent(search)}`);
+  if (deptId) params.push(`departmentId=${deptId}`);
+  const url = '/api/employees' + (params.length ? '?' + params.join('&') : '');
+
+  const container = document.getElementById('empTableContainer');
+  container.innerHTML = '<div class="p-6"><div class="skeleton h-24"></div></div>';
+  try {
+    state.employees = await api(url);
+    renderEmployees(state.employees);
+  } catch (e) {
+    container.innerHTML = `<div class="p-6 text-center text-red-400">${escapeHtml(e.message)}</div>`;
   }
 }
 
 function renderEmployees(employees) {
   const container = document.getElementById('empTableContainer');
   if (employees.length === 0) {
-    container.innerHTML = `
-      <div class="p-12 text-center">
-        <div class="inline-flex w-16 h-16 rounded-2xl bg-purple-500/10 border border-purple-500/20 items-center justify-center mb-4">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-purple-400">
-            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-          </svg>
-        </div>
-        <h3 class="font-bold mb-1">${t('emp.empty')}</h3>
-        <p class="text-sm text-zinc-500">${t('emp.emptyHint')}</p>
-      </div>
-    `;
+    container.innerHTML = `<div class="p-10 text-center"><p class="font-bold mb-1">${t('emp.empty')}</p><p class="text-sm text-zinc-500">${t('emp.emptyHint')}</p></div>`;
     return;
   }
-
-  container.innerHTML = `
-    <div class="table-wrap">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>${t('emp.table.name')}</th>
-            <th>${t('emp.table.code')}</th>
-            <th>${t('emp.table.phone')}</th>
-            <th class="text-right">${t('common.actions')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${employees.map(e => `
-            <tr>
-              <td class="font-medium">${escapeHtml(e.firstName)}</td>
-              <td><span class="mono text-xs px-2 py-1 rounded bg-purple-500/10 border border-purple-500/20 text-purple-300">${escapeHtml(e.code)}</span></td>
-              <td class="mono text-sm text-zinc-400">${escapeHtml(e.phone || '—')}</td>
-              <td class="text-right whitespace-nowrap">
-                <button type="button" data-act="emp-edit" data-id="${e._id}" class="btn-icon" title="${t('common.edit')}">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                  </svg>
-                </button>
-                <button type="button" data-act="emp-delete" data-id="${e._id}" data-name="${escapeHtml(e.firstName)}" class="btn-icon danger ml-1" title="${t('common.delete')}">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="3 6 5 6 21 6"/>
-                    <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/>
-                  </svg>
-                </button>
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    </div>
-  `;
+  container.innerHTML = `<div class="overflow-x-auto"><table class="data-table"><thead><tr>
+      <th>${t('emp.fullName')}</th>
+      <th>${t('emp.code')}</th>
+      <th>${t('emp.department')}</th>
+      <th>${t('emp.phone')}</th>
+      <th class="text-right">${t('common.actions')}</th>
+    </tr></thead><tbody>
+    ${employees.map(e => `
+      <tr>
+        <td class="font-medium">${escapeHtml(e.fullName)}</td>
+        <td><span class="mono text-xs px-2 py-1 rounded bg-purple-500/10 border border-purple-500/20 text-purple-300">${escapeHtml(e.code)}</span></td>
+        <td class="text-sm">${escapeHtml(e.departmentId?.name || '—')} ${e.departmentId?.allowDirections ? '<span class="badge badge-on ml-1">ON</span>' : '<span class="badge badge-off ml-1">OFF</span>'}</td>
+        <td class="mono text-xs text-zinc-400">${escapeHtml(e.phone || '—')}</td>
+        <td class="text-right whitespace-nowrap">
+          <button class="btn-icon" data-act="emp-edit" data-id="${e._id}" title="${t('common.edit')}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="btn-icon danger ml-1" data-act="emp-delete" data-id="${e._id}" data-name="${escapeHtml(e.fullName)}" title="${t('common.delete')}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
+          </button>
+        </td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
 
   container.querySelectorAll('[data-act]').forEach(btn => {
     btn.addEventListener('click', () => {
-      const action = btn.dataset.act;
       const id = btn.dataset.id;
-      if (action === 'emp-edit') openEmpEdit(id);
-      else if (action === 'emp-delete') confirmDeleteEmployee(id, btn.dataset.name);
+      if (btn.dataset.act === 'emp-edit') openEmpEdit(id);
+      else if (btn.dataset.act === 'emp-delete') {
+        openConfirm(t('emp.deleteConfirm'), `"${btn.dataset.name}" — ${t('emp.deleteWarn')}`, async () => {
+          try { await api(`/api/employees/${id}`, { method: 'DELETE' }); toast(t('msg.deleted')); fetchAndRenderEmployees(); }
+          catch (e) { toast(e.message, 'error'); }
+        });
+      }
     });
   });
 }
 
-function setupEmployeesPage() {
-  let searchTimer;
-  document.getElementById('empSearch').addEventListener('input', () => {
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => loadEmployees(), 300);
-  });
+function fillEmpDeptSelect(selectedId) {
+  const select = document.getElementById('empDepartmentId');
+  select.innerHTML = `<option value="">${t('emp.selectDept')}</option>` +
+    state.departments.map(d => `<option value="${d._id}" ${selectedId === d._id ? 'selected' : ''}>${escapeHtml(d.name)} ${d.allowDirections ? '(ON)' : '(OFF)'}</option>`).join('');
+}
 
-  document.getElementById('empAddBtn').addEventListener('click', () => {
-    state.editingEmpId = null;
-    document.getElementById('empForm').reset();
-    document.getElementById('empEditingId').value = '';
-    document.getElementById('empModalTitle').textContent = t('emp.add');
-    openModal('empModal');
-  });
-
-  document.getElementById('empForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = document.getElementById('empSubmitBtn');
-    const spinner = document.getElementById('empSubmitSpinner');
-    const body = {
-      firstName: document.getElementById('empFirstName').value.trim(),
-      lastName: document.getElementById('empLastName').value.trim() || '-',
-      code: document.getElementById('empCode').value.trim(),
-      phone: document.getElementById('empPhone').value.trim(),
-    };
-    btn.disabled = true;
-    spinner.classList.remove('hidden');
-    try {
-      if (state.editingEmpId) {
-        await api(`/api/employees/${state.editingEmpId}`, { method: 'PUT', body: JSON.stringify(body) });
-      } else {
-        await api('/api/employees', { method: 'POST', body: JSON.stringify(body) });
-      }
-      toast(t('msg.saved'), 'success');
-      closeModal('empModal');
-      loadEmployees();
-    } catch (err) {
-      toast(err.message || t('msg.error'), 'error');
-    } finally {
-      btn.disabled = false;
-      spinner.classList.add('hidden');
-    }
-  });
+function openEmpAdd() {
+  document.getElementById('empEditingId').value = '';
+  document.getElementById('empForm').reset();
+  document.getElementById('empModalTitle').textContent = t('emp.add');
+  fillEmpDeptSelect(null);
+  openModal('empModal');
 }
 
 function openEmpEdit(id) {
   const emp = state.employees.find(e => e._id === id);
   if (!emp) return;
-  state.editingEmpId = id;
   document.getElementById('empEditingId').value = id;
   document.getElementById('empModalTitle').textContent = t('emp.edit');
-  document.getElementById('empFirstName').value = emp.firstName || '';
-  document.getElementById('empLastName').value = emp.lastName || '-';
+  document.getElementById('empFullName').value = emp.fullName || '';
   document.getElementById('empCode').value = emp.code || '';
   document.getElementById('empPhone').value = emp.phone || '';
+  fillEmpDeptSelect(emp.departmentId?._id || emp.departmentId);
   openModal('empModal');
 }
 
-function confirmDeleteEmployee(id, name) {
-  openConfirm(t('emp.deleteConfirm'), `"${name}" — ${t('emp.deleteWarn')}`, async () => {
+function setupEmployeesPage() {
+  let timer;
+  document.getElementById('empSearch').addEventListener('input', () => {
+    clearTimeout(timer); timer = setTimeout(fetchAndRenderEmployees, 300);
+  });
+  document.getElementById('empDeptFilter').addEventListener('change', fetchAndRenderEmployees);
+  document.getElementById('empAddBtn').addEventListener('click', openEmpAdd);
+
+  document.getElementById('empForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('empEditingId').value;
+    const body = {
+      fullName: document.getElementById('empFullName').value.trim(),
+      code: document.getElementById('empCode').value.trim(),
+      phone: document.getElementById('empPhone').value.trim(),
+      departmentId: document.getElementById('empDepartmentId').value,
+    };
     try {
-      await api(`/api/employees/${id}`, { method: 'DELETE' });
-      toast(t('msg.deleted'), 'success');
-      loadEmployees();
-    } catch (err) {
-      toast(err.message || t('msg.error'), 'error');
-    }
+      if (id) await api(`/api/employees/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+      else await api('/api/employees', { method: 'POST', body: JSON.stringify(body) });
+      toast(t('msg.saved'));
+      closeModal('empModal');
+      fetchAndRenderEmployees();
+    } catch (e2) { toast(e2.message, 'error'); }
   });
 }
 
 // ============================================
-// DEPARTMENTS + DIRECTIONS
+// DIRECTIONS (Departments + Directions)
 // ============================================
-
-function suffixForType(type) {
-  return type === 'daily' ? '_d' : '_pw';
+async function loadDirectionsPage() {
+  await fetchDepartments();
 }
 
-async function loadDepartmentsForType(type) {
-  const suffix = suffixForType(type);
-  const container = document.getElementById('departmentsContainer' + suffix);
+async function fetchDepartments() {
+  const container = document.getElementById('deptContainer');
   container.innerHTML = '<div class="skeleton h-24"></div>';
-
   try {
-    const departments = await api('/api/departments?type=' + type);
-    if (!departments) return;
-    state[`departments${suffix}`] = departments;
-    renderDepartments(type);
-
-    const selectedKey = `selectedDepartmentId${suffix}`;
-    if (departments.length > 0 && !state[selectedKey]) {
-      selectDepartment(type, departments[0]._id);
-    } else if (state[selectedKey]) {
-      selectDepartment(type, state[selectedKey]);
+    state.departments = await api('/api/departments');
+    renderDepartments();
+    if (state.selectedDeptId) {
+      const sel = state.departments.find(d => d._id === state.selectedDeptId);
+      if (sel) selectDept(sel._id);
+      else { state.selectedDeptId = null; document.getElementById('dirSection').classList.add('hidden'); }
     }
-  } catch (err) {
-    container.innerHTML = `<div class="text-center text-red-400 p-6">${escapeHtml(err.message)}</div>`;
+  } catch (e) {
+    container.innerHTML = `<div class="text-center text-red-400 p-6">${escapeHtml(e.message)}</div>`;
   }
 }
 
-function renderDepartments(type) {
-  const suffix = suffixForType(type);
-  const departments = state[`departments${suffix}`] || [];
-  const selectedKey = `selectedDepartmentId${suffix}`;
-  const container = document.getElementById('departmentsContainer' + suffix);
-
-  if (departments.length === 0) {
-    container.innerHTML = `
-      <div class="card p-8 text-center">
-        <div class="inline-flex w-14 h-14 rounded-xl bg-purple-500/10 border border-purple-500/20 items-center justify-center mb-3">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-purple-400">
-            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-          </svg>
-        </div>
-        <h3 class="font-bold mb-1">${t('dept.empty')}</h3>
-        <p class="text-sm text-zinc-500">${t('dept.emptyHint')}</p>
-      </div>
-    `;
-    const sectionEl = document.getElementById('directionsSection' + suffix);
-    if (sectionEl) sectionEl.classList.add('hidden');
+function renderDepartments() {
+  const container = document.getElementById('deptContainer');
+  if (state.departments.length === 0) {
+    container.innerHTML = `<div class="card p-10 text-center"><p class="font-bold mb-1">${t('dept.empty')}</p><p class="text-sm text-zinc-500">${t('dept.emptyHint')}</p></div>`;
+    document.getElementById('dirSection').classList.add('hidden');
     return;
   }
-
-  const selectedId = state[selectedKey];
-  container.innerHTML = `
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-      ${departments.map(d => `
-        <div class="dept-card ${selectedId === d._id ? 'selected' : ''}" data-dept-id="${d._id}">
-          <div class="dept-card-actions">
-            <button type="button" data-act="dept-edit" data-id="${d._id}" class="btn-icon" title="${t('common.edit')}">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-              </svg>
-            </button>
-            <button type="button" data-act="dept-delete" data-id="${d._id}" data-name="${escapeHtml(d.name)}" class="btn-icon danger" title="${t('common.delete')}">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/>
-              </svg>
-            </button>
-          </div>
-          <div class="font-bold text-base pr-16 truncate">${escapeHtml(d.name)}</div>
-          <div class="mono text-xs text-zinc-500 mt-1">${d.directionCount || 0} ${t('dept.directionCount')}</div>
-          ${d.description ? `<div class="text-xs text-zinc-500 mt-2 line-clamp-2">${escapeHtml(d.description)}</div>` : ''}
+  container.innerHTML = `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+    ${state.departments.map(d => `
+      <div class="dept-card ${state.selectedDeptId === d._id ? 'selected' : ''}" data-id="${d._id}">
+        <div class="flex justify-between items-start gap-2 mb-2">
+          <div class="font-bold text-base">${escapeHtml(d.name)}</div>
+          <span class="badge ${d.allowDirections ? 'badge-on' : 'badge-off'}">${d.allowDirections ? 'ON' : 'OFF'}</span>
         </div>
-      `).join('')}
-    </div>
-  `;
+        ${d.description ? `<div class="text-xs text-zinc-500 mb-2">${escapeHtml(d.description)}</div>` : ''}
+        <div class="mono text-xs text-zinc-500 mb-3">
+          ${d.allowDirections ? `${d.directionCount || 0} ${t('dept.directionCount')} · ` : ''}${d.employeeCount || 0} ${t('dept.employeeCount')}
+        </div>
+        ${d.budget > 0 ? `<div class="text-xs text-zinc-400 mb-2">${t('dept.budget')}: <span class="mono text-emerald-400">${formatMoney(d.budget)}</span></div>` : ''}
+        ${!d.allowDirections && d.pricePerUnit > 0 ? `<div class="text-xs text-zinc-400 mb-2">${t('dept.pricePerUnit')}: <span class="mono text-purple-300">${formatMoney(d.pricePerUnit)}</span></div>` : ''}
+        <div class="flex gap-1 pt-2 border-t border-purple-500/10">
+          <button class="btn-icon flex-1" data-act="dept-edit" data-id="${d._id}" onclick="event.stopPropagation()" title="${t('common.edit')}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="btn-icon danger" data-act="dept-delete" data-id="${d._id}" data-name="${escapeHtml(d.name)}" onclick="event.stopPropagation()" title="${t('common.delete')}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
+          </button>
+        </div>
+      </div>`).join('')}
+  </div>`;
 
   container.querySelectorAll('.dept-card').forEach(card => {
     card.addEventListener('click', (e) => {
       if (e.target.closest('[data-act]')) return;
-      selectDepartment(type, card.dataset.deptId);
+      selectDept(card.dataset.id);
     });
   });
-
-  container.querySelectorAll('[data-act]').forEach(btn => {
+  container.querySelectorAll('[data-act="dept-edit"]').forEach(btn => {
+    btn.addEventListener('click', (e) => { e.stopPropagation(); openDeptEdit(btn.dataset.id); });
+  });
+  container.querySelectorAll('[data-act="dept-delete"]').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const act = btn.dataset.act;
-      const id = btn.dataset.id;
-      if (act === 'dept-edit') openDeptEdit(type, id);
-      else if (act === 'dept-delete') confirmDeleteDept(type, id, btn.dataset.name);
+      const id = btn.dataset.id, name = btn.dataset.name;
+      openConfirm(t('dept.deleteConfirm'), `"${name}"`, async () => {
+        try { await api(`/api/departments/${id}`, { method: 'DELETE' }); toast(t('msg.deleted')); fetchDepartments(); }
+        catch (e2) { toast(e2.message, 'error'); }
+      });
     });
   });
 }
 
-function selectDepartment(type, deptId) {
-  const suffix = suffixForType(type);
-  state[`selectedDepartmentId${suffix}`] = deptId;
-  const departments = state[`departments${suffix}`] || [];
-  const dept = departments.find(d => d._id === deptId);
+async function selectDept(deptId) {
+  state.selectedDeptId = deptId;
+  document.querySelectorAll('#deptContainer .dept-card').forEach(c => c.classList.toggle('selected', c.dataset.id === deptId));
+  const dept = state.departments.find(d => d._id === deptId);
+  if (!dept) return;
 
-  document.querySelectorAll(`#departmentsContainer${suffix} .dept-card`).forEach(c => {
-    c.classList.toggle('selected', c.dataset.deptId === deptId);
-  });
-
-  if (dept) {
-    const nameEl = document.getElementById('currentDeptName' + suffix);
-    const hintEl = document.getElementById('currentDeptHint' + suffix);
-    if (nameEl) nameEl.textContent = dept.name;
-    if (hintEl) hintEl.textContent = `${dept.directionCount || 0} ${t('dept.directionCount')}`;
-  }
-
-  loadDirections(type, deptId);
-}
-
-async function loadDirections(type, departmentId) {
-  const suffix = suffixForType(type);
-  const container = document.getElementById('dirTableContainer' + suffix);
-  const dirSection = document.getElementById('directionsSection' + suffix);
-
-  if (!departmentId) {
-    if (dirSection) dirSection.classList.add('hidden');
+  if (!dept.allowDirections) {
+    document.getElementById('dirSection').classList.add('hidden');
     return;
   }
 
-  if (dirSection) dirSection.classList.remove('hidden');
-  container.innerHTML = '<div class="p-6"><div class="skeleton h-32"></div></div>';
+  document.getElementById('dirSection').classList.remove('hidden');
+  document.getElementById('dirSectionTitle').textContent = `${dept.name} — ${t('dir.title')}`;
+  document.getElementById('dirSectionHint').textContent = '';
+  await fetchDirections(deptId);
+}
 
+async function fetchDirections(deptId) {
+  const container = document.getElementById('dirContainer');
+  container.innerHTML = '<div class="p-6"><div class="skeleton h-24"></div></div>';
   try {
-    const directions = await api(`/api/directions?type=${type}&departmentId=${departmentId}`);
-    if (!directions) return;
-    state[`directions${suffix}`] = directions;
-    renderDirections(type, directions);
-  } catch (err) {
-    container.innerHTML = `<div class="p-6 text-center text-red-400">${escapeHtml(err.message)}</div>`;
+    state.directions = await api(`/api/directions?departmentId=${deptId}`);
+    renderDirections();
+  } catch (e) {
+    container.innerHTML = `<div class="p-6 text-center text-red-400">${escapeHtml(e.message)}</div>`;
   }
 }
 
-function renderDirections(type, directions) {
-  const suffix = suffixForType(type);
-  const container = document.getElementById('dirTableContainer' + suffix);
-  const selectedKey = `selectedDepartmentId${suffix}`;
-
-  if (!state[selectedKey]) {
-    container.innerHTML = `<div class="p-10 text-center text-zinc-500"><p class="text-sm">${t('dir.selectDept')}</p></div>`;
+function renderDirections() {
+  const container = document.getElementById('dirContainer');
+  if (state.directions.length === 0) {
+    container.innerHTML = `<div class="p-10 text-center"><p class="font-bold mb-1">${t('dir.empty')}</p><p class="text-sm text-zinc-500">${t('dir.emptyHint')}</p></div>`;
     return;
   }
-
-  if (directions.length === 0) {
-    container.innerHTML = `
-      <div class="p-12 text-center">
-        <div class="inline-flex w-16 h-16 rounded-2xl bg-purple-500/10 border border-purple-500/20 items-center justify-center mb-4">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-purple-400">
-            <circle cx="12" cy="12" r="10"/>
-            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
-          </svg>
-        </div>
-        <h3 class="font-bold mb-1">${t('dir.empty')}</h3>
-        <p class="text-sm text-zinc-500">${t('dir.emptyHint')}</p>
-      </div>
-    `;
-    return;
-  }
-
-  const priceLabel = type === 'daily' ? t('dir.dailyPriceShort') : t('dir.pieceworkPriceShort');
-  const priceColor = type === 'daily' ? '#34d399' : '#a78bfa';
-  const priceBg = type === 'daily' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(139, 92, 246, 0.1)';
-  const priceBorder = type === 'daily' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(139, 92, 246, 0.25)';
-
-  container.innerHTML = `
-    <div class="p-5 space-y-3">
-      ${directions.map(d => {
-        const price = d.price || d.currentPrice || 0;
-        return `
-          <div class="card p-4 flex items-center justify-between gap-3 flex-wrap" style="background: rgba(139, 92, 246, 0.04);">
-            <div class="flex-1 min-w-0">
-              <div class="font-bold text-base truncate">${escapeHtml(d.name)}</div>
-              <div class="flex gap-2 mt-2 flex-wrap">
-                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg" style="background: ${priceBg}; border: 1px solid ${priceBorder};">
-                  <span class="text-xs font-medium" style="color: ${priceColor};">${priceLabel}</span>
-                  <span class="mono text-xs font-bold" style="color: ${priceColor};">${formatMoney(price)}</span>
-                </div>
-              </div>
-            </div>
-            <div class="flex items-center gap-1 shrink-0">
-              <button type="button" data-act="dir-edit" data-id="${d._id}" class="btn-icon" title="${t('common.edit')}">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                </svg>
-              </button>
-              <button type="button" data-act="dir-delete" data-id="${d._id}" data-name="${escapeHtml(d.name)}" class="btn-icon danger">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="3 6 5 6 21 6"/>
-                  <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/>
-                </svg>
-              </button>
-            </div>
+  container.innerHTML = `<div class="p-5 space-y-3">
+    ${state.directions.map(d => `
+      <div class="card p-4 flex items-center justify-between gap-3 flex-wrap" style="background: rgba(139, 92, 246, 0.04)">
+        <div class="flex-1 min-w-0">
+          <div class="font-bold text-base">${escapeHtml(d.name)}</div>
+          <div class="mt-1 inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-purple-500/10 border border-purple-500/25">
+            <span class="text-xs font-medium text-purple-300">${t('dir.price')}</span>
+            <span class="mono text-xs font-bold text-purple-300">${formatMoney(d.price)} ${t('common.sum')}</span>
           </div>
-        `;
-      }).join('')}
-    </div>
-  `;
-
-  container.querySelectorAll('[data-act]').forEach(btn => {
+        </div>
+        <div class="flex items-center gap-1 shrink-0">
+          <button class="btn-icon" data-act="dir-edit" data-id="${d._id}" title="${t('common.edit')}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="btn-icon danger" data-act="dir-delete" data-id="${d._id}" data-name="${escapeHtml(d.name)}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
+          </button>
+        </div>
+      </div>`).join('')}
+  </div>`;
+  container.querySelectorAll('[data-act="dir-edit"]').forEach(btn => btn.addEventListener('click', () => openDirEdit(btn.dataset.id)));
+  container.querySelectorAll('[data-act="dir-delete"]').forEach(btn => {
     btn.addEventListener('click', () => {
-      const action = btn.dataset.act;
-      const id = btn.dataset.id;
-      if (action === 'dir-edit') openDirEdit(type, id);
-      else if (action === 'dir-delete') confirmDeleteDirection(type, id, btn.dataset.name);
+      const id = btn.dataset.id, name = btn.dataset.name;
+      openConfirm(t('dir.deleteConfirm'), `"${name}"`, async () => {
+        try { await api(`/api/directions/${id}`, { method: 'DELETE' }); toast(t('msg.deleted')); fetchDirections(state.selectedDeptId); }
+        catch (e2) { toast(e2.message, 'error'); }
+      });
     });
   });
 }
 
-function openDeptAddModal(type) {
-  state.deptModalType = type;
-  state.editingDeptId = null;
-  document.getElementById('deptForm').reset();
+function setDeptAllowDirections(on) {
+  document.getElementById('deptAllowDirections').value = on ? 'true' : 'false';
+  document.getElementById('deptAllowSwitch').classList.toggle('on', on);
+  document.getElementById('deptAllowHint').textContent = on
+    ? `${t('dept.allowOn')} — yo'nalishlarga bo'linadi`
+    : `${t('dept.allowOff')} — yo'nalish yo'q, ${t('dept.pricePerUnit').toLowerCase()} kerak`;
+  document.getElementById('deptPricePerUnitWrap').classList.toggle('hidden', on);
+}
+
+function openDeptAdd() {
   document.getElementById('deptEditingId').value = '';
+  document.getElementById('deptForm').reset();
   document.getElementById('deptModalTitle').textContent = t('dept.add');
+  setDeptAllowDirections(true);
   openModal('deptModal');
 }
 
-function openDeptEdit(type, id) {
-  state.deptModalType = type;
-  const suffix = suffixForType(type);
-  const dept = (state[`departments${suffix}`] || []).find(d => d._id === id);
-  if (!dept) return;
-  state.editingDeptId = id;
+function openDeptEdit(id) {
+  const d = state.departments.find(x => x._id === id);
+  if (!d) return;
   document.getElementById('deptEditingId').value = id;
   document.getElementById('deptModalTitle').textContent = t('dept.edit');
-  document.getElementById('deptName').value = dept.name || '';
-  document.getElementById('deptDescription').value = dept.description || '';
+  document.getElementById('deptName').value = d.name || '';
+  document.getElementById('deptDescription').value = d.description || '';
+  document.getElementById('deptBudget').value = d.budget || 0;
+  document.getElementById('deptPricePerUnit').value = d.pricePerUnit || 0;
+  setDeptAllowDirections(!!d.allowDirections);
   openModal('deptModal');
 }
 
-function confirmDeleteDept(type, id, name) {
-  const suffix = suffixForType(type);
-  const dept = (state[`departments${suffix}`] || []).find(d => d._id === id);
-  const hasDirections = dept && dept.directionCount > 0;
-  openConfirm(
-    t('dept.deleteConfirm'),
-    `"${name}"${hasDirections ? ` (${dept.directionCount} ${t('dept.directionCount')})` : ''} — ${t('dept.deleteWarn')}`,
-    async () => {
-      try {
-        const url = hasDirections ? `/api/departments/${id}?force=true` : `/api/departments/${id}`;
-        await api(url, { method: 'DELETE' });
-        toast(t('msg.deleted'), 'success');
-        const selectedKey = `selectedDepartmentId${suffix}`;
-        if (state[selectedKey] === id) state[selectedKey] = null;
-        loadDepartmentsForType(type);
-      } catch (err) {
-        toast(err.message || t('msg.error'), 'error');
-      }
-    }
-  );
-}
-
-function openDirAddModal(type) {
-  state.dirModalType = type;
-  const suffix = suffixForType(type);
-  const selectedDeptId = state[`selectedDepartmentId${suffix}`];
-
-  if (!selectedDeptId) {
-    toast(t('dept.selectFirst'), 'error');
-    return;
-  }
-
-  state.editingDirId = null;
-  document.getElementById('dirForm').reset();
+function openDirAdd() {
+  if (!state.selectedDeptId) return;
   document.getElementById('dirEditingId').value = '';
-  document.getElementById('dirType').value = type;
+  document.getElementById('dirForm').reset();
   document.getElementById('dirModalTitle').textContent = t('dir.add');
-
-  applyDirModalTypeStyles(type);
-  fillDepartmentSelect('dirDepartment', selectedDeptId, type);
-
   openModal('dirModal');
 }
 
-function openDirEdit(type, id) {
-  state.dirModalType = type;
-  const suffix = suffixForType(type);
-  const dir = (state[`directions${suffix}`] || []).find(d => d._id === id);
-  if (!dir) return;
-  state.editingDirId = id;
+function openDirEdit(id) {
+  const d = state.directions.find(x => x._id === id);
+  if (!d) return;
   document.getElementById('dirEditingId').value = id;
-  document.getElementById('dirType').value = type;
   document.getElementById('dirModalTitle').textContent = t('dir.edit');
-  document.getElementById('dirName').value = dir.name || '';
-  document.getElementById('dirPrice').value = dir.price || dir.currentPrice || 0;
-
-  applyDirModalTypeStyles(type);
-  const deptId = dir.departmentId?._id || dir.departmentId || state[`selectedDepartmentId${suffix}`];
-  fillDepartmentSelect('dirDepartment', deptId, type);
-
+  document.getElementById('dirName').value = d.name || '';
+  document.getElementById('dirPrice').value = d.price || 0;
   openModal('dirModal');
 }
 
-function applyDirModalTypeStyles(type) {
-  const badge = document.getElementById('dirTypeBadge');
-  const badgeText = document.getElementById('dirTypeBadgeText');
-  const priceLabel = document.getElementById('dirPriceLabel');
-  const priceHint = document.getElementById('dirPriceHint');
-  const priceInput = document.getElementById('dirPrice');
-
-  if (type === 'daily') {
-    if (badge) {
-      badge.style.background = 'rgba(16, 185, 129, 0.12)';
-      badge.style.border = '1px solid rgba(16, 185, 129, 0.4)';
-      badge.style.color = '#34d399';
-    }
-    if (badgeText) badgeText.textContent = t('nav.directionsDaily');
-    if (priceLabel) priceLabel.textContent = t('dir.dailyPriceLong');
-    if (priceHint) priceHint.textContent = t('dir.dailyHint');
-    if (priceInput) priceInput.placeholder = '120000';
-  } else {
-    if (badge) {
-      badge.style.background = 'rgba(139, 92, 246, 0.12)';
-      badge.style.border = '1px solid rgba(139, 92, 246, 0.4)';
-      badge.style.color = '#a78bfa';
-    }
-    if (badgeText) badgeText.textContent = t('nav.directionsPiecework');
-    if (priceLabel) priceLabel.textContent = t('dir.pieceworkPriceLong');
-    if (priceHint) priceHint.textContent = t('dir.pieceworkHint');
-    if (priceInput) priceInput.placeholder = '250';
-  }
-}
-
-function fillDepartmentSelect(selectId, selectedId, type) {
-  const suffix = suffixForType(type);
-  const departments = state[`departments${suffix}`] || [];
-  const select = document.getElementById(selectId);
-  if (!select) return;
-  select.innerHTML = '<option value="">—</option>' +
-    departments.map(d =>
-      `<option value="${d._id}" ${selectedId === d._id ? 'selected' : ''}>${escapeHtml(d.name)}</option>`
-    ).join('');
-}
-
-function confirmDeleteDirection(type, id, name) {
-  openConfirm(t('dir.deleteConfirm'), `"${name}" — ${t('dir.deleteWarn')}`, async () => {
-    try {
-      await api(`/api/directions/${id}`, { method: 'DELETE' });
-      toast(t('msg.deleted'), 'success');
-      const suffix = suffixForType(type);
-      const deptId = state[`selectedDepartmentId${suffix}`];
-      if (deptId) loadDirections(type, deptId);
-    } catch (err) {
-      toast(err.message || t('msg.error'), 'error');
-    }
+function setupDirectionsPage() {
+  document.getElementById('deptAddBtn').addEventListener('click', openDeptAdd);
+  document.getElementById('dirAddBtn').addEventListener('click', openDirAdd);
+  document.getElementById('deptAllowSwitch').addEventListener('click', () => {
+    setDeptAllowDirections(document.getElementById('deptAllowDirections').value !== 'true');
   });
-}
 
-function setupDirectionsPiecework() {
-  document.getElementById('deptAddBtn_pw').addEventListener('click', () => openDeptAddModal('piecework'));
-  document.getElementById('dirAddBtn_pw').addEventListener('click', () => openDirAddModal('piecework'));
-}
-
-function setupDirectionsDaily() {
-  document.getElementById('deptAddBtn_d').addEventListener('click', () => openDeptAddModal('daily'));
-  document.getElementById('dirAddBtn_d').addEventListener('click', () => openDirAddModal('daily'));
-}
-
-function setupDirectionForms() {
   document.getElementById('deptForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const btn = document.getElementById('deptSubmitBtn');
-    const spinner = document.getElementById('deptSubmitSpinner');
+    const id = document.getElementById('deptEditingId').value;
     const body = {
       name: document.getElementById('deptName').value.trim(),
       description: document.getElementById('deptDescription').value.trim(),
-      type: state.deptModalType || 'piecework',
+      budget: Number(document.getElementById('deptBudget').value || 0),
+      pricePerUnit: Number(document.getElementById('deptPricePerUnit').value || 0),
+      allowDirections: document.getElementById('deptAllowDirections').value === 'true',
     };
-    btn.disabled = true;
-    spinner.classList.remove('hidden');
     try {
-      if (state.editingDeptId) {
-        await api(`/api/departments/${state.editingDeptId}`, { method: 'PUT', body: JSON.stringify(body) });
-      } else {
-        await api('/api/departments', { method: 'POST', body: JSON.stringify(body) });
-      }
-      toast(t('msg.saved'), 'success');
+      if (id) await api(`/api/departments/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+      else await api('/api/departments', { method: 'POST', body: JSON.stringify(body) });
+      toast(t('msg.saved'));
       closeModal('deptModal');
-      loadDepartmentsForType(state.deptModalType);
-    } catch (err) {
-      toast(err.message || t('msg.error'), 'error');
-    } finally {
-      btn.disabled = false;
-      spinner.classList.add('hidden');
-    }
+      fetchDepartments();
+    } catch (e2) { toast(e2.message, 'error'); }
   });
 
   document.getElementById('dirForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const btn = document.getElementById('dirSubmitBtn');
-    const spinner = document.getElementById('dirSubmitSpinner');
-    const type = document.getElementById('dirType').value || 'piecework';
-
+    const id = document.getElementById('dirEditingId').value;
     const body = {
       name: document.getElementById('dirName').value.trim(),
-      departmentId: document.getElementById('dirDepartment').value,
-      type,
       price: Number(document.getElementById('dirPrice').value || 0),
+      departmentId: state.selectedDeptId,
     };
-
-    btn.disabled = true;
-    spinner.classList.remove('hidden');
     try {
-      if (state.editingDirId) {
-        await api(`/api/directions/${state.editingDirId}`, { method: 'PUT', body: JSON.stringify(body) });
-      } else {
-        await api('/api/directions', { method: 'POST', body: JSON.stringify(body) });
-      }
-      toast(t('msg.saved'), 'success');
+      if (id) await api(`/api/directions/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+      else await api('/api/directions', { method: 'POST', body: JSON.stringify(body) });
+      toast(t('msg.saved'));
       closeModal('dirModal');
-      const suffix = suffixForType(type);
-      const deptId = state[`selectedDepartmentId${suffix}`];
-      if (deptId) loadDirections(type, deptId);
-    } catch (err) {
-      toast(err.message || t('msg.error'), 'error');
-    } finally {
-      btn.disabled = false;
-      spinner.classList.add('hidden');
-    }
+      fetchDirections(state.selectedDeptId);
+      fetchDepartments();
+    } catch (e2) { toast(e2.message, 'error'); }
   });
 }
 
 // ============================================
 // DAILY REPORT
 // ============================================
-
-async function loadDailyReport(dateStr) {
-  const url = dateStr ? `/api/daily-report?date=${dateStr}` : '/api/daily-report';
-  try {
-    const data = await api(url);
-    if (!data) return;
-    state.dailyData = data;
-    if (data.dateStr) state.dailyDate = data.dateStr;
-    renderDailyReport(data);
-    updateDailyDateInput();
-  } catch (err) {
-    toast(err.message || t('msg.error'), 'error');
-  }
-}
-
-function updateDailyDateInput() {
+async function loadDailyReportPage() {
+  if (!state.dailyDate) state.dailyDate = todayISO();
   const input = document.getElementById('dailyDateInput');
-  const label = document.getElementById('dailyDateLabel');
-  if (!input || !state.dailyDate) return;
   input.value = state.dailyDate;
-  if (label) {
-    const d = new Date(state.dailyDate);
-    label.textContent = formatDate(d);
+  input.max = todayISO();
+  document.getElementById('dailyDateLabel').textContent = formatDate(state.dailyDate);
+
+  // Bo'limlarni olish (tabs uchun)
+  try {
+    const data = await api(`/api/daily-report?date=${state.dailyDate}`);
+    state.dailyData = data;
+    renderDailyDeptTabs(data.departments || []);
+    if (state.dailySelectedDeptId && (data.departments || []).find(d => d._id === state.dailySelectedDeptId)) {
+      loadDailyForDept(state.dailySelectedDeptId);
+    } else if ((data.departments || []).length > 0) {
+      loadDailyForDept(data.departments[0]._id);
+    } else {
+      document.getElementById('dailyContent').innerHTML = `<p class="text-center text-zinc-500 py-12">${t('dept.empty')}</p>`;
+    }
+  } catch (e) {
+    document.getElementById('dailyContent').innerHTML = `<p class="text-center text-red-400 py-12">${escapeHtml(e.message)}</p>`;
   }
 }
 
-function renderDailyReport(data) {
-  document.getElementById('dailyStatAssigned').textContent = data.stats.totalAssigned;
-  document.getElementById('dailyStatUnassigned').textContent = data.stats.totalUnassigned;
-  document.getElementById('dailyStatEarning').textContent = formatMoney(data.stats.totalEarning);
-  document.getElementById('dailyStatProducts').textContent = data.stats.totalProducts;
-
-  const assignedEl = document.getElementById('assignedList');
-  if (data.assigned.length === 0) {
-    assignedEl.innerHTML = '<div class="text-center text-zinc-500 text-sm py-8">' + t('daily.emptyAssigned') + '</div>';
-  } else {
-    assignedEl.innerHTML = '<div class="space-y-2">' + data.assigned.map(function(a) {
-      var bonus = a.bonus || 0;
-      var isManual = a.isManual;
-      var manualAmount = a.manualAmount;
-      var fairShare = a.fairShare || 0;
-      var isDaily = a.type === 'daily';
-      var deficit = (!isDaily && isManual && manualAmount !== null && manualAmount < fairShare) ? fairShare - manualAmount : 0;
-      var lastName = (a.employeeSnapshot.lastName && a.employeeSnapshot.lastName !== '-') ? ' ' + escapeHtml(a.employeeSnapshot.lastName) : '';
-      var dailyTag = isDaily ? '<span class="daily-badge">KUNLIK</span>' : '';
-      var bonusHtml = (!isDaily && bonus > 0) ? '<div class="bonus-badge mt-1">+' + formatMoney(bonus) + '</div>' : '';
-      var deficitHtml = (!isDaily && deficit > 0) ? '<div class="deficit-badge mt-1">\u2212' + formatMoney(deficit) + '</div>' : '';
-      var bgClass = isDaily ? 'bg-emerald-500/5 border border-emerald-500/15' : 'bg-purple-500/5 border border-purple-500/10';
-      var codeClass = isDaily ? 'text-emerald-300' : 'text-purple-300';
-      var shiftStr = a.shift === 0.5 ? '\u00bd' : '1';
-
-      return '<div class="flex items-center justify-between gap-3 p-3 rounded-xl ' + bgClass + '">' +
-        '<div class="flex-1 min-w-0">' +
-          '<div class="font-medium text-sm truncate flex items-center gap-2">' +
-            escapeHtml(a.employeeSnapshot.firstName) + lastName + dailyTag +
-          '</div>' +
-          '<div class="mono text-xs text-zinc-500 mt-0.5 truncate">' +
-            '<span class="' + codeClass + '">' + escapeHtml(a.employeeSnapshot.code) + '</span>' +
-            ' \u00b7 ' + escapeHtml(a.directionSnapshot.name) +
-            ' \u00b7 ' + shiftStr +
-          '</div>' +
-        '</div>' +
-        '<div class="flex items-center gap-1 shrink-0">' +
-          '<div class="text-right mr-1">' +
-            '<div class="mono text-sm font-semibold text-emerald-400">' + formatMoney(a.earning) + '</div>' +
-            bonusHtml + deficitHtml +
-          '</div>' +
-          '<button type="button" data-act="edit-earning" data-id="' + a._id + '" class="btn-icon" title="' + t('daily.editEarning') + '">' +
-            '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
-          '</button>' +
-          '<button type="button" data-act="unassign" data-id="' + a._id + '" class="btn-icon danger">' +
-            '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
-          '</button>' +
-        '</div>' +
-      '</div>';
-    }).join('') + '</div>';
-
-    assignedEl.querySelectorAll('[data-act="unassign"]').forEach(function(btn) {
-      btn.addEventListener('click', function() { unassignEmployee(btn.dataset.id); });
-    });
-    assignedEl.querySelectorAll('[data-act="edit-earning"]').forEach(function(btn) {
-      btn.addEventListener('click', function() { openEarningEditModal(btn.dataset.id); });
-    });
-  }
-
-  var unassignedEl = document.getElementById('unassignedList');
-  if (data.unassigned.length === 0) {
-    unassignedEl.innerHTML = '<div class="text-center text-zinc-500 text-sm py-8">' + t('daily.emptyUnassigned') + '</div>';
-  } else {
-    unassignedEl.innerHTML = '<div class="space-y-2">' + data.unassigned.map(function(e) {
-      return '<div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/10">' +
-        '<div class="flex-1 min-w-0">' +
-          '<div class="font-medium text-sm truncate">' + escapeHtml(e.firstName) + ' ' + escapeHtml(e.lastName) + '</div>' +
-          '<div class="mono text-xs text-amber-300/70 mt-0.5 truncate">' + escapeHtml(e.code) + '</div>' +
-        '</div>' +
-        '<button type="button" data-act="assign" data-id="' + e._id + '" data-name="' + escapeHtml(e.firstName + ' ' + e.lastName) + '" class="btn-ghost px-3 py-1.5 rounded-lg text-xs whitespace-nowrap">' + t('daily.assign') + '</button>' +
-      '</div>';
-    }).join('') + '</div>';
-
-    unassignedEl.querySelectorAll('[data-act="assign"]').forEach(function(btn) {
-      btn.addEventListener('click', function() { openAssignModal(btn.dataset.id, btn.dataset.name); });
-    });
-  }
-
-  renderProducts(data.products);
-}
-
-function renderProducts(products) {
-  var container = document.getElementById('productsContainer');
-  if (products.length === 0) {
-    container.innerHTML = '<div class="p-8 text-center text-zinc-500 text-sm">' + t('common.emptyData') + '</div>';
-    return;
-  }
-  container.innerHTML = '<div class="table-wrap"><table class="data-table"><thead><tr>' +
-    '<th>' + t('daily.productName') + '</th>' +
-    '<th>' + t('daily.quantity') + '</th>' +
-    '<th class="text-right">' + t('common.actions') + '</th>' +
-    '</tr></thead><tbody>' +
-    products.map(function(p) {
-      return '<tr><td class="font-medium">' + escapeHtml(p.productName) + '</td>' +
-        '<td class="mono text-purple-300">' + formatMoney(p.quantity) + '</td>' +
-        '<td class="text-right whitespace-nowrap">' +
-          '<button type="button" data-act="product-edit" data-id="' + p._id + '" class="btn-icon">' +
-            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
-          '</button>' +
-          '<button type="button" data-act="product-delete" data-id="' + p._id + '" class="btn-icon danger ml-1">' +
-            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>' +
-          '</button>' +
-        '</td></tr>';
-    }).join('') + '</tbody></table></div>';
-
-  container.querySelectorAll('[data-act]').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      var act = btn.dataset.act;
-      var id = btn.dataset.id;
-      if (act === 'product-edit') openProductEdit(id);
-      else if (act === 'product-delete') confirmDeleteProduct(id);
-    });
+function renderDailyDeptTabs(departments) {
+  const tabs = document.getElementById('dailyDeptTabs');
+  tabs.innerHTML = departments.map(d => `
+    <button class="tab-item ${state.dailySelectedDeptId === d._id ? 'active' : ''}" data-id="${d._id}">
+      ${escapeHtml(d.name)} <span class="text-[10px] ml-1 ${d.allowDirections ? 'text-emerald-400' : 'text-amber-400'}">${d.allowDirections ? 'ON' : 'OFF'}</span>
+    </button>`).join('');
+  tabs.querySelectorAll('.tab-item').forEach(btn => {
+    btn.addEventListener('click', () => loadDailyForDept(btn.dataset.id));
   });
 }
 
-async function unassignEmployee(assignmentId) {
+async function loadDailyForDept(deptId) {
+  state.dailySelectedDeptId = deptId;
+  document.querySelectorAll('#dailyDeptTabs .tab-item').forEach(t => t.classList.toggle('active', t.dataset.id === deptId));
+  const container = document.getElementById('dailyContent');
+  container.innerHTML = '<div class="skeleton h-32"></div>';
   try {
-    await api('/api/daily-report/assign/' + assignmentId, { method: 'DELETE' });
-    toast(t('msg.deleted'), 'success');
-    loadDailyReport(state.dailyDate);
-  } catch (err) {
-    toast(err.message || t('msg.error'), 'error');
+    const data = await api(`/api/daily-report?date=${state.dailyDate}&departmentId=${deptId}`);
+    state.dailyData = data;
+    renderDailyContent(data);
+  } catch (e) {
+    container.innerHTML = `<p class="text-center text-red-400 py-12">${escapeHtml(e.message)}</p>`;
   }
 }
 
-async function openAssignModal(employeeId, employeeName) {
-  document.getElementById('assignEmployeeId').value = employeeId;
-  document.getElementById('assignEmployeeName').textContent = employeeName;
+function renderDailyContent(data) {
+  const dept = data.department;
+  const isOn = dept.allowDirections;
+  const container = document.getElementById('dailyContent');
 
-  var effective = (state.business && state.business.effectiveModules) || [];
-  var hasPiecework = effective.indexOf('directionsPiecework') !== -1;
-  var hasDaily = effective.indexOf('directionsDaily') !== -1;
-
-  var pwLabel = document.getElementById('assignWorkTypePwLabel');
-  var dLabel = document.getElementById('assignWorkTypeDLabel');
-  var pwRadio = document.querySelector('input[name="workType"][value="piecework"]');
-  var dRadio = document.querySelector('input[name="workType"][value="daily"]');
-
-  if (pwLabel) pwLabel.style.display = hasPiecework ? '' : 'none';
-  if (dLabel) dLabel.style.display = hasDaily ? '' : 'none';
-
-  if (hasPiecework) {
-    if (pwRadio) pwRadio.checked = true;
-  } else if (hasDaily) {
-    if (dRadio) dRadio.checked = true;
-  } else {
-    toast("Hech qanday ish turi yoqilmagan", 'error');
-    return;
+  let directionsHtml = '';
+  if (isOn) {
+    directionsHtml = `<div class="card p-4 mb-6">
+      <h3 class="font-bold mb-3">${t('daily.direction')} — ${t('daily.quantity')}</h3>
+      <div class="space-y-2">
+        ${data.directions.map(d => {
+          const qty = data.quantities[d._id] || 0;
+          return `<div class="flex items-center justify-between gap-3 p-3 rounded-lg bg-purple-500/5">
+            <div class="flex-1 min-w-0">
+              <div class="font-medium text-sm">${escapeHtml(d.name)}</div>
+              <div class="mono text-[11px] text-zinc-500">${formatMoney(d.price)} ${t('common.sum')}/dona</div>
+            </div>
+            <div class="text-right">
+              <div class="mono text-sm font-bold">${formatMoney(qty)}</div>
+              <div class="text-[10px] text-zinc-500">dona</div>
+            </div>
+            <button class="btn-icon" data-act="qty-edit" data-id="${d._id}" data-name="${escapeHtml(d.name)}" data-qty="${qty}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+          </div>`;
+        }).join('')}
+        ${data.directions.length === 0 ? `<p class="text-sm text-zinc-500 text-center py-3">${t('dir.empty')}</p>` : ''}
+      </div>
+    </div>`;
   }
 
-  var sh1 = document.querySelector('input[name="shift"][value="1"]');
-  if (sh1) sh1.checked = true;
+  const statsHtml = `<div class="grid grid-cols-3 gap-3 mb-6">
+    <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1">${t('daily.stats.assigned')}</div><div class="text-2xl font-bold">${data.stats.totalAssigned}</div></div>
+    <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1">${t('daily.stats.unassigned')}</div><div class="text-2xl font-bold text-amber-400">${data.stats.totalUnassigned}</div></div>
+    <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1">${t('daily.stats.earning')}</div><div class="text-2xl font-bold text-emerald-400">${formatMoney(data.stats.totalEarning)}</div></div>
+  </div>`;
 
-  await loadDirectionsForAssign();
+  const assignedHtml = data.assigned.length === 0
+    ? `<p class="text-sm text-zinc-500 text-center py-6">${t('daily.empty')}</p>`
+    : data.assigned.map(a => {
+        const extra = isOn
+          ? (a.directionSnapshot?.name || '—')
+          : `${a.productCount || 0} ${t('common.sum')}/dona`;
+        return `<div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/15 mb-2">
+          <div class="flex-1 min-w-0">
+            <div class="font-medium text-sm truncate">${escapeHtml(a.employeeSnapshot?.fullName || '—')}</div>
+            <div class="mono text-xs text-zinc-500 mt-0.5 truncate">
+              <span class="text-emerald-300">${escapeHtml(a.employeeSnapshot?.code || '—')}</span>
+              · ${extra} · ${a.shift === 0.5 ? '½' : '1'}
+            </div>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="mono text-sm font-semibold text-emerald-400">${formatMoney(a.earning)}</div>
+          </div>
+          <button class="btn-icon" data-act="earning-edit" data-id="${a._id}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="btn-icon danger" data-act="unassign" data-id="${a._id}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>`;
+      }).join('');
+
+  const unassignedHtml = data.unassigned.length === 0
+    ? `<p class="text-sm text-zinc-500 text-center py-6">—</p>`
+    : data.unassigned.map(e => `<div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/10 mb-2">
+        <div class="flex-1 min-w-0">
+          <div class="font-medium text-sm truncate">${escapeHtml(e.fullName)}</div>
+          <div class="mono text-xs text-amber-300/70 mt-0.5 truncate">${escapeHtml(e.code)}</div>
+        </div>
+        <button class="btn-ghost px-3 py-1.5 rounded-lg text-xs" data-act="assign" data-id="${e._id}" data-name="${escapeHtml(e.fullName)}">${t('daily.assign')}</button>
+      </div>`).join('');
+
+  container.innerHTML = statsHtml + directionsHtml + `
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="card p-5">
+        <h3 class="font-bold mb-3 flex items-center gap-2">
+          <div class="w-2 h-2 rounded-full bg-emerald-400"></div>
+          ${t('daily.assigned')} (${data.stats.totalAssigned})
+        </h3>
+        ${assignedHtml}
+      </div>
+      <div class="card p-5">
+        <h3 class="font-bold mb-3 flex items-center gap-2">
+          <div class="w-2 h-2 rounded-full bg-amber-400"></div>
+          ${t('daily.unassigned')} (${data.stats.totalUnassigned})
+        </h3>
+        ${unassignedHtml}
+      </div>
+    </div>`;
+
+  // Event handlers
+  container.querySelectorAll('[data-act="qty-edit"]').forEach(btn => {
+    btn.addEventListener('click', () => openQuantityModal(btn.dataset.id, btn.dataset.name, Number(btn.dataset.qty)));
+  });
+  container.querySelectorAll('[data-act="assign"]').forEach(btn => {
+    btn.addEventListener('click', () => openAssignModal(btn.dataset.id, btn.dataset.name));
+  });
+  container.querySelectorAll('[data-act="unassign"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      try { await api(`/api/daily-report/assign/${btn.dataset.id}`, { method: 'DELETE' }); toast(t('msg.deleted')); loadDailyForDept(state.dailySelectedDeptId); }
+      catch (e) { toast(e.message, 'error'); }
+    });
+  });
+  container.querySelectorAll('[data-act="earning-edit"]').forEach(btn => {
+    btn.addEventListener('click', () => openEarningModal(btn.dataset.id));
+  });
+}
+
+function openAssignModal(employeeId, name) {
+  document.getElementById('assignEmployeeId').value = employeeId;
+  document.getElementById('assignEmployeeName').textContent = name;
+  const dept = state.dailyData.department;
+  const isOn = dept.allowDirections;
+
+  document.getElementById('assignDirectionWrap').classList.toggle('hidden', !isOn);
+  document.getElementById('assignProductWrap').classList.toggle('hidden', isOn);
+
+  if (isOn) {
+    const sel = document.getElementById('assignDirection');
+    sel.innerHTML = state.dailyData.directions.map(d => `<option value="${d._id}">${escapeHtml(d.name)} — ${formatMoney(d.price)} ${t('common.sum')}</option>`).join('');
+  } else {
+    document.getElementById('assignProductCount').value = 0;
+  }
+  document.querySelector('input[name="shift"][value="1"]').checked = true;
   openModal('assignModal');
 }
 
-async function loadDirectionsForAssign() {
-  var radio = document.querySelector('input[name="workType"]:checked');
-  var type = radio ? radio.value : 'piecework';
-  try {
-    var directions = await api('/api/directions?type=' + type);
-    if (!directions) return;
-    state._assignDirections = directions;
-
-    var deptMap = {};
-    directions.forEach(function(d) {
-      var dept = d.departmentId;
-      if (dept && dept._id) deptMap[dept._id] = dept.name;
-    });
-
-    var deptSelect = document.getElementById('assignDepartment');
-    var depts = Object.keys(deptMap).map(function(id) { return { id: id, name: deptMap[id] }; });
-
-    if (depts.length === 0) {
-      deptSelect.innerHTML = '<option value="">' + (type === 'daily' ? "Kunlik yo'nalish yo'q" : "Dona yo'nalish yo'q") + '</option>';
-      deptSelect.disabled = true;
-    } else {
-      deptSelect.innerHTML = '<option value="">\u2014</option>' +
-        depts.map(function(d) { return '<option value="' + d.id + '">' + escapeHtml(d.name) + '</option>'; }).join('');
-      deptSelect.disabled = false;
-    }
-
-    var dirSelect = document.getElementById('assignDirection');
-    dirSelect.innerHTML = '<option value="">\u2014</option>';
-    dirSelect.disabled = true;
-  } catch (err) {
-    console.error('Directions load error:', err);
-    toast(err.message || t('msg.error'), 'error');
-  }
+function openQuantityModal(directionId, dirName, currentQty) {
+  document.getElementById('quantityDirectionId').value = directionId;
+  document.getElementById('quantityDirName').textContent = dirName;
+  document.getElementById('quantityValue').value = currentQty;
+  openModal('quantityModal');
 }
 
-function fillDirectionsByDepartment(departmentId) {
-  var dirSelect = document.getElementById('assignDirection');
-  if (!departmentId) {
-    dirSelect.innerHTML = '<option value="">\u2014</option>';
-    dirSelect.disabled = true;
-    return;
-  }
-  var filtered = (state._assignDirections || []).filter(function(d) {
-    var dId = (d.departmentId && d.departmentId._id) || d.departmentId;
-    return String(dId) === String(departmentId);
-  });
-  if (filtered.length === 0) {
-    dirSelect.innerHTML = '<option value="">\u2014</option>';
-    dirSelect.disabled = true;
-    return;
-  }
-  dirSelect.innerHTML = '<option value="">\u2014</option>' +
-    filtered.map(function(d) {
-      var price = d.price || d.currentPrice || 0;
-      return '<option value="' + d._id + '">' + escapeHtml(d.name) + ' \u2014 ' + formatMoney(price) + '</option>';
-    }).join('');
-  dirSelect.disabled = false;
-}
-
-function setupDailyReportPage() {
-  var deptSelect = document.getElementById('assignDepartment');
-  if (deptSelect) {
-    deptSelect.addEventListener('change', function() { fillDirectionsByDepartment(deptSelect.value); });
-  }
-
-  document.querySelectorAll('input[name="workType"]').forEach(function(radio) {
-    radio.addEventListener('change', async function() {
-      if (radio.checked) await loadDirectionsForAssign();
-    });
-  });
-
-  var dateInput = document.getElementById('dailyDateInput');
-  if (dateInput) {
-    dateInput.max = todayISO();
-    dateInput.addEventListener('change', function() {
-      if (dateInput.value > todayISO()) {
-        toast(t('daily.futureNotAllowed'), 'error');
-        dateInput.value = state.dailyDate || todayISO();
-        return;
-      }
-      state.dailyDate = dateInput.value;
-      loadDailyReport(state.dailyDate);
-    });
-  }
-
-  var datePrevBtn = document.getElementById('datePrevBtn');
-  if (datePrevBtn) {
-    datePrevBtn.addEventListener('click', function() {
-      if (!state.dailyDate) state.dailyDate = todayISO();
-      var d = new Date(state.dailyDate);
-      d.setDate(d.getDate() - 1);
-      state.dailyDate = d.toISOString().split('T')[0];
-      loadDailyReport(state.dailyDate);
-    });
-  }
-
-  var dateNextBtn = document.getElementById('dateNextBtn');
-  if (dateNextBtn) {
-    dateNextBtn.addEventListener('click', function() {
-      if (!state.dailyDate) state.dailyDate = todayISO();
-      var d = new Date(state.dailyDate);
-      d.setDate(d.getDate() + 1);
-      var newDate = d.toISOString().split('T')[0];
-      if (newDate > todayISO()) {
-        toast(t('daily.futureNotAllowed'), 'error');
-        return;
-      }
-      state.dailyDate = newDate;
-      loadDailyReport(state.dailyDate);
-    });
-  }
-
-  var dateTodayBtn = document.getElementById('dateTodayBtn');
-  if (dateTodayBtn) {
-    dateTodayBtn.addEventListener('click', function() {
-      state.dailyDate = todayISO();
-      loadDailyReport(state.dailyDate);
-    });
-  }
-
-  document.getElementById('assignForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    var btn = document.getElementById('assignSubmitBtn');
-    var spinner = document.getElementById('assignSubmitSpinner');
-    var currentDate = state.dailyDate || todayISO();
-
-    var body = {
-      employeeId: document.getElementById('assignEmployeeId').value,
-      directionId: document.getElementById('assignDirection').value,
-      shift: document.querySelector('input[name="shift"]:checked').value,
-      date: currentDate,
-    };
-
-    if (!body.directionId) {
-      toast(t('daily.direction'), 'error');
-      return;
-    }
-
-    btn.disabled = true;
-    spinner.classList.remove('hidden');
-
-    try {
-      await api('/api/daily-report/assign', { method: 'POST', body: JSON.stringify(body) });
-      toast(t('msg.saved'), 'success');
-      closeModal('assignModal');
-      loadDailyReport(state.dailyDate);
-    } catch (err) {
-      toast(err.message || t('msg.error'), 'error');
-    } finally {
-      btn.disabled = false;
-      spinner.classList.add('hidden');
-    }
-  });
-
-  document.getElementById('productAddBtn').addEventListener('click', function() {
-    state.editingProductId = null;
-    document.getElementById('productForm').reset();
-    document.getElementById('productEditingId').value = '';
-    document.getElementById('productModalTitle').textContent = t('daily.addProduct');
-    openModal('productModal');
-  });
-
-  document.getElementById('productForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    var btn = document.getElementById('productSubmitBtn');
-    var spinner = document.getElementById('productSubmitSpinner');
-    var currentDate = state.dailyDate || todayISO();
-    var body = {
-      productName: document.getElementById('productName').value.trim(),
-      quantity: Number(document.getElementById('productQty').value),
-      date: currentDate,
-    };
-    btn.disabled = true;
-    spinner.classList.remove('hidden');
-    try {
-      if (state.editingProductId) {
-        await api('/api/daily-report/products/' + state.editingProductId, { method: 'PUT', body: JSON.stringify(body) });
-      } else {
-        await api('/api/daily-report/products', { method: 'POST', body: JSON.stringify(body) });
-      }
-      toast(t('msg.saved'), 'success');
-      closeModal('productModal');
-      loadDailyReport(state.dailyDate);
-    } catch (err) {
-      toast(err.message || t('msg.error'), 'error');
-    } finally {
-      btn.disabled = false;
-      spinner.classList.add('hidden');
-    }
-  });
-}
-
-function openProductEdit(id) {
-  var product = state.dailyData && state.dailyData.products.find(function(p) { return p._id === id; });
-  if (!product) return;
-  state.editingProductId = id;
-  document.getElementById('productEditingId').value = id;
-  document.getElementById('productModalTitle').textContent = t('common.edit');
-  document.getElementById('productName').value = product.productName;
-  document.getElementById('productQty').value = product.quantity;
-  openModal('productModal');
-}
-
-function openEarningEditModal(assignmentId) {
-  var assignment = state.dailyData && state.dailyData.assigned.find(function(a) { return a._id === assignmentId; });
-  if (!assignment) return;
-  var lastName = (assignment.employeeSnapshot.lastName && assignment.employeeSnapshot.lastName !== '-') ? ' ' + assignment.employeeSnapshot.lastName : '';
-  var fullName = assignment.employeeSnapshot.firstName + lastName;
+function openEarningModal(assignmentId) {
+  const a = state.dailyData.assigned.find(x => x._id === assignmentId);
+  if (!a) return;
+  const isOn = state.dailyData.department.allowDirections;
   document.getElementById('earningAssignmentId').value = assignmentId;
-  document.getElementById('earningEmployeeName').textContent = fullName + ' (' + assignment.employeeSnapshot.code + ')';
-  document.getElementById('earningDirectionName').textContent = assignment.directionSnapshot.name;
-  document.getElementById('earningAmount').value = assignment.earning;
+  document.getElementById('earningEmployeeName').textContent = a.employeeSnapshot?.fullName || '—';
+  document.getElementById('earningProductWrap').classList.toggle('hidden', isOn);
+  document.getElementById('earningProductCount').value = a.productCount || 0;
+  document.getElementById('earningAmount').value = a.earning || 0;
   openModal('earningModal');
 }
 
-function setupEarningEdit() {
-  var form = document.getElementById('earningForm');
-  if (!form) return;
-  form.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    var btn = document.getElementById('earningSubmitBtn');
-    var spinner = document.getElementById('earningSubmitSpinner');
-    var assignmentId = document.getElementById('earningAssignmentId').value;
-    var earning = Number(document.getElementById('earningAmount').value);
-    if (isNaN(earning) || earning < 0) {
-      toast(t('msg.error'), 'error');
-      return;
-    }
-    btn.disabled = true;
-    spinner.classList.remove('hidden');
-    try {
-      await api('/api/daily-report/assign/' + assignmentId + '/earning', {
-        method: 'PUT', body: JSON.stringify({ earning: earning }),
-      });
-      toast(t('msg.saved'), 'success');
-      closeModal('earningModal');
-      loadDailyReport(state.dailyDate);
-    } catch (err) {
-      toast(err.message || t('msg.error'), 'error');
-    } finally {
-      btn.disabled = false;
-      spinner.classList.add('hidden');
-    }
+function setupDailyReportPage() {
+  const input = document.getElementById('dailyDateInput');
+  input.max = todayISO();
+  input.addEventListener('change', () => {
+    if (input.value > todayISO()) { toast(t('daily.future'), 'error'); input.value = state.dailyDate; return; }
+    state.dailyDate = input.value;
+    document.getElementById('dailyDateLabel').textContent = formatDate(state.dailyDate);
+    loadDailyReportPage();
   });
-}
+  document.getElementById('dailyTodayBtn').addEventListener('click', () => {
+    state.dailyDate = todayISO();
+    loadDailyReportPage();
+  });
 
-function confirmDeleteProduct(id) {
-  openConfirm(t('common.delete'), t('common.confirm'), async function() {
-    try {
-      await api('/api/daily-report/products/' + id, { method: 'DELETE' });
-      toast(t('msg.deleted'), 'success');
-      loadDailyReport(state.dailyDate);
-    } catch (err) {
-      toast(err.message || t('msg.error'), 'error');
+  document.getElementById('assignForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const dept = state.dailyData.department;
+    const body = {
+      employeeId: document.getElementById('assignEmployeeId').value,
+      departmentId: dept._id,
+      shift: document.querySelector('input[name="shift"]:checked').value,
+      date: state.dailyDate,
+    };
+    if (dept.allowDirections) {
+      body.directionId = document.getElementById('assignDirection').value;
+      if (!body.directionId) { toast(t('daily.direction'), 'error'); return; }
+    } else {
+      body.productCount = Number(document.getElementById('assignProductCount').value || 0);
     }
+    try { await api('/api/daily-report/assign', { method: 'POST', body: JSON.stringify(body) }); toast(t('msg.saved')); closeModal('assignModal'); loadDailyForDept(state.dailySelectedDeptId); }
+    catch (e2) { toast(e2.message, 'error'); }
+  });
+
+  document.getElementById('quantityForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const body = {
+      directionId: document.getElementById('quantityDirectionId').value,
+      quantity: Number(document.getElementById('quantityValue').value || 0),
+      date: state.dailyDate,
+    };
+    try { await api('/api/daily-report/quantity', { method: 'POST', body: JSON.stringify(body) }); toast(t('msg.saved')); closeModal('quantityModal'); loadDailyForDept(state.dailySelectedDeptId); }
+    catch (e2) { toast(e2.message, 'error'); }
+  });
+
+  document.getElementById('earningForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('earningAssignmentId').value;
+    const isOn = state.dailyData.department.allowDirections;
+    const body = { earning: Number(document.getElementById('earningAmount').value || 0) };
+    if (!isOn) body.productCount = Number(document.getElementById('earningProductCount').value || 0);
+    try { await api(`/api/daily-report/assign/${id}`, { method: 'PUT', body: JSON.stringify(body) }); toast(t('msg.saved')); closeModal('earningModal'); loadDailyForDept(state.dailySelectedDeptId); }
+    catch (e2) { toast(e2.message, 'error'); }
   });
 }
 
 // ============================================
 // MONTHLY REPORT
 // ============================================
-
-function firstDayOfMonthStr() {
-  var d = new Date();
-  var y = d.getFullYear();
-  var m = String(d.getMonth() + 1).padStart(2, '0');
-  return y + '-' + m + '-01';
+async function loadMonthlyReportPage() {
+  const startInput = document.getElementById('monthStart');
+  const endInput = document.getElementById('monthEnd');
+  if (!startInput.value) startInput.value = firstDayOfMonth();
+  if (!endInput.value) endInput.value = todayISO();
+  await fetchMonthly();
 }
 
-function initMonthlyReport() {
-  // Default sana oraliq: oy boshi - bugun
-  var startInput = document.getElementById('monthStart');
-  var endInput = document.getElementById('monthEnd');
-  if (startInput && !startInput.value) startInput.value = firstDayOfMonthStr();
-  if (endInput && !endInput.value) endInput.value = todayISO();
+async function fetchMonthly() {
+  const startDate = document.getElementById('monthStart').value;
+  const endDate = document.getElementById('monthEnd').value;
+  const code = document.getElementById('monthCode').value.trim();
+  if (!startDate || !endDate) return toast(t('msg.error'), 'error');
 
-  // Avtomatik yuklash
-  loadMonthlyReport();
-}
-
-async function loadMonthlyReport() {
-  var startDate = document.getElementById('monthStart').value;
-  var endDate = document.getElementById('monthEnd').value;
-  var code = document.getElementById('monthCode').value.trim();
-
-  if (!startDate || !endDate) {
-    toast("Sana oralig'ini tanlang", 'error');
-    return;
-  }
-
-  if (startDate > endDate) {
-    toast("Boshlanish tugashdan oldin bo'lishi kerak", 'error');
-    return;
-  }
-
-  var container = document.getElementById('monthResultsContainer');
-  container.innerHTML = '<div class="p-6"><div class="skeleton h-32"></div></div>';
-
-  var url = '/api/monthly-report?startDate=' + startDate + '&endDate=' + endDate;
-  if (code) url += '&code=' + encodeURIComponent(code);
-
+  const url = `/api/monthly-report?startDate=${startDate}&endDate=${endDate}` + (code ? `&code=${encodeURIComponent(code)}` : '');
+  const container = document.getElementById('monthResults');
+  container.innerHTML = '<div class="p-6"><div class="skeleton h-24"></div></div>';
   try {
-    var data = await api(url);
-    if (!data) return;
+    const data = await api(url);
     state.monthlyData = data;
-    renderMonthlyReport(data);
-  } catch (err) {
-    container.innerHTML = '<div class="p-6 text-center text-red-400">' + escapeHtml(err.message) + '</div>';
-    toast(err.message || t('msg.error'), 'error');
+    document.getElementById('monthStatEarning').textContent = formatMoney(data.stats.totalEarning);
+    document.getElementById('monthStatEmployees').textContent = data.stats.totalEmployees;
+    document.getElementById('monthStatPaid').textContent = formatMoney(data.stats.totalPaid);
+    document.getElementById('monthStatRemaining').textContent = formatMoney(Math.max(0, data.stats.totalEarning - data.stats.totalPaid));
+    renderMonthly(data);
+  } catch (e) {
+    container.innerHTML = `<div class="p-6 text-center text-red-400">${escapeHtml(e.message)}</div>`;
   }
 }
 
-function renderMonthlyReport(data) {
-  // Statistika
-  var statEarning = document.getElementById('monthStatEarning');
-  var statEmployees = document.getElementById('monthStatEmployees');
-  var statPaid = document.getElementById('monthStatPaid');
-  var statProducts = document.getElementById('monthStatProducts');
-
-  if (statEarning) statEarning.textContent = formatMoney(data.stats.totalEarning);
-  if (statEmployees) statEmployees.textContent = data.stats.totalEmployees;
-  if (statPaid) statPaid.textContent = formatMoney(data.stats.totalPaid || 0);
-  if (statProducts) statProducts.textContent = formatMoney(data.stats.totalProductCount);
-
-  // Jadval
-  var container = document.getElementById('monthResultsContainer');
-  var actionBar = document.getElementById('monthActionBar');
-
-  if (!data.employees || data.employees.length === 0) {
-    container.innerHTML = '<div class="p-10 text-center text-zinc-500"><p class="text-sm">' + t('month.empty') + '</p></div>';
-    if (actionBar) actionBar.classList.add('hidden');
+function renderMonthly(data) {
+  const container = document.getElementById('monthResults');
+  if (data.employees.length === 0) {
+    container.innerHTML = `<div class="p-12 text-center text-zinc-500">${t('month.empty')}</div>`;
     return;
   }
-
-  if (actionBar) actionBar.classList.remove('hidden');
-
-  container.innerHTML = '<div class="table-wrap"><table class="data-table">' +
-    '<thead><tr>' +
-      '<th style="width:40px"><input type="checkbox" id="monthHeadCheckbox" /></th>' +
-      '<th>' + t('emp.table.name') + '</th>' +
-      '<th>' + t('emp.table.code') + '</th>' +
-      '<th class="text-right">Smena</th>' +
-      '<th class="text-right">Kun</th>' +
-      '<th class="text-right">Daromad</th>' +
-      '<th class="text-right">Berildi</th>' +
-      '<th class="text-right">Qoldiq</th>' +
-      '<th class="text-center">' + t('common.actions') + '</th>' +
-    '</tr></thead><tbody>' +
-    data.employees.map(function(emp) {
-      var remainingClass = (emp.remaining || 0) > 0 ? 'text-amber-400' : 'text-zinc-500';
-      var payBtn = (emp.remaining || 0) > 0
-        ? '<button type="button" data-act="pay-emp" data-id="' + emp._id + '" data-name="' + escapeHtml(emp.firstName) + '" class="btn-ghost px-2 py-1 rounded text-[10px]">To\'lash</button>'
-        : '\u2014';
-      return '<tr>' +
-        '<td><input type="checkbox" class="emp-select" data-id="' + emp._id + '" /></td>' +
-        '<td class="font-medium">' + escapeHtml(emp.firstName) + '</td>' +
-        '<td><span class="mono text-xs px-2 py-1 rounded bg-purple-500/10 border border-purple-500/20 text-purple-300">' + escapeHtml(emp.code) + '</span></td>' +
-        '<td class="text-right mono text-sm">' + emp.totalShifts + '</td>' +
-        '<td class="text-right mono text-sm text-zinc-400">' + emp.totalDays + '</td>' +
-        '<td class="text-right mono font-semibold text-emerald-400">' + formatMoney(emp.totalEarning) + '</td>' +
-        '<td class="text-right mono text-emerald-300">' + formatMoney(emp.totalPaid || 0) + '</td>' +
-        '<td class="text-right mono font-bold ' + remainingClass + '">' + formatMoney(emp.remaining || 0) + '</td>' +
-        '<td class="text-center">' + payBtn + '</td>' +
-      '</tr>';
-    }).join('') +
-    '</tbody></table></div>';
-
-  // Pay tugmalari
-  container.querySelectorAll('[data-act="pay-emp"]').forEach(function(btn) {
-    btn.addEventListener('click', function() { payEmployeeAction(btn.dataset.id, btn.dataset.name); });
-  });
-
-  // Checkbox tracking
-  container.querySelectorAll('.emp-select').forEach(function(cb) {
-    cb.addEventListener('change', updateMonthSelection);
-  });
-
-  // Header checkbox
-  var headCb = document.getElementById('monthHeadCheckbox');
-  if (headCb) {
-    headCb.addEventListener('change', function() {
-      container.querySelectorAll('.emp-select').forEach(function(cb) {
-        cb.checked = headCb.checked;
-      });
-      updateMonthSelection();
-    });
-  }
-
-  updateMonthSelection();
-}
-
-function updateMonthSelection() {
-  var selected = document.querySelectorAll('#monthResultsContainer .emp-select:checked');
-  var countEl = document.getElementById('monthSelectedCount');
-  var payBtn = document.getElementById('monthPayBtn');
-
-  if (countEl) countEl.textContent = selected.length + ' tanlandi';
-
-  if (payBtn) {
-    if (selected.length > 0) {
-      payBtn.disabled = false;
-      payBtn.classList.remove('opacity-50');
-    } else {
-      payBtn.disabled = true;
-      payBtn.classList.add('opacity-50');
-    }
-  }
-
-  // Header checkbox state
-  var headCb = document.getElementById('monthHeadCheckbox');
-  var allCb = document.querySelectorAll('#monthResultsContainer .emp-select');
-  if (headCb && allCb.length > 0) {
-    headCb.checked = selected.length === allCb.length;
-  }
-
-  // Select all (umumiy)
-  var selectAllCb = document.getElementById('monthSelectAll');
-  if (selectAllCb && allCb.length > 0) {
-    selectAllCb.checked = selected.length === allCb.length;
-  }
-}
-
-async function payEmployeeAction(empId, empName) {
-  var emp = state.monthlyData && state.monthlyData.employees.find(function(e) { return e._id === empId; });
-  if (!emp || emp.remaining <= 0) {
-    toast("Bu xodimga to'lov yo'q", 'error');
-    return;
-  }
-  if (!confirm(empName + " ga " + formatMoney(emp.remaining) + " so'm to'lansinmi?")) return;
-
-  try {
-    await api('/api/monthly-report/pay', {
-      method: 'POST',
-      body: JSON.stringify({
-        employeeIds: [empId],
-        amount: emp.remaining,
-      }),
-    });
-    toast(t('msg.saved'), 'success');
-    loadMonthlyReport();
-  } catch (err) {
-    toast(err.message || t('msg.error'), 'error');
-  }
-}
-
-async function payMultipleEmployees() {
-  var selected = document.querySelectorAll('#monthResultsContainer .emp-select:checked');
-  if (selected.length === 0) {
-    toast("Xodim tanlanmagan", 'error');
-    return;
-  }
-
-  var totalToPay = 0;
-  var empIds = [];
-  selected.forEach(function(cb) {
-    var emp = state.monthlyData.employees.find(function(e) { return e._id === cb.dataset.id; });
-    if (emp && emp.remaining > 0) {
-      totalToPay += emp.remaining;
-      empIds.push(emp._id);
-    }
-  });
-
-  if (empIds.length === 0) {
-    toast("Tanlangan xodimlarda qoldiq yo'q", 'error');
-    return;
-  }
-
-  if (!confirm(empIds.length + " ta xodimga jami " + formatMoney(totalToPay) + " so'm to'lansinmi?")) return;
-
-  try {
-    // Har bir xodimga alohida summa to'lanadi (qoldig'icha)
-    for (var i = 0; i < empIds.length; i++) {
-      var emp = state.monthlyData.employees.find(function(e) { return e._id === empIds[i]; });
-      if (emp) {
-        await api('/api/monthly-report/pay', {
-          method: 'POST',
-          body: JSON.stringify({
-            employeeIds: [emp._id],
-            amount: emp.remaining,
-          }),
-        });
-      }
-    }
-    toast("To'lov amalga oshirildi", 'success');
-    loadMonthlyReport();
-  } catch (err) {
-    toast(err.message || t('msg.error'), 'error');
-  }
-}
-
-function applyDatePreset(preset) {
-  var today = new Date();
-  var startInput = document.getElementById('monthStart');
-  var endInput = document.getElementById('monthEnd');
-  var fmt = function(d) {
-    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-  };
-
-  if (preset === 'today') {
-    startInput.value = fmt(today);
-    endInput.value = fmt(today);
-  } else if (preset === 'yesterday') {
-    var yest = new Date(today);
-    yest.setDate(yest.getDate() - 1);
-    startInput.value = fmt(yest);
-    endInput.value = fmt(yest);
-  } else if (preset === 'week') {
-    var weekAgo = new Date(today);
-    weekAgo.setDate(weekAgo.getDate() - 6);
-    startInput.value = fmt(weekAgo);
-    endInput.value = fmt(today);
-  } else if (preset === 'month') {
-    startInput.value = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-01';
-    endInput.value = fmt(today);
-  }
-
-  loadMonthlyReport();
+  container.innerHTML = `<div class="overflow-x-auto"><table class="data-table"><thead><tr>
+      <th>${t('emp.fullName')}</th>
+      <th>${t('emp.code')}</th>
+      <th class="text-right">${t('month.shifts')}</th>
+      <th class="text-right">${t('month.days')}</th>
+      <th class="text-right">${t('month.earning')}</th>
+      <th class="text-right">${t('month.paid')}</th>
+      <th class="text-right">${t('month.remaining')}</th>
+    </tr></thead><tbody>
+    ${data.employees.map(e => `
+      <tr>
+        <td class="font-medium">${escapeHtml(e.fullName)}</td>
+        <td><span class="mono text-xs px-2 py-1 rounded bg-purple-500/10 text-purple-300">${escapeHtml(e.code)}</span></td>
+        <td class="text-right mono">${e.totalShifts}</td>
+        <td class="text-right mono text-zinc-400">${e.totalDays}</td>
+        <td class="text-right mono font-semibold text-emerald-400">${formatMoney(e.totalEarning)}</td>
+        <td class="text-right mono text-emerald-300">${formatMoney(e.totalPaid)}</td>
+        <td class="text-right mono font-bold ${e.remaining > 0 ? 'text-amber-400' : 'text-zinc-500'}">${formatMoney(e.remaining)}</td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
 }
 
 function setupMonthlyReportPage() {
-  // Qidirish tugmasi
-  var loadBtn = document.getElementById('monthLoadBtn');
-  if (loadBtn) {
-    loadBtn.addEventListener('click', loadMonthlyReport);
-  }
-
-  // Sana oraliq tugmalari
-  document.querySelectorAll('[data-preset]').forEach(function(btn) {
-    btn.addEventListener('click', function() { applyDatePreset(btn.dataset.preset); });
-  });
-
-  // Excel export
-  var exportBtn = document.getElementById('monthExportBtn');
-  if (exportBtn) {
-    exportBtn.addEventListener('click', exportMonthlyToExcel);
-  }
-
-  // Hammasini tanlash
-  var selectAllCb = document.getElementById('monthSelectAll');
-  if (selectAllCb) {
-    selectAllCb.addEventListener('change', function() {
-      var allCb = document.querySelectorAll('#monthResultsContainer .emp-select');
-      allCb.forEach(function(cb) { cb.checked = selectAllCb.checked; });
-      updateMonthSelection();
-    });
-  }
-
-  // Qolganini to'lash tugmasi
-  var payBtn = document.getElementById('monthPayBtn');
-  if (payBtn) {
-    payBtn.addEventListener('click', payMultipleEmployees);
-  }
-
-  // Kod input - Enter bilan qidirish
-  var codeInput = document.getElementById('monthCode');
-  if (codeInput) {
-    codeInput.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        loadMonthlyReport();
-      }
-    });
-  }
+  document.getElementById('monthSearchBtn').addEventListener('click', fetchMonthly);
+  document.getElementById('monthCode').addEventListener('keypress', e => { if (e.key === 'Enter') fetchMonthly(); });
 }
 
-function exportMonthlyToExcel() {
-  if (!state.monthlyData || !state.monthlyData.employees || state.monthlyData.employees.length === 0) {
-    toast("Ma'lumot yo'q", 'error');
-    return;
-  }
-  if (typeof XLSX === 'undefined') {
-    toast("XLSX kutubxonasi yo'q", 'error');
-    return;
-  }
-
-  var data = state.monthlyData;
-  var wb = XLSX.utils.book_new();
-  var ws_data = [];
-
-  ws_data.push(['#', 'Xodim', 'Kod', 'Smena', 'Kun', 'Daromad', "To'langan", 'Qoldiq']);
-
-  data.employees.forEach(function(emp, idx) {
-    ws_data.push([
-      idx + 1,
-      emp.firstName,
-      emp.code,
-      emp.totalShifts,
-      emp.totalDays,
-      emp.totalEarning,
-      emp.totalPaid || 0,
-      emp.remaining || 0,
-    ]);
-  });
-
-  // Stats row
-  ws_data.push([]);
-  ws_data.push([
-    '', 'JAMI', '',
-    data.stats.totalAssignments,
-    '',
-    data.stats.totalEarning,
-    data.stats.totalPaid || 0,
-    Math.max(0, (data.stats.totalEarning || 0) - (data.stats.totalPaid || 0)),
-  ]);
-
-  var ws = XLSX.utils.aoa_to_sheet(ws_data);
-  XLSX.utils.book_append_sheet(wb, ws, 'Oylik hisobot');
-
-  var fname = 'oylik_' + (data.period.startStr || 'report') + '_' + (data.period.endStr || '') + '.xlsx';
-  XLSX.writeFile(wb, fname);
-}
-
-
-async function loadArchive() {
-  var container = document.getElementById('archiveResultsContainer');
-  if (!container) return;
-  container.innerHTML = '<div class="p-6"><div class="skeleton h-32"></div></div>';
+// ============================================
+// SALARY
+// ============================================
+async function loadSalaryPage() {
+  document.getElementById('salaryListView').classList.remove('hidden');
+  document.getElementById('salaryDetailView').classList.add('hidden');
+  const container = document.getElementById('salaryList');
+  container.innerHTML = '<div class="p-6"><div class="skeleton h-24"></div></div>';
   try {
-    var archives = await api('/api/archive');
-    if (!archives) return;
-    state.archives = archives;
-    renderArchive(archives);
-  } catch (err) {
-    container.innerHTML = '<div class="p-6 text-center text-red-400">' + escapeHtml(err.message) + '</div>';
+    const data = await api('/api/salary');
+    state.salaryData = data;
+    document.getElementById('salStatEarned').textContent = formatMoney(data.stats.totalEarned);
+    document.getElementById('salStatPaid').textContent = formatMoney(data.stats.totalPaid);
+    document.getElementById('salStatRemaining').textContent = formatMoney(data.stats.totalRemaining);
+    document.getElementById('salStatEmployees').textContent = data.stats.totalEmployees;
+    renderSalaryList(data.employees);
+  } catch (e) {
+    container.innerHTML = `<div class="p-6 text-center text-red-400">${escapeHtml(e.message)}</div>`;
   }
 }
 
-function renderArchive(archives) {
-  var container = document.getElementById('archiveResultsContainer');
-  if (archives.length === 0) {
-    container.innerHTML = '<div class="p-12 text-center text-zinc-500">' + t('common.emptyData') + '</div>';
+function renderSalaryList(employees) {
+  const container = document.getElementById('salaryList');
+  if (employees.length === 0) {
+    container.innerHTML = `<div class="p-12 text-center text-zinc-500">${t('emp.empty')}</div>`;
     return;
   }
-  container.innerHTML = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">' +
-    archives.map(function(a) {
-      return '<div class="card p-4"><div class="font-bold">' + a.year + ' \u00b7 ' + String(a.month).padStart(2, '0') + '</div>' +
-        '<div class="mono text-xs text-zinc-500 mt-1">' + (a.employeeCount || 0) + " xodim \u00b7 " + formatMoney(a.totalPaid || 0) + " so'm</div></div>";
-    }).join('') + '</div>';
+  container.innerHTML = `<div class="overflow-x-auto"><table class="data-table"><thead><tr>
+      <th>${t('emp.fullName')}</th>
+      <th>${t('emp.code')}</th>
+      <th>${t('emp.department')}</th>
+      <th class="text-right">${t('salary.earning')}</th>
+      <th class="text-right">${t('salary.paid')}</th>
+      <th class="text-right">${t('salary.remaining')}</th>
+      <th class="text-right">${t('common.actions')}</th>
+    </tr></thead><tbody>
+    ${employees.map(e => `
+      <tr class="cursor-pointer" data-id="${e._id}">
+        <td class="font-medium">${escapeHtml(e.fullName)}</td>
+        <td><span class="mono text-xs px-2 py-1 rounded bg-purple-500/10 text-purple-300">${escapeHtml(e.code)}</span></td>
+        <td class="text-sm text-zinc-400">${escapeHtml(e.department?.name || '—')}</td>
+        <td class="text-right mono font-semibold text-emerald-400">${formatMoney(e.totalEarning)}</td>
+        <td class="text-right mono text-emerald-300">${formatMoney(e.totalPaid)}</td>
+        <td class="text-right mono font-bold ${e.remaining > 0 ? 'text-amber-400' : 'text-zinc-500'}">${formatMoney(e.remaining)}</td>
+        <td class="text-right">
+          <button class="btn-ghost px-3 py-1.5 rounded-lg text-xs" data-act="sal-detail" data-id="${e._id}">${t('salary.detail')}</button>
+        </td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+  container.querySelectorAll('tr[data-id]').forEach(tr => {
+    tr.addEventListener('click', (e) => {
+      if (e.target.closest('button')) return;
+      loadSalaryDetail(tr.dataset.id);
+    });
+  });
+  container.querySelectorAll('[data-act="sal-detail"]').forEach(btn => {
+    btn.addEventListener('click', (e) => { e.stopPropagation(); loadSalaryDetail(btn.dataset.id); });
+  });
 }
 
+async function loadSalaryDetail(employeeId) {
+  document.getElementById('salaryListView').classList.add('hidden');
+  document.getElementById('salaryDetailView').classList.remove('hidden');
+  const container = document.getElementById('salaryDetailView');
+  container.innerHTML = '<div class="card p-8"><div class="skeleton h-32"></div></div>';
+  try {
+    const data = await api(`/api/salary/${employeeId}`);
+    state.salaryDetail = data;
+    renderSalaryDetail(data);
+  } catch (e) {
+    container.innerHTML = `<div class="p-6 text-center text-red-400">${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function renderSalaryDetail(data) {
+  const e = data.employee;
+  const s = data.stats;
+  const container = document.getElementById('salaryDetailView');
+
+  container.innerHTML = `
+    <button class="btn-ghost px-4 py-2 rounded-xl text-sm mb-4" id="salBackBtn">← ${t('common.back')}</button>
+    <div class="card p-6 mb-6">
+      <div class="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h2 class="text-2xl font-bold mb-2">${escapeHtml(e.fullName)}</h2>
+          <div class="flex flex-wrap gap-3 text-sm text-zinc-400">
+            <span class="mono text-purple-300">${escapeHtml(e.code)}</span>
+            <span>${escapeHtml(e.departmentId?.name || '—')}</span>
+            ${e.phone ? `<span class="mono">${escapeHtml(e.phone)}</span>` : ''}
+          </div>
+        </div>
+        <button class="btn-primary px-5 py-2.5 rounded-xl text-sm" id="salPayBtn" ${s.remaining <= 0 ? 'disabled' : ''}>
+          ${t('salary.payUntil')}
+        </button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1">${t('salary.assignments')}</div><div class="text-2xl font-bold">${s.totalDays}</div></div>
+      <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1">${t('month.shifts')}</div><div class="text-2xl font-bold">${s.totalShifts}</div></div>
+      <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1">${t('salary.earning')}</div><div class="text-2xl font-bold text-emerald-400">${formatMoney(s.totalEarning)}</div></div>
+      <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1">${t('salary.remaining')}</div><div class="text-2xl font-bold text-amber-400">${formatMoney(s.remaining)}</div></div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="card p-5">
+        <h3 class="font-bold mb-3">${t('salary.assignments')} (${data.assignments.length})</h3>
+        ${data.assignments.length === 0 ? `<p class="text-sm text-zinc-500 text-center py-4">—</p>` : `
+          <div class="space-y-2 max-h-96 overflow-y-auto">
+            ${data.assignments.map(a => `
+              <div class="flex justify-between gap-2 p-2 rounded-lg bg-purple-500/5 text-sm">
+                <div>
+                  <div class="font-medium">${formatDate(a.dateString)}</div>
+                  <div class="text-xs text-zinc-500">${escapeHtml(a.departmentSnapshot?.name || '—')} · ${a.shift === 0.5 ? '½' : '1'}</div>
+                </div>
+                <div class="mono font-semibold text-emerald-400">${formatMoney(a.earning)}</div>
+              </div>`).join('')}
+          </div>`}
+      </div>
+      <div class="card p-5">
+        <h3 class="font-bold mb-3">${t('salary.history')} (${data.payments.length})</h3>
+        ${data.payments.length === 0 ? `<p class="text-sm text-zinc-500 text-center py-4">—</p>` : `
+          <div class="space-y-2 max-h-96 overflow-y-auto">
+            ${data.payments.map(p => `
+              <div class="flex justify-between gap-2 p-2 rounded-lg bg-emerald-500/5 text-sm">
+                <div>
+                  <div class="font-medium">${formatDate(p.untilDate)} gacha</div>
+                  <div class="text-xs text-zinc-500">${formatDate(p.paidAt)}</div>
+                </div>
+                <div class="mono font-semibold text-emerald-400">${formatMoney(p.amount)}</div>
+              </div>`).join('')}
+          </div>`}
+      </div>
+    </div>`;
+
+  document.getElementById('salBackBtn').addEventListener('click', loadSalaryPage);
+  const payBtn = document.getElementById('salPayBtn');
+  if (payBtn) payBtn.addEventListener('click', () => openPayModal(e._id, e.fullName));
+}
+
+function openPayModal(employeeId, name) {
+  document.getElementById('payEmployeeId').value = employeeId;
+  document.getElementById('payEmployeeName').textContent = name;
+  document.getElementById('payUntilDate').value = todayISO();
+  document.getElementById('payUntilDate').max = todayISO();
+  openModal('payModal');
+}
+
+function setupSalaryPage() {
+  document.getElementById('payForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('payEmployeeId').value;
+    const untilDate = document.getElementById('payUntilDate').value;
+    try {
+      await api(`/api/salary/${id}/pay`, { method: 'POST', body: JSON.stringify({ untilDate }) });
+      toast(t('msg.saved'));
+      closeModal('payModal');
+      loadSalaryDetail(id);
+    } catch (e2) { toast(e2.message, 'error'); }
+  });
+}
+
+// ============================================
+// ARCHIVE
+// ============================================
+async function loadArchivePage() {
+  const container = document.getElementById('archiveList');
+  container.innerHTML = '<div class="skeleton h-24"></div>';
+  try {
+    const data = await api('/api/archive');
+    state.archiveData = data;
+    document.getElementById('archStatAmount').textContent = formatMoney(data.stats.totalAmount);
+    document.getElementById('archStatPayments').textContent = data.stats.totalPayments;
+    document.getElementById('archStatMonths').textContent = data.stats.monthsCount;
+    renderArchive(data.months);
+  } catch (e) {
+    container.innerHTML = `<div class="text-center text-red-400 p-6">${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function renderArchive(months) {
+  const container = document.getElementById('archiveList');
+  if (months.length === 0) {
+    container.innerHTML = `<div class="card p-10 text-center text-zinc-500">${t('archive.empty')}</div>`;
+    return;
+  }
+  container.innerHTML = months.map(m => `
+    <div class="card p-5 mb-4">
+      <div class="flex flex-wrap justify-between items-center gap-3 mb-4 pb-3 border-b border-purple-500/10">
+        <div>
+          <div class="text-xl font-bold mono">${escapeHtml(m.month)}</div>
+          <div class="text-xs text-zinc-500">${m.employeesCount} ${t('archive.employees')} · ${m.paymentsCount} ${t('archive.payments')}</div>
+        </div>
+        <div class="flex gap-3 items-center">
+          <span class="badge badge-on">${m.fullCount} ${t('archive.fullPaid')}</span>
+          ${m.partialCount > 0 ? `<span class="badge badge-off">${m.partialCount} ${t('archive.partialPaid')}</span>` : ''}
+          <div class="mono text-lg font-bold text-emerald-400">${formatMoney(m.totalAmount)}</div>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead><tr>
+            <th>${t('emp.fullName')}</th>
+            <th>${t('emp.code')}</th>
+            <th class="text-right">${t('salary.earning')}</th>
+            <th class="text-right">${t('salary.paid')}</th>
+            <th class="text-right">${t('salary.remaining')}</th>
+            <th class="text-right">Holat</th>
+          </tr></thead>
+          <tbody>
+            ${m.employees.map(e => `
+              <tr>
+                <td>${escapeHtml(e.fullName)}</td>
+                <td><span class="mono text-xs px-2 py-1 rounded bg-purple-500/10 text-purple-300">${escapeHtml(e.code)}</span></td>
+                <td class="text-right mono">${formatMoney(e.earned)}</td>
+                <td class="text-right mono text-emerald-300">${formatMoney(e.paid)}</td>
+                <td class="text-right mono ${e.remaining > 0 ? 'text-amber-400' : 'text-zinc-500'}">${formatMoney(e.remaining)}</td>
+                <td class="text-right"><span class="badge ${e.status === 'full' ? 'badge-on' : 'badge-off'}">${e.status === 'full' ? t('archive.fullPaid') : t('archive.partialPaid')}</span></td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`).join('');
+}
+
+// ============================================
+// MODALS
+// ============================================
 function openModal(id) {
-  var modal = document.getElementById(id);
-  if (!modal) return;
-  modal.classList.remove('hidden');
-  modal.classList.add('flex');
+  const m = document.getElementById(id);
+  if (!m) return;
+  m.classList.add('flex');
   document.body.style.overflow = 'hidden';
-  applyStaticTranslations();
+  if (window.applyTranslations) window.applyTranslations();
 }
-
 function closeModal(id) {
-  var modal = document.getElementById(id);
-  if (!modal) return;
-  modal.classList.add('hidden');
-  modal.classList.remove('flex');
+  const m = document.getElementById(id);
+  if (!m) return;
+  m.classList.remove('flex');
   document.body.style.overflow = '';
 }
-
-function setupModalCloses() {
-  document.querySelectorAll('[data-close]').forEach(function(btn) {
-    btn.addEventListener('click', function() { closeModal(btn.dataset.close); });
-  });
-  document.querySelectorAll('.modal-backdrop').forEach(function(modal) {
-    modal.addEventListener('click', function(e) {
-      if (e.target === modal) closeModal(modal.id);
-    });
-  });
+function setupModals() {
+  document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => closeModal(btn.dataset.close)));
+  document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if (e.target === m) closeModal(m.id); }));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.modal-backdrop.flex').forEach(m => closeModal(m.id)); });
 }
 
 function openConfirm(title, text, callback) {
@@ -1901,90 +1371,84 @@ function openConfirm(title, text, callback) {
   document.getElementById('confirmText').textContent = text;
   openModal('confirmModal');
 }
-
-function setupConfirmModal() {
-  document.getElementById('confirmOkBtn').addEventListener('click', async function() {
-    var cb = state.confirmCallback;
+function setupConfirm() {
+  document.getElementById('confirmOkBtn').addEventListener('click', async () => {
+    const cb = state.confirmCallback;
     state.confirmCallback = null;
     closeModal('confirmModal');
     if (typeof cb === 'function') await cb();
   });
 }
 
-function setupSidebar() {
-  var sidebar = document.getElementById('sidebar');
-  var backdrop = document.getElementById('sidebarBackdrop');
-  var toggle = document.getElementById('menuToggle');
-  if (toggle) {
-    toggle.addEventListener('click', function() {
-      sidebar.classList.add('open');
-      backdrop.classList.remove('hidden');
+// ============================================
+// LANG / THEME / SIDEBAR
+// ============================================
+function setupLangSwitchers() {
+  document.querySelectorAll('[data-lang]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      window.setLang(btn.dataset.lang);
+      updateLangActive();
+      // Re-render current page
+      if (state.business && state.currentPage) navigateTo(state.currentPage);
+      // Update theme text
+      setTheme(getTheme());
     });
-  }
-  if (backdrop) {
-    backdrop.addEventListener('click', function() {
-      sidebar.classList.remove('open');
-      backdrop.classList.add('hidden');
-    });
-  }
-  document.getElementById('logoutBtn').addEventListener('click', function() {
-    if (confirm(t('common.logoutConfirm'))) logout();
   });
+  updateLangActive();
+}
+function updateLangActive() {
+  const lang = window.getCurrentLang ? window.getCurrentLang() : 'uz-lat';
+  document.querySelectorAll('[data-lang]').forEach(btn => btn.classList.toggle('active', btn.dataset.lang === lang));
 }
 
+function setupSidebar() {
+  document.getElementById('menuToggle').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('sidebarBackdrop').classList.remove('hidden');
+  });
+  document.getElementById('sidebarBackdrop').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarBackdrop').classList.add('hidden');
+  });
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    if (confirm(t('common.logoutConfirm'))) logout();
+  });
+  document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+}
+
+// ============================================
+// INIT
+// ============================================
 async function initApp() {
   try {
-    var me = await api('/api/auth/me');
-    if (!me || me.role !== 'admin') {
-      logout();
-      return;
-    }
+    const me = await api('/api/auth/me');
+    if (!me || me.role !== 'admin') { logout(); return; }
     state.user = me;
     state.business = me;
     applyBranding(me);
-    buildSidebar(me.enabledModules || [], me.modulesInfo || []);
-
+    buildSidebar(me.enabledModules || []);
     showApp();
-
-    var effective = state.business.effectiveModules || [];
-    if (effective.length > 0) {
-      navigateTo(effective[0]);
-    }
-  } catch (err) {
-    console.error('Init error:', err);
+    const first = (state.business.effectiveModules || [])[0];
+    if (first) navigateTo(first);
+  } catch (e) {
     logout();
   }
 }
 
-function setupKeyboard() {
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-      document.querySelectorAll('.modal-backdrop:not(.hidden)').forEach(function(m) { closeModal(m.id); });
-    }
-  });
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-  setupThemeToggle();
-  setupLangSwitchers();
+document.addEventListener('DOMContentLoaded', () => {
+  setTheme(getTheme());
   setupLogin();
   setupSidebar();
+  setupLangSwitchers();
   setupEmployeesPage();
-  setupDirectionsPiecework();
-  setupDirectionsDaily();
-  setupDirectionForms();
+  setupDirectionsPage();
   setupDailyReportPage();
   setupMonthlyReportPage();
-  setupEarningEdit();
-  setupModalCloses();
-  setupConfirmModal();
-  setupKeyboard();
+  setupSalaryPage();
+  setupModals();
+  setupConfirm();
+  if (window.applyTranslations) window.applyTranslations();
 
-  applyStaticTranslations();
-
-  if (state.token) {
-    initApp();
-  } else {
-    showLogin();
-  }
+  if (state.token) initApp();
+  else showLogin();
 });
