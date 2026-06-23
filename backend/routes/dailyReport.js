@@ -1,16 +1,22 @@
 /**
- * CyberCoderCRM - Daily Report routes
- * YANGI: Assign'da yo'nalishning o'z type'i va price'i ishlatiladi
- * type va dailyAmount endi body'da YO'Q - yo'nalishdan olinadi
+ * CyberCoderCRM - Daily Report (v2)
+ *
+ * Bo'lim bo'yicha kunlik biriktirish. ON va OFF bo'lim:
+ *  - ON  bo'lim: directionId majburiy. POST /quantity bilan umumiy mahsulot soni kiritiladi.
+ *  - OFF bo'lim: directionId yo'q. productCount per-xodim kiritiladi (assign yoki PUT).
+ *
+ * Kelajak sana mumkin emas. Tashkent UTC+5 timezone.
  */
 
 const express = require('express');
 const router = express.Router();
 
 const DailyAssignment = require('../models/DailyAssignment');
-const DailyProduct = require('../models/DailyProduct');
+const DailyQuantity = require('../models/DailyQuantity');
+const Department = require('../models/Department');
 const Direction = require('../models/Direction');
 const Employee = require('../models/Employee');
+
 const { verifyToken, requireAdmin } = require('../middleware/auth');
 const businessScope = require('../middleware/businessScope');
 const requireModule = require('../middleware/requireModule');
@@ -18,108 +24,108 @@ const { recalculateForDate } = require('../services/recalculate');
 
 router.use(verifyToken, requireAdmin, businessScope, requireModule('dailyReport'));
 
-// Tashkent UTC+5 today check
 function todayDateString() {
   const now = new Date();
-  const tashkentTime = new Date(now.getTime() + 5 * 60 * 60 * 1000);
-  return tashkentTime.toISOString().split('T')[0];
+  const tashkent = new Date(now.getTime() + 5 * 60 * 60 * 1000);
+  return tashkent.toISOString().split('T')[0];
 }
 
-function parseDate(dateStr) {
-  if (!dateStr || typeof dateStr !== 'string') return null;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
-  return dateStr;
+function parseDateString(s) {
+  if (!s || typeof s !== 'string') return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+  return s;
 }
 
-// ============================================
-// GET /api/daily-report?date=YYYY-MM-DD
-// ============================================
+/**
+ * GET /api/daily-report?date=YYYY-MM-DD&departmentId=<id>
+ * Bo'lim tanlangan bo'lsa shu bo'limning xodimlari + biriktirishlari + yo'nalishlari.
+ * Bo'lim tanlanmagan bo'lsa faqat barcha bo'limlar ro'yxati.
+ */
 router.get('/', async (req, res) => {
   try {
-    const dateStr = parseDate(req.query.date) || todayDateString();
-
-    // Future check
+    const dateStr = parseDateString(req.query.date) || todayDateString();
     if (dateStr > todayDateString()) {
       return res.status(400).json({ error: 'Kelajakdagi kun mumkin emas' });
     }
 
-    const filter = {
-      businessId: req.businessId,
-      dateString: dateStr,
-    };
+    const { departmentId } = req.query;
 
-    const [assigned, allEmployees, products] = await Promise.all([
-      DailyAssignment.find(filter)
-        .populate('employeeId', 'firstName lastName code phone status')
-        .sort('-createdAt')
-        .lean(),
-      Employee.find({
-        businessId: req.businessId,
-        status: { $ne: 'deleted' },
-      })
-        .sort('firstName')
-        .lean(),
-      DailyProduct.find(filter).sort('-createdAt').lean(),
+    if (!departmentId) {
+      const departments = await Department.find({ businessId: req.businessId }).sort('name').lean();
+      return res.json({ dateStr, departments, department: null, directions: [], assigned: [], unassigned: [], quantities: {}, stats: {} });
+    }
+
+    const dept = await Department.findOne({ _id: departmentId, businessId: req.businessId }).lean();
+    if (!dept) return res.status(404).json({ error: "Bo'lim topilmadi" });
+
+    const [directions, employees, assigned, quantities] = await Promise.all([
+      dept.allowDirections
+        ? Direction.find({ businessId: req.businessId, departmentId, isArchived: { $ne: true } }).sort('name').lean()
+        : Promise.resolve([]),
+      Employee.find({ businessId: req.businessId, departmentId, status: { $ne: 'deleted' } }).sort('fullName').lean(),
+      DailyAssignment.find({ businessId: req.businessId, departmentId, dateString: dateStr }).sort('-createdAt').lean(),
+      dept.allowDirections
+        ? DailyQuantity.find({ businessId: req.businessId, dateString: dateStr, directionId: { $in: [] } }).lean()
+        : Promise.resolve([]),
     ]);
 
-    const assignedEmployeeIds = new Set(assigned.map(a => a.employeeId?._id?.toString() || a.employeeId?.toString()));
-    const unassigned = allEmployees.filter(e => !assignedEmployeeIds.has(e._id.toString()));
+    // Quantities ni yo'nalishlar bo'yicha to'g'ri olish
+    let quantityMap = {};
+    if (dept.allowDirections && directions.length > 0) {
+      const qDocs = await DailyQuantity.find({
+        businessId: req.businessId,
+        dateString: dateStr,
+        directionId: { $in: directions.map(d => d._id) },
+      }).lean();
+      quantityMap = Object.fromEntries(qDocs.map(q => [String(q.directionId), q.quantity]));
+    }
 
-    const totalEarning = assigned.reduce((sum, a) => sum + (a.earning || 0), 0);
-    const totalProducts = products.reduce((sum, p) => sum + (p.quantity || 0), 0);
+    const assignedIds = new Set(assigned.map(a => String(a.employeeId)));
+    const unassigned = employees.filter(e => !assignedIds.has(String(e._id)));
+
+    const totalEarning = assigned.reduce((s, a) => s + (a.earning || 0), 0);
 
     res.json({
-      date: new Date(dateStr).toISOString(),
       dateStr,
+      department: dept,
+      directions,
       assigned,
       unassigned,
-      products,
+      quantities: quantityMap,
       stats: {
         totalAssigned: assigned.length,
         totalUnassigned: unassigned.length,
         totalEarning,
-        totalProducts,
       },
     });
   } catch (err) {
-    console.error('Daily report GET xato:', err);
+    console.error('Daily report GET:', err);
     res.status(500).json({ error: 'Server xatosi' });
   }
 });
 
-// ============================================
-// POST /api/daily-report/assign
-// Body: employeeId, directionId, shift, date
-// type endi BODY DA EMAS - yo'nalishdan olinadi
-// ============================================
+/**
+ * POST /api/daily-report/assign
+ * Body: { employeeId, departmentId, directionId?, shift, productCount?, date? }
+ */
 router.post('/assign', async (req, res) => {
   try {
-    const { employeeId, directionId, shift, date } = req.body;
-
-    if (!employeeId || !directionId || !shift) {
-      return res.status(400).json({ error: 'employeeId, directionId, shift kerak' });
+    const { employeeId, departmentId, directionId, shift, productCount, date } = req.body;
+    if (!employeeId || !departmentId || !shift) {
+      return res.status(400).json({ error: 'employeeId, departmentId va shift majburiy' });
     }
 
-    const dateStr = parseDate(date) || todayDateString();
-
+    const dateStr = parseDateString(date) || todayDateString();
     if (dateStr > todayDateString()) {
       return res.status(400).json({ error: 'Kelajakdagi kun mumkin emas' });
     }
 
     const shiftNum = Number(shift);
-    if (![0.5, 1].includes(shiftNum)) {
-      return res.status(400).json({ error: 'shift faqat 0.5 yoki 1' });
-    }
+    if (![0.5, 1].includes(shiftNum)) return res.status(400).json({ error: 'shift 0.5 yoki 1' });
 
-    // Yo'nalishni olamiz
-    const direction = await Direction.findOne({
-      _id: directionId,
-      businessId: req.businessId,
-      isArchived: { $ne: true },
-    });
-    if (!direction) return res.status(404).json({ error: "Yo'nalish topilmadi" });
+    const dept = await Department.findOne({ _id: departmentId, businessId: req.businessId });
+    if (!dept) return res.status(404).json({ error: "Bo'lim topilmadi" });
 
-    // Xodimni tekshiramiz
     const emp = await Employee.findOne({
       _id: employeeId,
       businessId: req.businessId,
@@ -127,231 +133,157 @@ router.post('/assign', async (req, res) => {
     });
     if (!emp) return res.status(404).json({ error: 'Xodim topilmadi' });
 
-    // Bir xil sanada bir xil xodim - tekshirish
-    const existing = await DailyAssignment.findOne({
+    if (String(emp.departmentId) !== String(dept._id)) {
+      return res.status(400).json({ error: "Xodim bu bo'limga tegishli emas" });
+    }
+
+    const exists = await DailyAssignment.findOne({
       businessId: req.businessId,
       employeeId,
       dateString: dateStr,
     });
-    if (existing) {
-      return res.status(400).json({ error: 'Bu xodim bu kun uchun allaqachon biriktirilgan' });
+    if (exists) return res.status(400).json({ error: 'Bu xodim shu kun uchun allaqachon biriktirilgan' });
+
+    let direction = null;
+    let priceSnapshot = 0;
+    if (dept.allowDirections) {
+      if (!directionId) return res.status(400).json({ error: "ON bo'lim uchun yo'nalish majburiy" });
+      direction = await Direction.findOne({
+        _id: directionId,
+        businessId: req.businessId,
+        departmentId: dept._id,
+        isArchived: { $ne: true },
+      });
+      if (!direction) return res.status(404).json({ error: "Yo'nalish topilmadi" });
+      priceSnapshot = direction.price || 0;
+    } else {
+      priceSnapshot = dept.pricePerUnit || 0;
     }
 
-    // YANGI: type va price avtomatik yo'nalishdan
-    const directionType = direction.type || 'piecework';
-    const directionPrice = direction.price || direction.currentPrice || 0;
+    const pc = Math.max(0, Number(productCount) || 0);
+    const initialEarning = dept.allowDirections ? 0 : priceSnapshot * pc;
 
-    // Department snapshot
-    let departmentName = '';
-    if (direction.departmentId) {
-      const Department = require('../models/Department');
-      const dept = await Department.findById(direction.departmentId).select('name');
-      if (dept) departmentName = dept.name;
-    }
-
-    // Earning: piecework => keyin recalculate (0 dan boshlanadi), daily => price * shift
-    let earning = 0;
-    if (directionType === 'daily') {
-      earning = directionPrice * shiftNum;
-    }
-
-    const assignment = new DailyAssignment({
+    const assignment = await DailyAssignment.create({
       businessId: req.businessId,
       employeeId,
-      directionId,
+      departmentId: dept._id,
+      directionId: direction ? direction._id : null,
       date: new Date(dateStr),
       dateString: dateStr,
       shift: shiftNum,
-      type: directionType,
-      priceSnapshot: directionPrice,
-      earning,
+      productCount: pc,
+      priceSnapshot,
+      earning: initialEarning,
+      fairShare: initialEarning,
       isManual: false,
-      employeeSnapshot: {
-        firstName: emp.firstName,
-        lastName: emp.lastName || '-',
-        code: emp.code,
+      employeeSnapshot: { fullName: emp.fullName, code: emp.code },
+      departmentSnapshot: {
+        name: dept.name,
+        allowDirections: dept.allowDirections,
+        pricePerUnit: dept.pricePerUnit,
       },
-      directionSnapshot: {
-        name: direction.name,
-        departmentName,
-        type: directionType,
-        price: directionPrice,
-      },
+      directionSnapshot: direction ? { name: direction.name, price: direction.price } : undefined,
     });
 
-    await assignment.save();
+    await recalculateForDate(req.businessId, dateStr);
 
-    // Piecework bo'lsa - butun kunni qayta hisoblash
-    if (directionType === 'piecework') {
-      await recalculateForDate(req.businessId, dateStr);
-    }
-
-    // Fresh data
     const fresh = await DailyAssignment.findById(assignment._id).lean();
     res.status(201).json(fresh);
   } catch (err) {
-    console.error('Assign xato:', err);
+    console.error('Assign POST:', err);
     res.status(500).json({ error: err.message || 'Server xatosi' });
   }
 });
 
-// ============================================
-// PUT /api/daily-report/assign/:id/earning
-// Qo'lda earning kiritish
-// ============================================
-router.put('/assign/:id/earning', async (req, res) => {
+/**
+ * PUT /api/daily-report/assign/:id
+ * Body: { shift?, productCount?, earning? }
+ *  - shift / productCount yangilanishi bilan recalc qilinadi.
+ *  - earning to'g'ridan-to'g'ri kiritilsa isManual=true.
+ */
+router.put('/assign/:id', async (req, res) => {
   try {
-    const { earning } = req.body;
-    const earningNum = Math.max(0, Number(earning) || 0);
+    const a = await DailyAssignment.findOne({ _id: req.params.id, businessId: req.businessId });
+    if (!a) return res.status(404).json({ error: 'Biriktirish topilmadi' });
 
-    const assignment = await DailyAssignment.findOne({
-      _id: req.params.id,
-      businessId: req.businessId,
-    });
-    if (!assignment) return res.status(404).json({ error: 'Biriktirish topilmadi' });
-
-    assignment.earning = earningNum;
-    assignment.isManual = true;
-    assignment.manualAmount = earningNum;
-    await assignment.save();
-
-    // Piecework bo'lsa, fair share qayta hisoblash kerak
-    if (assignment.type === 'piecework') {
-      await recalculateForDate(req.businessId, assignment.dateString);
+    const { shift, productCount, earning } = req.body;
+    if (shift !== undefined) {
+      const s = Number(shift);
+      if (![0.5, 1].includes(s)) return res.status(400).json({ error: 'shift 0.5 yoki 1' });
+      a.shift = s;
+    }
+    if (productCount !== undefined) {
+      a.productCount = Math.max(0, Number(productCount) || 0);
+    }
+    if (earning !== undefined) {
+      const e = Math.max(0, Number(earning) || 0);
+      a.earning = e;
+      a.manualAmount = e;
+      a.isManual = true;
     }
 
-    const fresh = await DailyAssignment.findById(assignment._id).lean();
+    await a.save();
+    await recalculateForDate(req.businessId, a.dateString);
+
+    const fresh = await DailyAssignment.findById(a._id).lean();
     res.json(fresh);
   } catch (err) {
-    console.error('Earning edit xato:', err);
-    res.status(500).json({ error: 'Server xatosi' });
+    console.error('Assign PUT:', err);
+    res.status(500).json({ error: err.message || 'Server xatosi' });
   }
 });
 
-// ============================================
-// DELETE /api/daily-report/assign/:id
-// ============================================
 router.delete('/assign/:id', async (req, res) => {
   try {
-    const assignment = await DailyAssignment.findOne({
-      _id: req.params.id,
-      businessId: req.businessId,
-    });
-    if (!assignment) return res.status(404).json({ error: 'Biriktirish topilmadi' });
-
-    const dateStr = assignment.dateString;
-    const wasPiecework = assignment.type === 'piecework';
-    await assignment.deleteOne();
-
-    if (wasPiecework) {
-      await recalculateForDate(req.businessId, dateStr);
-    }
-
+    const a = await DailyAssignment.findOne({ _id: req.params.id, businessId: req.businessId });
+    if (!a) return res.status(404).json({ error: 'Biriktirish topilmadi' });
+    const dateStr = a.dateString;
+    await a.deleteOne();
+    await recalculateForDate(req.businessId, dateStr);
     res.json({ success: true });
   } catch (err) {
-    console.error('Unassign xato:', err);
+    console.error('Assign DELETE:', err);
     res.status(500).json({ error: 'Server xatosi' });
   }
 });
 
-// ============================================
-// POST /api/daily-report/products
-// Body: productName, quantity, date
-// ============================================
-router.post('/products', async (req, res) => {
+/**
+ * POST /api/daily-report/quantity
+ * Body: { directionId, date?, quantity }
+ * ON-yo'nalish uchun kunlik umumiy mahsulot soni (upsert).
+ */
+router.post('/quantity', async (req, res) => {
   try {
-    const { productName, quantity, date } = req.body;
-    if (!productName || quantity === undefined) {
-      return res.status(400).json({ error: 'productName va quantity kerak' });
+    const { directionId, date, quantity } = req.body;
+    if (!directionId || quantity === undefined) {
+      return res.status(400).json({ error: 'directionId va quantity majburiy' });
     }
 
-    const dateStr = parseDate(date) || todayDateString();
+    const dateStr = parseDateString(date) || todayDateString();
     if (dateStr > todayDateString()) {
       return res.status(400).json({ error: 'Kelajakdagi kun mumkin emas' });
     }
 
+    const direction = await Direction.findOne({
+      _id: directionId,
+      businessId: req.businessId,
+      isArchived: { $ne: true },
+    });
+    if (!direction) return res.status(404).json({ error: "Yo'nalish topilmadi" });
+
     const qty = Math.max(0, Number(quantity) || 0);
 
-    const product = new DailyProduct({
-      businessId: req.businessId,
-      date: new Date(dateStr),
-      dateString: dateStr,
-      productName: String(productName).trim(),
-      quantity: qty,
-    });
+    const doc = await DailyQuantity.findOneAndUpdate(
+      { businessId: req.businessId, directionId, dateString: dateStr },
+      { $set: { quantity: qty, date: new Date(dateStr) } },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
 
-    await product.save();
-
-    // Piecework yo'nalishlar bor bo'lsa qayta hisoblash
     await recalculateForDate(req.businessId, dateStr);
-
-    res.status(201).json(product.toObject());
+    res.json(doc);
   } catch (err) {
-    console.error('Product POST xato:', err);
-    res.status(500).json({ error: 'Server xatosi' });
-  }
-});
-
-router.put('/products/:id', async (req, res) => {
-  try {
-    const { productName, quantity, date } = req.body;
-    const product = await DailyProduct.findOne({
-      _id: req.params.id,
-      businessId: req.businessId,
-    });
-    if (!product) return res.status(404).json({ error: 'Mahsulot topilmadi' });
-
-    if (productName !== undefined) product.productName = String(productName).trim();
-    if (quantity !== undefined) product.quantity = Math.max(0, Number(quantity) || 0);
-    if (date) {
-      const newDateStr = parseDate(date);
-      if (newDateStr && newDateStr <= todayDateString()) {
-        product.dateString = newDateStr;
-        product.date = new Date(newDateStr);
-      }
-    }
-
-    await product.save();
-    await recalculateForDate(req.businessId, product.dateString);
-
-    res.json(product.toObject());
-  } catch (err) {
-    console.error('Product PUT xato:', err);
-    res.status(500).json({ error: 'Server xatosi' });
-  }
-});
-
-router.delete('/products/:id', async (req, res) => {
-  try {
-    const product = await DailyProduct.findOne({
-      _id: req.params.id,
-      businessId: req.businessId,
-    });
-    if (!product) return res.status(404).json({ error: 'Mahsulot topilmadi' });
-
-    const dateStr = product.dateString;
-    await product.deleteOne();
-    await recalculateForDate(req.businessId, dateStr);
-
-    res.json({ success: true });
-  } catch (err) {
-    console.error('Product DELETE xato:', err);
-    res.status(500).json({ error: 'Server xatosi' });
-  }
-});
-
-// ============================================
-// POST /api/daily-report/recalculate
-// ============================================
-router.post('/recalculate', async (req, res) => {
-  try {
-    const { date } = req.body;
-    const dateStr = parseDate(date) || todayDateString();
-    await recalculateForDate(req.businessId, dateStr);
-    res.json({ success: true });
-  } catch (err) {
-    console.error('Recalculate xato:', err);
-    res.status(500).json({ error: 'Server xatosi' });
+    console.error('Quantity POST:', err);
+    res.status(500).json({ error: err.message || 'Server xatosi' });
   }
 });
 

@@ -1,6 +1,7 @@
 /**
- * CyberCoderCRM - Auth routes
- * YANGI: /me da enabledWorkTypes qaytadi
+ * CyberCoderCRM - Auth routes (v2)
+ *  - enabledWorkTypes olib tashlandi (piecework/daily ajratish endi yo'q).
+ *  - /me admin uchun enabledModules + modulesInfo qaytaradi.
  */
 
 const express = require('express');
@@ -96,7 +97,6 @@ router.post('/login', async (req, res) => {
         logo: business.logo,
         role: 'admin',
         enabledModules: business.enabledModules || [],
-        enabledWorkTypes: business.enabledWorkTypes || { piecework: true, daily: true },
         defaultLanguage: business.defaultLanguage || 'uz-lat',
       }
     });
@@ -138,7 +138,6 @@ router.get('/me', verifyToken, async (req, res) => {
         phone: business.phone,
         role: 'admin',
         enabledModules: business.enabledModules || [],
-        enabledWorkTypes: business.enabledWorkTypes || { piecework: true, daily: true },
         modulesInfo,
         defaultLanguage: business.defaultLanguage || 'uz-lat',
       });

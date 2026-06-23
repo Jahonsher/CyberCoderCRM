@@ -1,188 +1,148 @@
+/**
+ * CyberCoderCRM - Departments (v2)
+ *
+ * Bo'lim CRUD. Har bo'limda:
+ *  - allowDirections: true/false
+ *  - budget: jami berilishi mumkin summa
+ *  - pricePerUnit: OFF bo'lim uchun 1 birlik narxi
+ *
+ * Bo'lim turi o'zgartirilmaydi — o'chirib qayta yaratish kerak.
+ */
+
 const express = require('express');
 const router = express.Router();
 
 const Department = require('../models/Department');
 const Direction = require('../models/Direction');
-const Business = require('../models/Business');
+const Employee = require('../models/Employee');
+
 const { verifyToken, requireAdmin } = require('../middleware/auth');
 const businessScope = require('../middleware/businessScope');
+const requireModule = require('../middleware/requireModule');
 
-router.use(verifyToken, requireAdmin, businessScope);
+router.use(verifyToken, requireAdmin, businessScope, requireModule('directions'));
 
-// Modul ruxsatini tekshirish
-async function checkModuleAccess(req, type) {
-  const moduleKey = type === 'daily' ? 'directionsDaily' : 'directionsPiecework';
-  const biz = await Business.findById(req.businessId).select('enabledModules');
-  if (!biz) return false;
-  const enabled = biz.enabledModules || [];
-  return enabled.includes(moduleKey) || enabled.includes('directions');
-}
-
-// ============================================
-// GET /api/departments?type=piecework|daily
-// ============================================
 router.get('/', async (req, res) => {
   try {
-    const { type } = req.query;
+    const departments = await Department.find({ businessId: req.businessId }).sort('name').lean();
+    const ids = departments.map(d => d._id);
 
-    // Type majburiy
-    if (!type || !['piecework', 'daily'].includes(type)) {
-      return res.status(400).json({ error: "type kerak: piecework yoki daily" });
-    }
-
-    // Modul ruxsati
-    const hasAccess = await checkModuleAccess(req, type);
-    if (!hasAccess) {
-      return res.status(403).json({ error: 'Bu modul yoqilmagan' });
-    }
-
-    // QATTIQ FILTER
-    const filter = {
-      businessId: req.businessId,
-      type: type, // aniq match
-    };
-
-    const [departments, dirCounts] = await Promise.all([
-      Department.find(filter).sort('name').lean(),
+    const [dirCounts, empCounts] = await Promise.all([
       Direction.aggregate([
-        { $match: { businessId: req.businessId, type: type, isArchived: { $ne: true } } },
+        { $match: { businessId: req.businessId, departmentId: { $in: ids }, isArchived: { $ne: true } } },
+        { $group: { _id: '$departmentId', count: { $sum: 1 } } },
+      ]),
+      Employee.aggregate([
+        { $match: { businessId: req.businessId, departmentId: { $in: ids }, status: { $ne: 'deleted' } } },
         { $group: { _id: '$departmentId', count: { $sum: 1 } } },
       ]),
     ]);
 
-    const countMap = {};
-    dirCounts.forEach(c => { countMap[String(c._id)] = c.count; });
+    const dirMap = Object.fromEntries(dirCounts.map(c => [String(c._id), c.count]));
+    const empMap = Object.fromEntries(empCounts.map(c => [String(c._id), c.count]));
 
     const result = departments.map(d => ({
       ...d,
-      directionCount: countMap[String(d._id)] || 0,
+      directionCount: dirMap[String(d._id)] || 0,
+      employeeCount: empMap[String(d._id)] || 0,
     }));
 
     res.json(result);
   } catch (err) {
-    console.error('Departments GET xato:', err);
+    console.error('Departments GET:', err);
     res.status(500).json({ error: 'Server xatosi' });
   }
 });
 
-// ============================================
-// POST /api/departments
-// Body: { name, description, type }
-// ============================================
 router.post('/', async (req, res) => {
   try {
-    const { name, description, type } = req.body;
+    const { name, description, allowDirections, budget, pricePerUnit } = req.body;
+    if (!name) return res.status(400).json({ error: "Bo'lim nomi majburiy" });
 
-    if (!name) {
-      return res.status(400).json({ error: 'Bo\'lim nomi majburiy' });
-    }
-
-    if (!type || !['piecework', 'daily'].includes(type)) {
-      return res.status(400).json({ error: "type: piecework yoki daily" });
-    }
-
-    // Modul ruxsati
-    const hasAccess = await checkModuleAccess(req, type);
-    if (!hasAccess) {
-      return res.status(403).json({ error: 'Bu tur uchun modul yoqilmagan' });
-    }
-
-    const dept = new Department({
+    const dept = await Department.create({
       businessId: req.businessId,
       name: String(name).trim(),
       description: description ? String(description).trim() : '',
-      type,
+      allowDirections: allowDirections !== false,
+      budget: Math.max(0, Number(budget) || 0),
+      pricePerUnit: Math.max(0, Number(pricePerUnit) || 0),
     });
-
-    await dept.save();
 
     const obj = dept.toObject();
     obj.directionCount = 0;
+    obj.employeeCount = 0;
     res.status(201).json(obj);
   } catch (err) {
-    console.error('Department POST xato:', err);
+    console.error('Department POST:', err);
     res.status(500).json({ error: err.message || 'Server xatosi' });
   }
 });
 
-// ============================================
-// PUT /api/departments/:id
-// ============================================
 router.put('/:id', async (req, res) => {
   try {
-    const { name, description } = req.body;
-
-    const dept = await Department.findOne({
-      _id: req.params.id,
-      businessId: req.businessId,
-    });
+    const dept = await Department.findOne({ _id: req.params.id, businessId: req.businessId });
     if (!dept) return res.status(404).json({ error: "Bo'lim topilmadi" });
 
-    // Modul ruxsati (bo'limning o'z type bo'yicha)
-    const hasAccess = await checkModuleAccess(req, dept.type);
-    if (!hasAccess) {
-      return res.status(403).json({ error: 'Ruxsat yo\'q' });
-    }
-
+    const { name, description, budget, pricePerUnit, allowDirections } = req.body;
     if (name !== undefined) dept.name = String(name).trim();
     if (description !== undefined) dept.description = String(description).trim();
+    if (budget !== undefined) dept.budget = Math.max(0, Number(budget) || 0);
+    if (pricePerUnit !== undefined) dept.pricePerUnit = Math.max(0, Number(pricePerUnit) || 0);
+
+    // allowDirections o'zgartirilsa, ON->OFF da yo'nalishlar arxivlanadi
+    if (allowDirections !== undefined && allowDirections !== dept.allowDirections) {
+      if (!allowDirections) {
+        await Direction.updateMany(
+          { businessId: req.businessId, departmentId: dept._id },
+          { isArchived: true, archivedAt: new Date() }
+        );
+      }
+      dept.allowDirections = !!allowDirections;
+    }
 
     await dept.save();
 
-    const obj = dept.toObject();
-    const count = await Direction.countDocuments({
-      businessId: req.businessId,
-      departmentId: dept._id,
-      isArchived: { $ne: true },
-      type: dept.type,
-    });
-    obj.directionCount = count;
+    const [dirCount, empCount] = await Promise.all([
+      Direction.countDocuments({ businessId: req.businessId, departmentId: dept._id, isArchived: { $ne: true } }),
+      Employee.countDocuments({ businessId: req.businessId, departmentId: dept._id, status: { $ne: 'deleted' } }),
+    ]);
 
+    const obj = dept.toObject();
+    obj.directionCount = dirCount;
+    obj.employeeCount = empCount;
     res.json(obj);
   } catch (err) {
-    console.error('Department PUT xato:', err);
+    console.error('Department PUT:', err);
     res.status(500).json({ error: err.message || 'Server xatosi' });
   }
 });
 
-// ============================================
-// DELETE /api/departments/:id?force=true
-// ============================================
 router.delete('/:id', async (req, res) => {
   try {
-    const { force } = req.query;
-    const dept = await Department.findOne({
-      _id: req.params.id,
-      businessId: req.businessId,
-    });
+    const dept = await Department.findOne({ _id: req.params.id, businessId: req.businessId });
     if (!dept) return res.status(404).json({ error: "Bo'lim topilmadi" });
 
-    const directionsCount = await Direction.countDocuments({
+    const empCount = await Employee.countDocuments({
       businessId: req.businessId,
       departmentId: dept._id,
-      isArchived: { $ne: true },
+      status: { $ne: 'deleted' },
     });
-
-    if (directionsCount > 0 && force !== 'true') {
+    if (empCount > 0) {
       return res.status(400).json({
-        error: `Bu bo'limda ${directionsCount} ta yo'nalish bor`,
-        directionsCount,
+        error: `Bu bo'limda ${empCount} ta xodim bor. Avval ularni o'chiring yoki ko'chiring.`,
+        employeeCount: empCount,
       });
     }
 
-    // Force bo'lsa, barcha yo'nalishlarni arxivlash
-    if (force === 'true') {
-      await Direction.updateMany(
-        { businessId: req.businessId, departmentId: dept._id },
-        { isArchived: true, archivedAt: new Date() }
-      );
-    }
-
+    await Direction.updateMany(
+      { businessId: req.businessId, departmentId: dept._id },
+      { isArchived: true, archivedAt: new Date() }
+    );
     await dept.deleteOne();
 
     res.json({ success: true });
   } catch (err) {
-    console.error('Department DELETE xato:', err);
+    console.error('Department DELETE:', err);
     res.status(500).json({ error: 'Server xatosi' });
   }
 });

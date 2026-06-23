@@ -1,8 +1,9 @@
 /**
- * CyberCoderCRM - Business Model
- * YANGI: enabledWorkTypes - biznes qaysi ish turlarini ishlatadi
- *  - piecework: shtuk (mahsulot soniga qarab)
- *  - daily: kunlik (smenaga belgilangan summa)
+ * CyberCoderCRM - Business Model (v2)
+ *
+ * enabledWorkTypes olib tashlandi (piecework/daily ajratish endi yo'q).
+ * enabledModules endi yangi keylardan iborat: employees, directions, dailyReport,
+ *   monthlyReport, salary, archive.
  */
 
 const mongoose = require('mongoose');
@@ -52,20 +53,13 @@ const businessSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
-    // YANGI: Ish turlari (default: ikkalasi yoqilgan)
-    enabledWorkTypes: {
-      piecework: { type: Boolean, default: true },
-      daily: { type: Boolean, default: true },
-    },
     status: {
       type: String,
       enum: ['active', 'suspended'],
       default: 'active',
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
 businessSchema.index({ status: 1 });

@@ -1,10 +1,20 @@
 /**
- * CyberCoderCRM - Modules Config
- * YANGI: directionsPiecework va directionsDaily 2 ta alohida modul
- * Eski 'directions' moduli backward compat uchun saqlangan
+ * CyberCoderCRM - Modules Config (v2)
+ *
+ * Yangi mantiq:
+ *  - directionsPiecework, directionsDaily va eski 'directions' parent guruh olib tashlandi.
+ *  - Yo'nalishlar endi yagona modul ('directions').
+ *  - Yangi 'salary' (Maosh to'lash) moduli qo'shildi.
  */
 
 const MODULES = {
+  guide: {
+    key: 'guide',
+    name: "Yo'riqnoma",
+    description: 'Modullar va modallar haqida qisqacha',
+    default: true,
+    order: 0,
+  },
   employees: {
     key: 'employees',
     name: 'Xodimlar',
@@ -12,51 +22,40 @@ const MODULES = {
     default: true,
     order: 1,
   },
-  directionsPiecework: {
-    key: 'directionsPiecework',
-    name: 'Dona ish',
-    description: "Dona (shtuk) yo'nalishlar — narx × mahsulot",
+  directions: {
+    key: 'directions',
+    name: "Yo'nalishlar",
+    description: "Bo'limlar va yo'nalishlar (ON/OFF)",
     default: true,
     order: 2,
-    parent: 'directions',
-  },
-  directionsDaily: {
-    key: 'directionsDaily',
-    name: 'Kunlik ish',
-    description: "Kunlik yo'nalishlar — smenaga belgilangan summa",
-    default: true,
-    order: 3,
-    parent: 'directions',
   },
   dailyReport: {
     key: 'dailyReport',
     name: 'Kunlik Hisobot',
-    description: 'Kunlik biriktirish va hisobot',
+    description: 'Kunlik biriktirish va daromad',
     default: true,
-    order: 4,
+    order: 3,
   },
   monthlyReport: {
     key: 'monthlyReport',
     name: 'Oylik Hisobot',
-    description: 'Oylik daromad va to\'lov',
+    description: 'Davr bo\'yicha statistika',
+    default: true,
+    order: 4,
+  },
+  salary: {
+    key: 'salary',
+    name: "Maosh to'lash",
+    description: "Xodim maoshi va sanagacha to'lov",
     default: true,
     order: 5,
   },
   archive: {
     key: 'archive',
     name: 'Arxiv',
-    description: 'To\'langan oylik arxivi',
+    description: 'Oylik to\'lovlar tarixi',
     default: false,
     order: 6,
-  },
-  // Backward compat - eski yagona direction moduli
-  directions: {
-    key: 'directions',
-    name: "Yo'nalishlar (eski)",
-    description: 'Eski yagona direction moduli',
-    default: false,
-    order: 99,
-    hidden: true, // Yangi bizneslar uchun ko'rinmasin
   },
 };
 

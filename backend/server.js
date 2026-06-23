@@ -177,6 +177,7 @@ async function startServer() {
     app.use('/api/directions', require('./routes/directions'));
     app.use('/api/daily-report', require('./routes/dailyReport'));
     app.use('/api/monthly-report', require('./routes/monthlyReport'));
+    app.use('/api/salary', require('./routes/salary'));
     app.use('/api/archive', require('./routes/archive'));
     console.log('✅ Barcha routes yuklandi');
 
@@ -196,10 +197,6 @@ async function startServer() {
         error: err.message || 'Server xatosi',
       });
     });
-
-    console.log('⏰ Cron jobs ishga tushmoqda...');
-    const dailyResetJob = require('./services/dailyResetJob');
-    dailyResetJob.start();
 
     app.listen(PORT, () => {
       console.log('========================================');

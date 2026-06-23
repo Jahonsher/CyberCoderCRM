@@ -4,9 +4,10 @@ const router = express.Router();
 
 const Business = require('../models/Business');
 const Employee = require('../models/Employee');
+const Department = require('../models/Department');
 const Direction = require('../models/Direction');
 const DailyAssignment = require('../models/DailyAssignment');
-const DailyProduct = require('../models/DailyProduct');
+const SalaryPayment = require('../models/SalaryPayment');
 const ReservedCode = require('../models/ReservedCode');
 const Archive = require('../models/Archive');
 
@@ -223,9 +224,10 @@ router.delete('/businesses/:id', async (req, res) => {
     const { id } = req.params;
     await Promise.all([
       Employee.deleteMany({ businessId: id }),
+      Department.deleteMany({ businessId: id }),
       Direction.deleteMany({ businessId: id }),
       DailyAssignment.deleteMany({ businessId: id }),
-      DailyProduct.deleteMany({ businessId: id }),
+      SalaryPayment.deleteMany({ businessId: id }),
       ReservedCode.deleteMany({ businessId: id }),
       Archive.deleteMany({ businessId: id }),
       Business.findByIdAndDelete(id),

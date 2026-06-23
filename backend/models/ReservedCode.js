@@ -25,8 +25,7 @@ const reservedCodeSchema = new mongoose.Schema(
       expires: 0,
     },
     employeeData: {
-      firstName: String,
-      lastName: String,
+      fullName: String,
       phone: String,
     },
   },

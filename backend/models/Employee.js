@@ -1,5 +1,10 @@
 /**
- * CyberCoderCRM - Employee Model
+ * CyberCoderCRM - Employee Model (v2)
+ *
+ * Yangi mantiq:
+ *  - firstName + lastName → fullName (bitta string).
+ *  - departmentId majburiy. Har xodim faqat 1 bo'limga tegishli.
+ *  - code biznesda unique-ish (runtime tekshiriladi + ReservedCode logikasi saqlanadi).
  */
 
 const mongoose = require('mongoose');
@@ -12,17 +17,17 @@ const employeeSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    firstName: {
-      type: String,
+    departmentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Department',
       required: true,
-      trim: true,
-      maxlength: 50,
+      index: true,
     },
-    lastName: {
+    fullName: {
       type: String,
       required: true,
       trim: true,
-      maxlength: 50,
+      maxlength: 120,
     },
     code: {
       type: String,
@@ -40,19 +45,17 @@ const employeeSchema = new mongoose.Schema(
       type: String,
       enum: ['active', 'deleted'],
       default: 'active',
+      index: true,
     },
     deletedAt: {
       type: Date,
       default: null,
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-// Compound index: bir biznesda kod noyob bo'lishi
 employeeSchema.index({ businessId: 1, code: 1 });
-employeeSchema.index({ businessId: 1, status: 1 });
+employeeSchema.index({ businessId: 1, departmentId: 1, status: 1 });
 
 module.exports = mongoose.models.Employee || mongoose.model('Employee', employeeSchema);

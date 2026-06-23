@@ -1,179 +1,141 @@
+/**
+ * CyberCoderCRM - Employees (v2)
+ *
+ * fullName + departmentId. Har xodim 1 bo'limga tegishli.
+ * Soft delete + ReservedCode (kod oy oxirigacha band).
+ */
+
 const express = require('express');
 const router = express.Router();
 
 const Employee = require('../models/Employee');
+const Department = require('../models/Department');
 const ReservedCode = require('../models/ReservedCode');
 
 const { verifyToken, requireAdmin } = require('../middleware/auth');
 const businessScope = require('../middleware/businessScope');
 const requireModule = require('../middleware/requireModule');
 
-// Barcha route'lar uchun
 router.use(verifyToken, requireAdmin, businessScope, requireModule('employees'));
 
-/**
- * GET /api/employees
- * Barcha xodimlar ro'yxati
- */
 router.get('/', async (req, res) => {
   try {
-    const { search } = req.query;
-    const filter = {
-      businessId: req.businessId,
-      status: { $ne: 'deleted' }
-    };
-
+    const { search, departmentId } = req.query;
+    const filter = { businessId: req.businessId, status: { $ne: 'deleted' } };
+    if (departmentId) filter.departmentId = departmentId;
     if (search) {
-      const regex = new RegExp(search, 'i');
-      filter.$or = [
-        { firstName: regex },
-        { lastName: regex },
-        { code: regex },
-        { phone: regex },
-      ];
+      const rx = new RegExp(String(search).trim(), 'i');
+      filter.$or = [{ fullName: rx }, { code: rx }, { phone: rx }];
     }
-
     const employees = await Employee.find(filter)
-      .select('firstName lastName code phone createdAt')
+      .populate('departmentId', 'name allowDirections')
       .sort('-createdAt')
       .lean();
     res.json(employees);
   } catch (err) {
-    console.error('Employees GET xato:', err);
+    console.error('Employees GET:', err);
     res.status(500).json({ error: 'Server xatosi' });
   }
 });
 
-/**
- * POST /api/employees
- * Yangi xodim qo'shish
- */
 router.post('/', async (req, res) => {
   try {
-    const { firstName, lastName, code, phone } = req.body;
-
-    if (!firstName || !lastName || !code) {
-      return res.status(400).json({ error: 'Ism, familiya va kod kerak' });
+    const { fullName, code, phone, departmentId } = req.body;
+    if (!fullName || !code || !departmentId) {
+      return res.status(400).json({ error: "Ism, kod va bo'lim majburiy" });
     }
-
     const codeTrim = String(code).trim();
 
-    // Kod band emasligini tekshirish (aktiv xodimlar)
-    const existing = await Employee.findOne({
+    const dept = await Department.findOne({ _id: departmentId, businessId: req.businessId });
+    if (!dept) return res.status(404).json({ error: "Bo'lim topilmadi" });
+
+    const exists = await Employee.findOne({
       businessId: req.businessId,
       code: codeTrim,
       status: { $ne: 'deleted' },
     });
-    if (existing) {
-      return res.status(400).json({ error: 'Bu kod band' });
-    }
+    if (exists) return res.status(400).json({ error: 'Bu kod band' });
 
-    // ReservedCode (o'chirilgan xodim kodi) tekshirish
-    const reserved = await ReservedCode.findOne({
-      businessId: req.businessId,
-      code: codeTrim,
-    });
+    const reserved = await ReservedCode.findOne({ businessId: req.businessId, code: codeTrim });
     if (reserved) {
       return res.status(400).json({
-        error: `Bu kod oy oxirigacha band: ${reserved.reservedUntil.toLocaleDateString()}`
+        error: `Bu kod ${reserved.reservedUntil.toLocaleDateString()} gacha band`,
       });
     }
 
-    const employee = new Employee({
+    const emp = await Employee.create({
       businessId: req.businessId,
-      firstName: String(firstName).trim(),
-      lastName: String(lastName).trim(),
+      departmentId,
+      fullName: String(fullName).trim(),
       code: codeTrim,
       phone: phone ? String(phone).trim() : '',
     });
-
-    await employee.save();
-    res.status(201).json(employee);
+    await emp.populate('departmentId', 'name allowDirections');
+    res.status(201).json(emp);
   } catch (err) {
-    console.error('Employee POST xato:', err);
+    console.error('Employee POST:', err);
     res.status(500).json({ error: err.message || 'Server xatosi' });
   }
 });
 
-/**
- * PUT /api/employees/:id
- */
 router.put('/:id', async (req, res) => {
   try {
-    const employee = await Employee.findOne({
-      _id: req.params.id,
-      businessId: req.businessId,
-    });
+    const emp = await Employee.findOne({ _id: req.params.id, businessId: req.businessId });
+    if (!emp) return res.status(404).json({ error: 'Xodim topilmadi' });
 
-    if (!employee) {
-      return res.status(404).json({ error: 'Xodim topilmadi' });
-    }
+    const { fullName, code, phone, departmentId } = req.body;
 
-    const { firstName, lastName, code, phone } = req.body;
-
-    if (code && code !== employee.code) {
+    if (code !== undefined && code !== emp.code) {
       const codeTrim = String(code).trim();
-      const existing = await Employee.findOne({
+      const dup = await Employee.findOne({
         businessId: req.businessId,
         code: codeTrim,
         status: { $ne: 'deleted' },
-        _id: { $ne: employee._id },
+        _id: { $ne: emp._id },
       });
-      if (existing) {
-        return res.status(400).json({ error: 'Bu kod band' });
-      }
-      employee.code = codeTrim;
+      if (dup) return res.status(400).json({ error: 'Bu kod band' });
+      emp.code = codeTrim;
     }
 
-    if (firstName) employee.firstName = String(firstName).trim();
-    if (lastName) employee.lastName = String(lastName).trim();
-    if (phone !== undefined) employee.phone = String(phone).trim();
+    if (departmentId !== undefined && departmentId !== String(emp.departmentId)) {
+      const dept = await Department.findOne({ _id: departmentId, businessId: req.businessId });
+      if (!dept) return res.status(404).json({ error: "Bo'lim topilmadi" });
+      emp.departmentId = departmentId;
+    }
 
-    await employee.save();
-    res.json(employee);
+    if (fullName !== undefined) emp.fullName = String(fullName).trim();
+    if (phone !== undefined) emp.phone = String(phone).trim();
+
+    await emp.save();
+    await emp.populate('departmentId', 'name allowDirections');
+    res.json(emp);
   } catch (err) {
-    console.error('Employee PUT xato:', err);
+    console.error('Employee PUT:', err);
     res.status(500).json({ error: err.message || 'Server xatosi' });
   }
 });
 
-/**
- * DELETE /api/employees/:id
- * Soft delete + ReservedCode
- */
 router.delete('/:id', async (req, res) => {
   try {
-    const employee = await Employee.findOne({
-      _id: req.params.id,
-      businessId: req.businessId,
-    });
+    const emp = await Employee.findOne({ _id: req.params.id, businessId: req.businessId });
+    if (!emp) return res.status(404).json({ error: 'Xodim topilmadi' });
 
-    if (!employee) {
-      return res.status(404).json({ error: 'Xodim topilmadi' });
-    }
-
-    // Oy oxirigacha band qilish
     const now = new Date();
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
     await ReservedCode.create({
       businessId: req.businessId,
-      code: employee.code,
+      code: emp.code,
       reservedUntil: endOfMonth,
-      employeeData: {
-        firstName: employee.firstName,
-        lastName: employee.lastName,
-        phone: employee.phone,
-      },
+      employeeData: { fullName: emp.fullName, phone: emp.phone },
     });
 
-    employee.status = 'deleted';
-    employee.deletedAt = now;
-    await employee.save();
-
+    emp.status = 'deleted';
+    emp.deletedAt = now;
+    await emp.save();
     res.json({ success: true });
   } catch (err) {
-    console.error('Employee DELETE xato:', err);
+    console.error('Employee DELETE:', err);
     res.status(500).json({ error: 'Server xatosi' });
   }
 });
