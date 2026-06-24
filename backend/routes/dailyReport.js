@@ -58,18 +58,14 @@ router.get('/', async (req, res) => {
     const dept = await Department.findOne({ _id: departmentId, businessId: req.businessId }).lean();
     if (!dept) return res.status(404).json({ error: "Bo'lim topilmadi" });
 
-    const [directions, employees, assigned, quantities] = await Promise.all([
+    const [directions, employees, assigned] = await Promise.all([
       dept.allowDirections
         ? Direction.find({ businessId: req.businessId, departmentId, isArchived: { $ne: true } }).sort('name').lean()
         : Promise.resolve([]),
       Employee.find({ businessId: req.businessId, departmentId, status: { $ne: 'deleted' } }).sort('fullName').lean(),
       DailyAssignment.find({ businessId: req.businessId, departmentId, dateString: dateStr }).sort('-createdAt').lean(),
-      dept.allowDirections
-        ? DailyQuantity.find({ businessId: req.businessId, dateString: dateStr, directionId: { $in: [] } }).lean()
-        : Promise.resolve([]),
     ]);
 
-    // Quantities ni yo'nalishlar bo'yicha to'g'ri olish
     let quantityMap = {};
     if (dept.allowDirections && directions.length > 0) {
       const qDocs = await DailyQuantity.find({

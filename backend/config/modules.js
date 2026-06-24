@@ -60,22 +60,14 @@ const MODULES = {
 };
 
 function getAllModules() {
-  return Object.values(MODULES)
-    .filter(m => !m.hidden)
-    .sort((a, b) => a.order - b.order);
+  return Object.values(MODULES).sort((a, b) => a.order - b.order);
 }
 
 function moduleExists(key) {
   return !!MODULES[key];
 }
 
-function getModuleByKey(key) {
-  return MODULES[key] || null;
-}
-
 module.exports = {
-  MODULES,
   getAllModules,
   moduleExists,
-  getModuleByKey,
 };

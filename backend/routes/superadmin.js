@@ -9,7 +9,6 @@ const Direction = require('../models/Direction');
 const DailyAssignment = require('../models/DailyAssignment');
 const SalaryPayment = require('../models/SalaryPayment');
 const ReservedCode = require('../models/ReservedCode');
-const Archive = require('../models/Archive');
 
 const { verifyToken, requireSuperAdmin } = require('../middleware/auth');
 const upload = require('../middleware/upload');
@@ -67,27 +66,27 @@ router.get('/businesses', async (req, res) => {
 
 router.post('/businesses', upload.single('logo'), async (req, res) => {
   try {
-    const { name, phone, login, password, defaultLanguage, note, enabledModules } = req.body;
+    const { name, phone, password, defaultLanguage, note, enabledModules } = req.body;
 
-    console.log('📝 Yangi biznes yaratish:', { name, login, hasPassword: !!password });
+    console.log('📝 Yangi biznes yaratish:', { name, hasPassword: !!password });
 
-    if (!name || !phone || !login || !password) {
-      return res.status(400).json({ error: "Barcha majburiy maydonlarni to'ldiring" });
+    if (!name || !phone || !password) {
+      return res.status(400).json({ error: "Nomi, telefon va parolni to'ldiring" });
     }
 
     const passwordStr = String(password).trim();
-    if (passwordStr.length < 6) {
-      return res.status(400).json({ error: 'Parol kamida 6 belgi' });
+    if (!/^\d+$/.test(passwordStr)) {
+      return res.status(400).json({ error: 'Parol faqat raqamlardan iborat bo\'lishi kerak' });
+    }
+    if (passwordStr.length < 4) {
+      return res.status(400).json({ error: 'Parol kamida 4 raqam' });
     }
 
-    const loginLower = String(login).trim().toLowerCase();
-    if (loginLower.length < 3) {
-      return res.status(400).json({ error: 'Login kamida 3 belgi' });
-    }
+    const loginLower = passwordStr;
 
     const existing = await Business.findOne({ login: loginLower });
     if (existing) {
-      return res.status(400).json({ error: 'Bu login band' });
+      return res.status(400).json({ error: 'Bu parol band — boshqa raqam tanlang' });
     }
 
     let modules = [];
@@ -132,7 +131,7 @@ router.post('/businesses', upload.single('logo'), async (req, res) => {
 router.put('/businesses/:id', upload.single('logo'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, phone, login, password, defaultLanguage, note, enabledModules } = req.body;
+    const { name, phone, password, defaultLanguage, note, enabledModules } = req.body;
 
     const business = await Business.findById(id);
     if (!business) return res.status(404).json({ error: 'Biznes topilmadi' });
@@ -142,19 +141,22 @@ router.put('/businesses/:id', upload.single('logo'), async (req, res) => {
     if (defaultLanguage) business.defaultLanguage = defaultLanguage;
     if (note !== undefined) business.note = String(note).trim();
 
-    if (login) {
-      const loginLower = String(login).trim().toLowerCase();
-      if (loginLower !== business.login) {
-        const exists = await Business.findOne({ login: loginLower });
-        if (exists && exists._id.toString() !== id) {
-          return res.status(400).json({ error: 'Bu login band' });
-        }
-        business.login = loginLower;
+    if (password !== undefined && password !== null && String(password).trim() !== '') {
+      const passwordStr = String(password).trim();
+      if (!/^\d+$/.test(passwordStr)) {
+        return res.status(400).json({ error: 'Parol faqat raqamlardan iborat bo\'lishi kerak' });
       }
-    }
-
-    if (password && String(password).trim().length >= 6) {
-      business.password = await bcrypt.hash(String(password).trim(), 10);
+      if (passwordStr.length < 4) {
+        return res.status(400).json({ error: 'Parol kamida 4 raqam' });
+      }
+      if (passwordStr !== business.login) {
+        const exists = await Business.findOne({ login: passwordStr });
+        if (exists && exists._id.toString() !== id) {
+          return res.status(400).json({ error: 'Bu parol band — boshqa raqam tanlang' });
+        }
+        business.login = passwordStr;
+      }
+      business.password = await bcrypt.hash(passwordStr, 10);
       console.log(`🔐 Parol yangilandi: ${business.login}`);
     }
 
@@ -229,7 +231,6 @@ router.delete('/businesses/:id', async (req, res) => {
       DailyAssignment.deleteMany({ businessId: id }),
       SalaryPayment.deleteMany({ businessId: id }),
       ReservedCode.deleteMany({ businessId: id }),
-      Archive.deleteMany({ businessId: id }),
       Business.findByIdAndDelete(id),
     ]);
     console.log(`🗑️ Biznes o'chirildi: ${id}`);

@@ -19,7 +19,6 @@ const mongoose = require('mongoose');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ========== TRUST PROXY (Railway, Vercel uchun MUHIM!) ==========
 // Railway proxy orqali ishlaydi — X-Forwarded-For header keladi
 app.set('trust proxy', 1);
 
@@ -29,17 +28,8 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: [
-          "'self'", "'unsafe-inline'",
-          "https://cdn.tailwindcss.com",
-          "https://cdn.jsdelivr.net",
-          "https://unpkg.com",
-        ],
-        styleSrc: [
-          "'self'", "'unsafe-inline'",
-          "https://cdn.tailwindcss.com",
-          "https://fonts.googleapis.com",
-        ],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
         imgSrc: ["'self'", "data:", "blob:", "https:"],
         connectSrc: ["'self'", "https:", "wss:"],
@@ -53,12 +43,8 @@ app.use(
 // ========== CORS ==========
 const allowedOrigins = [
   process.env.CLIENT_URL,
-  'https://cybercodercrm-production.up.railway.app',
-  /\.vercel\.app$/,
   /\.railway\.app$/,
-  /\.koyeb\.app$/,
   'http://localhost:3000',
-  'http://localhost:5173',
   'http://127.0.0.1:3000',
 ].filter(Boolean);
 
@@ -70,12 +56,8 @@ app.use(
         if (allowed instanceof RegExp) return allowed.test(origin);
         return allowed === origin;
       });
-      if (isAllowed) {
-        callback(null, true);
-      } else {
-        console.warn(`⚠️  CORS bloklandi: ${origin}`);
-        callback(null, true);
-      }
+      if (!isAllowed) console.warn(`⚠️  CORS bloklandi: ${origin}`);
+      callback(null, true);
     },
     credentials: true,
   })

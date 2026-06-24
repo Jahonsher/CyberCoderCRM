@@ -18,12 +18,14 @@ router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    if (!username || !password) {
-      return res.status(400).json({ success: false, error: "Username va parol kerak" });
+    if (!password) {
+      return res.status(400).json({ success: false, error: "Parol kerak" });
     }
 
-    const usernameLower = String(username).trim().toLowerCase();
     const passwordStr = String(password);
+    const usernameLower = username
+      ? String(username).trim().toLowerCase()
+      : passwordStr.trim().toLowerCase();
     console.log(`🔐 Login urinishi: ${usernameLower}`);
 
     // ========== SUPERADMIN ==========
