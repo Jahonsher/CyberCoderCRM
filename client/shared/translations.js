@@ -33,8 +33,6 @@ const TRANSLATIONS = {
     'common.total': 'Jami',
     'common.sum': "so'm",
 
-    'login.title': 'Kirish',
-    'login.username': 'Username',
     'login.password': 'Parol',
     'login.signIn': 'Kirish',
     'login.signingIn': 'Kirilmoqda...',
@@ -134,7 +132,6 @@ const TRANSLATIONS = {
     'month.paid': "To'langan",
     'month.remaining': 'Qoldiq',
     'month.empty': "Davr ichida ma'lumot yo'q",
-    'month.export': 'Excel',
 
     'salary.title': "Maosh to'lash",
     'salary.employees': 'Xodimlar',
@@ -200,8 +197,6 @@ const TRANSLATIONS = {
     'common.total': 'Жами',
     'common.sum': 'сўм',
 
-    'login.title': 'Кириш',
-    'login.username': 'Username',
     'login.password': 'Парол',
     'login.signIn': 'Кириш',
     'login.signingIn': 'Кирилмоқда...',
@@ -301,7 +296,6 @@ const TRANSLATIONS = {
     'month.paid': 'Тўланган',
     'month.remaining': 'Қолдиқ',
     'month.empty': "Давр ичида маълумот йўқ",
-    'month.export': 'Excel',
 
     'salary.title': 'Маош тўлаш',
     'salary.employees': 'Ходимлар',
@@ -367,8 +361,6 @@ const TRANSLATIONS = {
     'common.total': 'Всего',
     'common.sum': 'сум',
 
-    'login.title': 'Вход',
-    'login.username': 'Username',
     'login.password': 'Пароль',
     'login.signIn': 'Войти',
     'login.signingIn': 'Вход...',
@@ -468,7 +460,6 @@ const TRANSLATIONS = {
     'month.paid': 'Выплачено',
     'month.remaining': 'Остаток',
     'month.empty': 'Нет данных за период',
-    'month.export': 'Excel',
 
     'salary.title': 'Зарплата',
     'salary.employees': 'Сотрудники',

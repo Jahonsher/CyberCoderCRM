@@ -6,7 +6,6 @@
   <title>CyberCoderCRM · Admin</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -198,12 +197,8 @@
 
         <form id="loginForm" class="space-y-4">
           <div>
-            <label class="field-label" data-i18n="login.username">Username</label>
-            <input type="text" id="loginUsername" class="input-field w-full px-4 py-3 rounded-xl" autocomplete="username" required />
-          </div>
-          <div>
             <label class="field-label" data-i18n="login.password">Parol</label>
-            <input type="password" id="loginPassword" class="input-field w-full px-4 py-3 rounded-xl mono" autocomplete="current-password" required />
+            <input type="password" id="loginPassword" inputmode="numeric" pattern="[0-9]*" autocomplete="current-password" class="input-field w-full px-4 py-3 rounded-xl mono text-center text-lg tracking-widest" required />
           </div>
           <button type="submit" id="loginBtn" class="btn-primary w-full py-3 rounded-xl">
             <span id="loginBtnText" data-i18n="login.signIn">Kirish</span>

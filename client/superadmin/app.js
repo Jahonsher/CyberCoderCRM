@@ -222,7 +222,7 @@ function renderCard(b) {
         <div class="w-16 h-16 rounded-2xl overflow-hidden shrink-0">${logoHtml}</div>
         <div class="flex-1 min-w-0">
           <h3 class="font-bold text-lg truncate">${escapeHtml(b.name)}</h3>
-          <div class="mono text-xs text-zinc-500 truncate mb-2">@${escapeHtml(b.login)}</div>
+          <div class="mono text-xs text-zinc-500 truncate mb-2">Kod: ${escapeHtml(b.login)}</div>
           ${statusBadge}
         </div>
       </div>
@@ -339,7 +339,6 @@ function openEditModal(id) {
 
   document.getElementById('f_name').value = biz.name || '';
   document.getElementById('f_phone').value = biz.phone || '';
-  document.getElementById('f_login').value = biz.login || '';
   document.getElementById('f_password').value = '';
   document.getElementById('f_language').value = biz.defaultLanguage || 'uz-lat';
   document.getElementById('f_note').value = biz.note || '';
@@ -391,11 +390,19 @@ function setupBusinessModal() {
     const text = document.getElementById('submitModalText');
     const spinner = document.getElementById('submitModalSpinner');
 
+    const pw = document.getElementById('f_password').value.trim();
+    if (pw && !/^\d+$/.test(pw)) {
+      toast('Parol faqat raqamlardan iborat bo\'lishi kerak', 'error');
+      return;
+    }
+    if (!state.editingId && (!pw || pw.length < 4)) {
+      toast('Parol kamida 4 raqam bo\'lishi kerak', 'error');
+      return;
+    }
+
     const fd = new FormData();
     fd.append('name', document.getElementById('f_name').value.trim());
     fd.append('phone', document.getElementById('f_phone').value.trim());
-    fd.append('login', document.getElementById('f_login').value.trim());
-    const pw = document.getElementById('f_password').value;
     if (pw) fd.append('password', pw);
     fd.append('defaultLanguage', document.getElementById('f_language').value);
     fd.append('note', document.getElementById('f_note').value.trim());

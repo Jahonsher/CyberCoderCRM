@@ -125,9 +125,8 @@ function setupLogin() {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     err.classList.add('hidden');
-    const username = document.getElementById('loginUsername').value.trim();
-    const password = document.getElementById('loginPassword').value;
-    if (!username || !password) return;
+    const password = document.getElementById('loginPassword').value.trim();
+    if (!password) return;
 
     btn.disabled = true;
     btnText.textContent = t('login.signingIn');
@@ -137,7 +136,7 @@ function setupLogin() {
       const res = await fetch(apiUrl('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ password }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || t('login.wrong'));

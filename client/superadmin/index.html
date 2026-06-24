@@ -339,16 +339,11 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="field-label">Login *</label>
-            <input type="text" id="f_login" required minlength="3" maxlength="50" class="input-field w-full px-4 py-3 rounded-xl mono" />
-          </div>
-          <div>
-            <label id="passwordLabel" class="field-label">Parol *</label>
-            <input type="text" id="f_password" minlength="6" class="input-field w-full px-4 py-3 rounded-xl mono" />
-            <p id="passwordHint" class="mono text-xs text-zinc-500 mt-1.5 hidden">Bo'sh qoldirsangiz parol o'zgarmaydi</p>
-          </div>
+        <div>
+          <label id="passwordLabel" class="field-label">Parol (faqat raqam) *</label>
+          <input type="text" id="f_password" inputmode="numeric" pattern="[0-9]*" minlength="4" maxlength="20" autocomplete="off" class="input-field w-full px-4 py-3 rounded-xl mono" placeholder="masalan: 1234" />
+          <p class="mono text-xs text-zinc-500 mt-1.5">Bu parol biznesni boshqaradi — admin shu raqam bilan kiradi</p>
+          <p id="passwordHint" class="mono text-xs text-zinc-500 mt-1.5 hidden">Bo'sh qoldirsangiz parol o'zgarmaydi</p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
