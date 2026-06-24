@@ -8,13 +8,6 @@
  */
 
 const MODULES = {
-  guide: {
-    key: 'guide',
-    name: "Yo'riqnoma",
-    description: 'Modullar va modallar haqida qisqacha',
-    default: true,
-    order: 0,
-  },
   employees: {
     key: 'employees',
     name: 'Xodimlar',

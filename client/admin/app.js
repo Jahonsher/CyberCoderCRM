@@ -11,7 +11,6 @@ const STORAGE = { token: 'cc_admin_token', user: 'cc_admin_user' };
 const THEME_KEY = 'cc_theme';
 
 const MODULE_ICONS = {
-  guide: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>',
   employees: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>',
   directions: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>',
   dailyReport: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
@@ -188,7 +187,7 @@ function applyBranding(b) {
 }
 
 function buildSidebar(enabledModules) {
-  const order = ['guide', 'employees', 'directions', 'dailyReport', 'monthlyReport', 'salary', 'archive'];
+  const order = ['employees', 'directions', 'dailyReport', 'monthlyReport', 'salary', 'archive'];
   const effective = order.filter(k => enabledModules.includes(k));
   state.business.effectiveModules = effective;
 
@@ -216,216 +215,12 @@ function navigateTo(pageKey) {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sidebarBackdrop').classList.add('hidden');
 
-  if (pageKey === 'guide') renderGuide();
-  else if (pageKey === 'employees') loadEmployeesPage();
+  if (pageKey === 'employees') loadEmployeesPage();
   else if (pageKey === 'directions') loadDirectionsPage();
   else if (pageKey === 'dailyReport') loadDailyReportPage();
   else if (pageKey === 'monthlyReport') loadMonthlyReportPage();
   else if (pageKey === 'salary') loadSalaryPage();
   else if (pageKey === 'archive') loadArchivePage();
-}
-
-// ============================================
-// GUIDE — Yo'riqnoma
-// ============================================
-const GUIDE_MODULES = [
-  {
-    key: 'employees',
-    title: 'Xodimlar',
-    color: 'purple',
-    desc: "Biznesning barcha xodimlarini boshqarish. Ism+Familiya, kod (band qilinadi), telefon va bo'lim biriktirish.",
-    actions: [
-      "Qidirish va bo'lim bo'yicha filterlash",
-      "Yangi xodim qo'shish — ism, kod, telefon, bo'lim majburiy",
-      "O'chirishda kod oy oxirigacha band qilinadi (qaytadan ishlatilmaydi)",
-    ],
-  },
-  {
-    key: 'directions',
-    title: "Yo'nalishlar",
-    color: 'purple',
-    desc: "Ish bo'limlari va ularning yo'nalishlari. Har bo'lim ON yoki OFF rejimda bo'ladi.",
-    actions: [
-      "<strong>Bo'lim ON</strong> — bir nechta yo'nalish bor (filter sifatida). Har yo'nalish: nomi + 1 dona narxi. Kunlik hisobotda umumiy mahsulot soni kiritiladi, narxga ko'paytirilib xodimlar orasida taqsimlanadi.",
-      "<strong>Bo'lim OFF</strong> — yo'nalish yo'q. Bo'limning o'zida <em>pricePerUnit</em> bor. Har xodim qancha mahsulot tayyorlasa, shunga narxga ko'paytirilib pul oladi.",
-      "<strong>Byudjet</strong> — bo'lim doirasida jami berilishi mumkin (cheklov sifatida).",
-      "Bo'limdagi xodimlar bo'lsa, bo'limni o'chirib bo'lmaydi.",
-    ],
-  },
-  {
-    key: 'dailyReport',
-    title: 'Kunlik Hisobot',
-    color: 'emerald',
-    desc: 'Har kunlik biriktirish va daromad. Yuqorida sana picker, ostida bo\'lim tabs.',
-    actions: [
-      "Tanlangan bo'limga ko'ra: ON bo'lim — yo'nalishlar va kunlik mahsulot soni; OFF bo'lim — to'g'ridan-to'g'ri xodim qatorida productCount.",
-      "<strong>Biriktirish</strong> — biriktirilmaganlardan xodimni biriktirish (yo'nalish + smena 1/0.5).",
-      "<strong>Daromadni tahrirlash</strong> — qalam ikoni. Yo'nalish narxidan kam yoki ko'p qila olasiz (qandaydir sabab bilan).",
-      "Kelajak sana mumkin emas. Ish kuni Tashkent vaqti bo'yicha hisoblanadi.",
-    ],
-  },
-  {
-    key: 'monthlyReport',
-    title: 'Oylik Hisobot',
-    color: 'emerald',
-    desc: 'Sana oraliq bo\'yicha xodimlar statistikasi (faqat ko\'rish).',
-    actions: [
-      "Boshlanish va tugash sanasi, ixtiyoriy kod filterli qidiruv",
-      "Har xodim uchun: smena, kun, daromad, to'langan, qoldiq",
-      "To'lash bu yerda emas — Maosh to'lash modulida",
-    ],
-  },
-  {
-    key: 'salary',
-    title: "Maosh to'lash",
-    color: 'amber',
-    desc: 'Xodimlar ro\'yxati va sanagacha to\'lash mexanizmi.',
-    actions: [
-      'Xodim ustiga bosing — tafsilot sahifasi ochiladi (kunlik daromadlar va to\'lov tarixi)',
-      '<strong>Sanagacha to\'lash</strong> — sana tanlang, o\'sha kungacha xodimning jami qoldig\'i bitta to\'lov yozuvi sifatida saqlanadi',
-      "Qoldiq = jami daromad - jami to'langan",
-    ],
-  },
-  {
-    key: 'archive',
-    title: 'Arxiv',
-    color: 'amber',
-    desc: 'Har oyning to\'lovlar tarixi. To\'liq/qisman to\'langan xodimlar ajratilgan.',
-    actions: [
-      "Oy kartochkasi: jami summa, xodimlar soni, to'lovlar soni",
-      "Har xodim: topgan, to'langan, qoldiq + status (full/partial)",
-    ],
-  },
-];
-
-const GUIDE_MODALS = [
-  { title: "Xodim modali", color: 'purple', desc: "Xodim qo'shish/tahrirlash. Bo'lim majburiy — har xodim bitta bo'limga tegishli." },
-  { title: "Bo'lim modali", color: 'purple', desc: "Bo'lim CRUD. ON/OFF toggle bilan rejim tanlanadi. OFF bo'lsa <em>1 birlik narxi</em> kerak. Byudjet — cheklov." },
-  { title: "Yo'nalish modali", color: 'purple', desc: "Faqat ON-bo'lim ichida ochiladi. Yo'nalish nomi + 1 dona narxi (per ishchi). OFF bo'limda ko'rinmaydi." },
-  { title: "Biriktirish modali", color: 'emerald', desc: "Xodimni kunga biriktirish. ON da yo'nalish select, OFF da productCount input. Smena: 1 (to'liq) yoki 0.5 (yarim)." },
-  { title: "Mahsulot soni modali", color: 'emerald', desc: "Faqat ON-bo'limda. Tanlangan yo'nalish uchun kunlik umumiy mahsulot soni. Yangilanganda recalc avtomatik." },
-  { title: "Daromad tahrirlash modali", color: 'emerald', desc: "Qo'lda earning kiritish (manual override). OFF da productCount ham tahrirlanadi. Manual qiymat fairShare dan ortiqcha bo'lsa — bonus, kam bo'lsa — deficit." },
-  { title: "Sanagacha to'lov modali", color: 'amber', desc: "Sana tanlang — o'sha sanagacha bo'lgan barcha daromad - oldingi to'lovlar = qoldiq. Shu summa bitta SalaryPayment yozuvi sifatida saqlanadi." },
-  { title: "Tasdiq modali", color: 'red', desc: "Universal o'chirishni tasdiqlash modali. Xavfli amallar oldidan ko'rinadi." },
-];
-
-const GUIDE_WORKFLOW = [
-  "1. <strong>Yo'nalishlar</strong> bo'limiga kiring → 1-2 ta bo'lim yarating (ON yoki OFF).",
-  "2. ON bo'limga kirib yo'nalishlar qo'shing (Ko'ylak 250 so'm, Shim 300 so'm va h.k.).",
-  "3. <strong>Xodimlar</strong> bo'limida har xodimni mos bo'limga biriktirib qo'shing.",
-  "4. <strong>Kunlik Hisobot</strong>: sana tanlang → bo'lim tab → biriktirilmaganlardan ishchini biriktiring.",
-  "5. ON bo'limda kun oxirida har yo'nalishga umumiy mahsulot soni kiriting — earning avtomatik hisoblanadi.",
-  "6. OFF bo'limda har xodimning productCount'ini tahrirlash modalida kiriting.",
-  "7. Oy oxirida <strong>Maosh to'lash</strong> → har xodimga sanagacha to'lov qiling.",
-  "8. <strong>Arxiv</strong> orqali oyma-oy to'lovlarni ko'rasiz.",
-];
-
-const GUIDE_TIPS = [
-  "<strong>Bo'lim turini o'zgartirib bo'lmaydi.</strong> ON→OFF qilinsa, eski yo'nalishlar arxivlanadi.",
-  "<strong>O'chirilgan xodimning kodi</strong> oy oxirigacha band — yangi xodimga bermaysiz.",
-  "<strong>Manual daromad</strong> kiritsangiz, recalc keyingi marta bu earning'ni avtomatik o'zgartirmaydi.",
-  "<strong>Kelajak sana</strong> mumkin emas — faqat o'tgan va bugungi kunlarga ish yozish mumkin.",
-  "<strong>Til</strong> ni sidebar pastida o'zgartirsangiz — UI darhol qayta yuklanadi.",
-];
-
-function renderGuide() {
-  const container = document.getElementById('guideContent');
-  const colorMap = {
-    purple: { bg: 'rgba(139, 92, 246, 0.08)', border: 'rgba(139, 92, 246, 0.25)', text: '#a78bfa' },
-    emerald: { bg: 'rgba(16, 185, 129, 0.08)', border: 'rgba(16, 185, 129, 0.25)', text: '#34d399' },
-    amber: { bg: 'rgba(245, 158, 11, 0.08)', border: 'rgba(245, 158, 11, 0.25)', text: '#fbbf24' },
-    red: { bg: 'rgba(239, 68, 68, 0.08)', border: 'rgba(239, 68, 68, 0.25)', text: '#f87171' },
-  };
-
-  const modulesHtml = GUIDE_MODULES.map(m => {
-    const c = colorMap[m.color] || colorMap.purple;
-    const icon = MODULE_ICONS[m.key] || '';
-    return `
-      <div class="card p-5" style="background:${c.bg}; border-color:${c.border}">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:${c.bg}; color:${c.text}">${icon}</div>
-          <div>
-            <h3 class="font-bold text-base" style="color:${c.text}">${m.title}</h3>
-            <code class="mono text-[10px] text-zinc-500">${m.key}</code>
-          </div>
-        </div>
-        <p class="text-sm text-zinc-400 mb-3">${m.desc}</p>
-        <ul class="space-y-1.5 text-xs">
-          ${m.actions.map(a => `<li class="flex gap-2"><span style="color:${c.text}">▸</span><span class="text-zinc-200">${a}</span></li>`).join('')}
-        </ul>
-      </div>`;
-  }).join('');
-
-  const modalsHtml = GUIDE_MODALS.map(m => {
-    const c = colorMap[m.color] || colorMap.purple;
-    return `
-      <div class="flex gap-3 p-3 rounded-xl card" style="background:${c.bg}; border-color:${c.border}">
-        <div class="w-1 rounded-full" style="background:${c.text}"></div>
-        <div class="flex-1">
-          <div class="font-semibold text-sm" style="color:${c.text}">${m.title}</div>
-          <div class="text-xs text-zinc-400 mt-1">${m.desc}</div>
-        </div>
-      </div>`;
-  }).join('');
-
-  const workflowHtml = GUIDE_WORKFLOW.map(s => `<li class="text-sm text-zinc-200 leading-relaxed">${s}</li>`).join('');
-  const tipsHtml = GUIDE_TIPS.map(s => `<li class="flex gap-2 text-sm text-zinc-200"><span class="text-amber-400 shrink-0">💡</span><span>${s}</span></li>`).join('');
-
-  container.innerHTML = `
-    <!-- WELCOME -->
-    <div class="card p-6 mb-6" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(168, 85, 247, 0.04))">
-      <div class="flex items-start gap-4">
-        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shrink-0">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
-        </div>
-        <div>
-          <h2 class="text-xl font-bold mb-1">${t('guide.welcome.title')}</h2>
-          <p class="text-sm text-zinc-400">${t('guide.welcome.text')}</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- MODULES -->
-    <div class="mb-2 flex items-center gap-3">
-      <h2 class="text-lg font-bold">${t('guide.modulesTitle')}</h2>
-      <div class="flex-1 h-px bg-purple-500/10"></div>
-      <span class="mono text-xs text-zinc-500">${GUIDE_MODULES.length}</span>
-    </div>
-    <p class="text-xs text-zinc-500 mb-4">Sidebardagi har bir modul nima qiladi</p>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-      ${modulesHtml}
-    </div>
-
-    <!-- WORKFLOW -->
-    <div class="mb-2 flex items-center gap-3">
-      <h2 class="text-lg font-bold">${t('guide.workflowTitle')}</h2>
-      <div class="flex-1 h-px bg-emerald-500/10"></div>
-    </div>
-    <p class="text-xs text-zinc-500 mb-4">Bosqichma-bosqich oqim — birinchi marta qanday boshlash kerak</p>
-    <div class="card p-5 mb-8" style="background: rgba(16, 185, 129, 0.04); border-color: rgba(16, 185, 129, 0.2)">
-      <ol class="space-y-2 list-none">${workflowHtml}</ol>
-    </div>
-
-    <!-- MODALS -->
-    <div class="mb-2 flex items-center gap-3">
-      <h2 class="text-lg font-bold">${t('guide.modalsTitle')}</h2>
-      <div class="flex-1 h-px bg-purple-500/10"></div>
-      <span class="mono text-xs text-zinc-500">${GUIDE_MODALS.length}</span>
-    </div>
-    <p class="text-xs text-zinc-500 mb-4">Tugma bosilganda ochiluvchi oynalar va ularning vazifasi</p>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
-      ${modalsHtml}
-    </div>
-
-    <!-- TIPS -->
-    <div class="mb-2 flex items-center gap-3">
-      <h2 class="text-lg font-bold">${t('guide.tipsTitle')}</h2>
-      <div class="flex-1 h-px bg-amber-500/10"></div>
-    </div>
-    <p class="text-xs text-zinc-500 mb-4">Muhim nuanslar — chalkashlikni oldini olish uchun</p>
-    <div class="card p-5" style="background: rgba(245, 158, 11, 0.04); border-color: rgba(245, 158, 11, 0.2)">
-      <ul class="space-y-3 list-none">${tipsHtml}</ul>
-    </div>`;
 }
 
 // ============================================
