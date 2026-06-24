@@ -56,6 +56,7 @@ const allowedOrigins = [
   'https://cybercodercrm-production.up.railway.app',
   /\.vercel\.app$/,
   /\.railway\.app$/,
+  /\.koyeb\.app$/,
   'http://localhost:3000',
   'http://localhost:5173',
   'http://127.0.0.1:3000',
