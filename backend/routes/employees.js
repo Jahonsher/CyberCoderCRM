@@ -10,6 +10,7 @@ const router = express.Router();
 
 const Employee = require('../models/Employee');
 const Department = require('../models/Department');
+const Direction = require('../models/Direction');
 const ReservedCode = require('../models/ReservedCode');
 
 const { verifyToken, requireAdmin } = require('../middleware/auth');
@@ -29,6 +30,7 @@ router.get('/', async (req, res) => {
     }
     const employees = await Employee.find(filter)
       .populate('departmentId', 'name allowDirections')
+      .populate('directionId', 'name price')
       .sort('-createdAt')
       .lean();
     res.json(employees);
@@ -40,7 +42,7 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { fullName, code, phone, departmentId } = req.body;
+    const { fullName, code, phone, departmentId, directionId } = req.body;
     if (!fullName || !code || !departmentId) {
       return res.status(400).json({ error: "Ism, kod va bo'lim majburiy" });
     }
@@ -48,6 +50,21 @@ router.post('/', async (req, res) => {
 
     const dept = await Department.findOne({ _id: departmentId, businessId: req.businessId });
     if (!dept) return res.status(404).json({ error: "Bo'lim topilmadi" });
+
+    let resolvedDirectionId = null;
+    if (dept.allowDirections) {
+      if (!directionId) {
+        return res.status(400).json({ error: "ON bo'lim uchun yo'nalish majburiy" });
+      }
+      const dir = await Direction.findOne({
+        _id: directionId,
+        businessId: req.businessId,
+        departmentId: dept._id,
+        isArchived: { $ne: true },
+      });
+      if (!dir) return res.status(404).json({ error: "Yo'nalish topilmadi" });
+      resolvedDirectionId = dir._id;
+    }
 
     const exists = await Employee.findOne({
       businessId: req.businessId,
@@ -66,11 +83,13 @@ router.post('/', async (req, res) => {
     const emp = await Employee.create({
       businessId: req.businessId,
       departmentId,
+      directionId: resolvedDirectionId,
       fullName: String(fullName).trim(),
       code: codeTrim,
       phone: phone ? String(phone).trim() : '',
     });
     await emp.populate('departmentId', 'name allowDirections');
+    await emp.populate('directionId', 'name price');
     res.status(201).json(emp);
   } catch (err) {
     console.error('Employee POST:', err);
@@ -83,7 +102,7 @@ router.put('/:id', async (req, res) => {
     const emp = await Employee.findOne({ _id: req.params.id, businessId: req.businessId });
     if (!emp) return res.status(404).json({ error: 'Xodim topilmadi' });
 
-    const { fullName, code, phone, departmentId } = req.body;
+    const { fullName, code, phone, departmentId, directionId } = req.body;
 
     if (code !== undefined && code !== emp.code) {
       const codeTrim = String(code).trim();
@@ -97,10 +116,32 @@ router.put('/:id', async (req, res) => {
       emp.code = codeTrim;
     }
 
+    let nextDeptId = emp.departmentId;
     if (departmentId !== undefined && departmentId !== String(emp.departmentId)) {
       const dept = await Department.findOne({ _id: departmentId, businessId: req.businessId });
       if (!dept) return res.status(404).json({ error: "Bo'lim topilmadi" });
       emp.departmentId = departmentId;
+      nextDeptId = dept._id;
+      emp.directionId = null;
+    }
+
+    if (directionId !== undefined) {
+      const deptDoc = await Department.findOne({ _id: nextDeptId, businessId: req.businessId });
+      if (!deptDoc) return res.status(404).json({ error: "Bo'lim topilmadi" });
+      if (!deptDoc.allowDirections) {
+        emp.directionId = null;
+      } else if (!directionId) {
+        return res.status(400).json({ error: "ON bo'lim uchun yo'nalish majburiy" });
+      } else {
+        const dir = await Direction.findOne({
+          _id: directionId,
+          businessId: req.businessId,
+          departmentId: deptDoc._id,
+          isArchived: { $ne: true },
+        });
+        if (!dir) return res.status(404).json({ error: "Yo'nalish topilmadi" });
+        emp.directionId = dir._id;
+      }
     }
 
     if (fullName !== undefined) emp.fullName = String(fullName).trim();
@@ -108,6 +149,7 @@ router.put('/:id', async (req, res) => {
 
     await emp.save();
     await emp.populate('departmentId', 'name allowDirections');
+    await emp.populate('directionId', 'name price');
     res.json(emp);
   } catch (err) {
     console.error('Employee PUT:', err);

@@ -386,6 +386,10 @@
           <label class="field-label" data-i18n="emp.department">Bo'lim</label>
           <select id="empDepartmentId" class="input-field w-full px-4 py-3 rounded-xl" required></select>
         </div>
+        <div id="empDirectionWrap" class="hidden">
+          <label class="field-label" data-i18n="dir.title">Yo'nalish</label>
+          <select id="empDirectionId" class="input-field w-full px-4 py-3 rounded-xl"></select>
+        </div>
         <div class="flex gap-3 pt-2">
           <button type="button" data-close="empModal" class="flex-1 btn-ghost py-3 rounded-xl" data-i18n="common.cancel">Bekor</button>
           <button type="submit" class="flex-1 btn-primary py-3 rounded-xl" data-i18n="common.save">Saqlash</button>
@@ -404,29 +408,13 @@
           <label class="field-label" data-i18n="dept.name">Bo'lim nomi</label>
           <input type="text" id="deptName" class="input-field w-full px-4 py-3 rounded-xl" required maxlength="100" />
         </div>
-        <div>
-          <label class="field-label" data-i18n="dept.description">Tasnifi</label>
-          <textarea id="deptDescription" class="input-field w-full px-4 py-3 rounded-xl" rows="2" maxlength="500"></textarea>
-        </div>
-        <div>
-          <label class="field-label" data-i18n="dept.budget">Jami byudjet</label>
-          <input type="number" id="deptBudget" class="input-field w-full px-4 py-3 rounded-xl mono" min="0" step="1000" placeholder="0" />
-          <p class="text-xs text-zinc-500 mt-1" data-i18n="dept.budgetHint">Bo'lim doirasida jami berilishi mumkin</p>
-        </div>
 
         <div class="card p-3 flex items-center justify-between gap-3">
           <div class="flex-1">
             <div class="font-semibold text-sm" data-i18n="dept.allowDirections">Yo'nalish qo'sha olish</div>
-            <div class="text-xs text-zinc-500 mt-0.5" id="deptAllowHint">YOQILGAN — yo'nalishlarga bo'linadi</div>
           </div>
           <div class="switch on" id="deptAllowSwitch"></div>
           <input type="hidden" id="deptAllowDirections" value="true" />
-        </div>
-
-        <div id="deptPricePerUnitWrap" class="hidden">
-          <label class="field-label" data-i18n="dept.pricePerUnit">1 birlik narxi</label>
-          <input type="number" id="deptPricePerUnit" class="input-field w-full px-4 py-3 rounded-xl mono" min="0" step="100" placeholder="0" />
-          <p class="text-xs text-zinc-500 mt-1" data-i18n="dept.pricePerUnitHint">OFF rejimda har xodim mahsuloti uchun narx</p>
         </div>
 
         <div class="flex gap-3 pt-2">
@@ -448,49 +436,13 @@
           <input type="text" id="dirName" class="input-field w-full px-4 py-3 rounded-xl" required maxlength="100" />
         </div>
         <div>
-          <label class="field-label" data-i18n="dir.price">1 dona narxi</label>
-          <input type="number" id="dirPrice" class="input-field w-full px-4 py-3 rounded-xl mono" min="0" step="100" required placeholder="250" />
-          <p class="text-xs text-zinc-500 mt-1" data-i18n="dir.priceHint">1 ta mahsulot uchun ishchi haqi (so'm)</p>
+          <label class="field-label" data-i18n="dir.price">Bir kunlik narxi</label>
+          <input type="number" id="dirPrice" class="input-field w-full px-4 py-3 rounded-xl mono" min="0" step="1000" required placeholder="50000" />
+          <p class="text-xs text-zinc-500 mt-1" data-i18n="dir.priceHint">Bir kunlik ishchi haqi (so'm)</p>
         </div>
         <div class="flex gap-3 pt-2">
           <button type="button" data-close="dirModal" class="flex-1 btn-ghost py-3 rounded-xl" data-i18n="common.cancel">Bekor</button>
           <button type="submit" class="flex-1 btn-primary py-3 rounded-xl" data-i18n="common.save">Saqlash</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- MODAL: ASSIGN -->
-  <div id="assignModal" class="modal-backdrop">
-    <div class="modal-content w-full max-w-md p-6">
-      <h2 class="text-xl font-bold mb-2" data-i18n="daily.assign">Biriktirish</h2>
-      <p class="text-sm text-zinc-500 mb-5" id="assignEmployeeName">—</p>
-      <form id="assignForm" class="space-y-4">
-        <input type="hidden" id="assignEmployeeId" />
-        <div id="assignDirectionWrap">
-          <label class="field-label" data-i18n="daily.direction">Yo'nalish</label>
-          <select id="assignDirection" class="input-field w-full px-4 py-3 rounded-xl"></select>
-        </div>
-        <div id="assignProductWrap" class="hidden">
-          <label class="field-label" data-i18n="daily.productCount">Mahsulot soni</label>
-          <input type="number" id="assignProductCount" class="input-field w-full px-4 py-3 rounded-xl mono" min="0" value="0" />
-        </div>
-        <div>
-          <label class="field-label" data-i18n="daily.shift">Smena</label>
-          <div class="flex gap-2">
-            <label class="flex-1 card p-3 flex items-center justify-center gap-2 cursor-pointer">
-              <input type="radio" name="shift" value="1" checked />
-              <span class="text-sm" data-i18n="daily.shiftFull">1 (to'liq)</span>
-            </label>
-            <label class="flex-1 card p-3 flex items-center justify-center gap-2 cursor-pointer">
-              <input type="radio" name="shift" value="0.5" />
-              <span class="text-sm" data-i18n="daily.shiftHalf">0.5 (yarim)</span>
-            </label>
-          </div>
-        </div>
-        <div class="flex gap-3 pt-2">
-          <button type="button" data-close="assignModal" class="flex-1 btn-ghost py-3 rounded-xl" data-i18n="common.cancel">Bekor</button>
-          <button type="submit" class="flex-1 btn-primary py-3 rounded-xl" data-i18n="daily.assign">Biriktirish</button>
         </div>
       </form>
     </div>

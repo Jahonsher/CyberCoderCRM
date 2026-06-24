@@ -13,6 +13,7 @@ const router = express.Router();
 
 const DailyAssignment = require('../models/DailyAssignment');
 const DailyQuantity = require('../models/DailyQuantity');
+const DailyProduction = require('../models/DailyProduction');
 const Department = require('../models/Department');
 const Direction = require('../models/Direction');
 const Employee = require('../models/Employee');
@@ -21,6 +22,7 @@ const { verifyToken, requireAdmin } = require('../middleware/auth');
 const businessScope = require('../middleware/businessScope');
 const requireModule = require('../middleware/requireModule');
 const { recalculateForDate } = require('../services/recalculate');
+const { distributeOff } = require('../services/distributeOff');
 
 router.use(verifyToken, requireAdmin, businessScope, requireModule('dailyReport'));
 
@@ -62,7 +64,10 @@ router.get('/', async (req, res) => {
       dept.allowDirections
         ? Direction.find({ businessId: req.businessId, departmentId, isArchived: { $ne: true } }).sort('name').lean()
         : Promise.resolve([]),
-      Employee.find({ businessId: req.businessId, departmentId, status: { $ne: 'deleted' } }).sort('fullName').lean(),
+      Employee.find({ businessId: req.businessId, departmentId, status: { $ne: 'deleted' } })
+        .populate('directionId', 'name price')
+        .sort('fullName')
+        .lean(),
       DailyAssignment.find({ businessId: req.businessId, departmentId, dateString: dateStr }).sort('-createdAt').lean(),
     ]);
 
@@ -74,6 +79,16 @@ router.get('/', async (req, res) => {
         directionId: { $in: directions.map(d => d._id) },
       }).lean();
       quantityMap = Object.fromEntries(qDocs.map(q => [String(q.directionId), q.quantity]));
+    }
+
+    let production = null;
+    if (!dept.allowDirections) {
+      const pDoc = await DailyProduction.findOne({
+        businessId: req.businessId,
+        departmentId,
+        dateString: dateStr,
+      }).lean();
+      production = { quantity: pDoc?.quantity || 0 };
     }
 
     const assignedIds = new Set(assigned.map(a => String(a.employeeId)));
@@ -88,6 +103,7 @@ router.get('/', async (req, res) => {
       assigned,
       unassigned,
       quantities: quantityMap,
+      production,
       stats: {
         totalAssigned: assigned.length,
         totalUnassigned: unassigned.length,
@@ -143,9 +159,10 @@ router.post('/assign', async (req, res) => {
     let direction = null;
     let priceSnapshot = 0;
     if (dept.allowDirections) {
-      if (!directionId) return res.status(400).json({ error: "ON bo'lim uchun yo'nalish majburiy" });
+      const dirId = directionId || emp.directionId;
+      if (!dirId) return res.status(400).json({ error: "ON bo'lim uchun xodimga yo'nalish biriktirilmagan" });
       direction = await Direction.findOne({
-        _id: directionId,
+        _id: dirId,
         businessId: req.businessId,
         departmentId: dept._id,
         isArchived: { $ne: true },
@@ -157,7 +174,7 @@ router.post('/assign', async (req, res) => {
     }
 
     const pc = Math.max(0, Number(productCount) || 0);
-    const initialEarning = dept.allowDirections ? 0 : priceSnapshot * pc;
+    const initialEarning = dept.allowDirections ? priceSnapshot * shiftNum : 0;
 
     const assignment = await DailyAssignment.create({
       businessId: req.businessId,
@@ -172,6 +189,7 @@ router.post('/assign', async (req, res) => {
       earning: initialEarning,
       fairShare: initialEarning,
       isManual: false,
+      isProductManual: false,
       employeeSnapshot: { fullName: emp.fullName, code: emp.code },
       departmentSnapshot: {
         name: dept.name,
@@ -181,6 +199,9 @@ router.post('/assign', async (req, res) => {
       directionSnapshot: direction ? { name: direction.name, price: direction.price } : undefined,
     });
 
+    if (!dept.allowDirections) {
+      await distributeOff(req.businessId, dept._id, dateStr);
+    }
     await recalculateForDate(req.businessId, dateStr);
 
     const fresh = await DailyAssignment.findById(assignment._id).lean();

@@ -23,6 +23,12 @@ const employeeSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    directionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Direction',
+      default: null,
+      index: true,
+    },
     fullName: {
       type: String,
       required: true,

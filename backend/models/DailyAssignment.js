@@ -83,6 +83,10 @@ const dailyAssignmentSchema = new mongoose.Schema(
       type: Number,
       default: null,
     },
+    isProductManual: {
+      type: Boolean,
+      default: false,
+    },
     employeeSnapshot: {
       fullName: String,
       code: String,

@@ -311,11 +311,34 @@ function fillEmpDeptSelect(selectedId) {
     state.departments.map(d => `<option value="${d._id}" ${selectedId === d._id ? 'selected' : ''}>${escapeHtml(d.name)} ${d.allowDirections ? '(ON)' : '(OFF)'}</option>`).join('');
 }
 
+async function fillEmpDirectionSelect(deptId, selectedDirId) {
+  const wrap = document.getElementById('empDirectionWrap');
+  const select = document.getElementById('empDirectionId');
+  const dept = state.departments.find(d => d._id === deptId);
+  if (!deptId || !dept || !dept.allowDirections) {
+    wrap.classList.add('hidden');
+    select.innerHTML = '';
+    select.required = false;
+    return;
+  }
+  wrap.classList.remove('hidden');
+  select.required = true;
+  select.innerHTML = `<option value="">—</option>`;
+  try {
+    const dirs = await api(`/api/directions?departmentId=${deptId}`);
+    select.innerHTML = `<option value="">—</option>` +
+      dirs.map(d => `<option value="${d._id}" ${String(selectedDirId) === String(d._id) ? 'selected' : ''}>${escapeHtml(d.name)} — ${formatMoney(d.price)} ${t('common.sum')}</option>`).join('');
+  } catch (e) {
+    select.innerHTML = `<option value="">—</option>`;
+  }
+}
+
 function openEmpAdd() {
   document.getElementById('empEditingId').value = '';
   document.getElementById('empForm').reset();
   document.getElementById('empModalTitle').textContent = t('emp.add');
   fillEmpDeptSelect(null);
+  fillEmpDirectionSelect(null, null);
   openModal('empModal');
 }
 
@@ -327,7 +350,9 @@ function openEmpEdit(id) {
   document.getElementById('empFullName').value = emp.fullName || '';
   document.getElementById('empCode').value = emp.code || '';
   document.getElementById('empPhone').value = emp.phone || '';
-  fillEmpDeptSelect(emp.departmentId?._id || emp.departmentId);
+  const deptId = emp.departmentId?._id || emp.departmentId;
+  fillEmpDeptSelect(deptId);
+  fillEmpDirectionSelect(deptId, emp.directionId?._id || emp.directionId);
   openModal('empModal');
 }
 
@@ -339,14 +364,26 @@ function setupEmployeesPage() {
   document.getElementById('empDeptFilter').addEventListener('change', fetchAndRenderEmployees);
   document.getElementById('empAddBtn').addEventListener('click', openEmpAdd);
 
+  document.getElementById('empDepartmentId').addEventListener('change', (e) => {
+    fillEmpDirectionSelect(e.target.value, null);
+  });
+
   document.getElementById('empForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('empEditingId').value;
+    const deptId = document.getElementById('empDepartmentId').value;
+    const dept = state.departments.find(d => d._id === deptId);
+    const dirId = document.getElementById('empDirectionId').value;
+    if (dept && dept.allowDirections && !dirId) {
+      toast(t('dir.title') + ' ' + t('common.required'), 'error');
+      return;
+    }
     const body = {
       fullName: document.getElementById('empFullName').value.trim(),
       code: document.getElementById('empCode').value.trim(),
       phone: document.getElementById('empPhone').value.trim(),
-      departmentId: document.getElementById('empDepartmentId').value,
+      departmentId: deptId,
+      directionId: dept && dept.allowDirections ? dirId : null,
     };
     try {
       if (id) await api(`/api/employees/${id}`, { method: 'PUT', body: JSON.stringify(body) });
@@ -502,10 +539,6 @@ function renderDirections() {
 function setDeptAllowDirections(on) {
   document.getElementById('deptAllowDirections').value = on ? 'true' : 'false';
   document.getElementById('deptAllowSwitch').classList.toggle('on', on);
-  document.getElementById('deptAllowHint').textContent = on
-    ? `${t('dept.allowOn')} — yo'nalishlarga bo'linadi`
-    : `${t('dept.allowOff')} — yo'nalish yo'q, ${t('dept.pricePerUnit').toLowerCase()} kerak`;
-  document.getElementById('deptPricePerUnitWrap').classList.toggle('hidden', on);
 }
 
 function openDeptAdd() {
@@ -522,9 +555,6 @@ function openDeptEdit(id) {
   document.getElementById('deptEditingId').value = id;
   document.getElementById('deptModalTitle').textContent = t('dept.edit');
   document.getElementById('deptName').value = d.name || '';
-  document.getElementById('deptDescription').value = d.description || '';
-  document.getElementById('deptBudget').value = d.budget || 0;
-  document.getElementById('deptPricePerUnit').value = d.pricePerUnit || 0;
   setDeptAllowDirections(!!d.allowDirections);
   openModal('deptModal');
 }
@@ -559,9 +589,6 @@ function setupDirectionsPage() {
     const id = document.getElementById('deptEditingId').value;
     const body = {
       name: document.getElementById('deptName').value.trim(),
-      description: document.getElementById('deptDescription').value.trim(),
-      budget: Number(document.getElementById('deptBudget').value || 0),
-      pricePerUnit: Number(document.getElementById('deptPricePerUnit').value || 0),
       allowDirections: document.getElementById('deptAllowDirections').value === 'true',
     };
     try {
@@ -652,24 +679,18 @@ function renderDailyContent(data) {
   let directionsHtml = '';
   if (isOn) {
     directionsHtml = `<div class="card p-4 mb-6">
-      <h3 class="font-bold mb-3">${t('daily.direction')} — ${t('daily.quantity')}</h3>
+      <h3 class="font-bold mb-3">${t('daily.direction')}</h3>
       <div class="space-y-2">
-        ${data.directions.map(d => {
-          const qty = data.quantities[d._id] || 0;
-          return `<div class="flex items-center justify-between gap-3 p-3 rounded-lg bg-purple-500/5">
+        ${data.directions.map(d => `
+          <div class="flex items-center justify-between gap-3 p-3 rounded-lg bg-purple-500/5">
             <div class="flex-1 min-w-0">
               <div class="font-medium text-sm">${escapeHtml(d.name)}</div>
-              <div class="mono text-[11px] text-zinc-500">${formatMoney(d.price)} ${t('common.sum')}/dona</div>
             </div>
             <div class="text-right">
-              <div class="mono text-sm font-bold">${formatMoney(qty)}</div>
-              <div class="text-[10px] text-zinc-500">dona</div>
+              <div class="mono text-sm font-bold text-purple-300">${formatMoney(d.price)} ${t('common.sum')}</div>
+              <div class="text-[10px] text-zinc-500">/${t('common.day') || 'kun'}</div>
             </div>
-            <button class="btn-icon" data-act="qty-edit" data-id="${d._id}" data-name="${escapeHtml(d.name)}" data-qty="${qty}">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            </button>
-          </div>`;
-        }).join('')}
+          </div>`).join('')}
         ${data.directions.length === 0 ? `<p class="text-sm text-zinc-500 text-center py-3">${t('dir.empty')}</p>` : ''}
       </div>
     </div>`;
@@ -692,7 +713,7 @@ function renderDailyContent(data) {
             <div class="font-medium text-sm truncate">${escapeHtml(a.employeeSnapshot?.fullName || '—')}</div>
             <div class="mono text-xs text-zinc-500 mt-0.5 truncate">
               <span class="text-emerald-300">${escapeHtml(a.employeeSnapshot?.code || '—')}</span>
-              · ${extra} · ${a.shift === 0.5 ? '½' : '1'}
+              · ${extra}
             </div>
           </div>
           <div class="text-right shrink-0">
@@ -709,13 +730,18 @@ function renderDailyContent(data) {
 
   const unassignedHtml = data.unassigned.length === 0
     ? `<p class="text-sm text-zinc-500 text-center py-6">—</p>`
-    : data.unassigned.map(e => `<div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/10 mb-2">
+    : data.unassigned.map(e => {
+        const dirName = e.directionId?.name ? ` · ${escapeHtml(e.directionId.name)}` : '';
+        const disabled = isOn && !e.directionId ? 'disabled' : '';
+        const btnLabel = (isOn && !e.directionId) ? t('daily.noDirection') || "Yo'nalish yo'q" : t('daily.assign');
+        return `<div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/10 mb-2">
         <div class="flex-1 min-w-0">
           <div class="font-medium text-sm truncate">${escapeHtml(e.fullName)}</div>
-          <div class="mono text-xs text-amber-300/70 mt-0.5 truncate">${escapeHtml(e.code)}</div>
+          <div class="mono text-xs text-amber-300/70 mt-0.5 truncate">${escapeHtml(e.code)}${dirName}</div>
         </div>
-        <button class="btn-ghost px-3 py-1.5 rounded-lg text-xs" data-act="assign" data-id="${e._id}" data-name="${escapeHtml(e.fullName)}">${t('daily.assign')}</button>
-      </div>`).join('');
+        <button class="btn-ghost px-3 py-1.5 rounded-lg text-xs" data-act="assign-direct" data-id="${e._id}" data-name="${escapeHtml(e.fullName)}" ${disabled}>${btnLabel}</button>
+      </div>`;
+      }).join('');
 
   container.innerHTML = statsHtml + directionsHtml + `
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -739,8 +765,26 @@ function renderDailyContent(data) {
   container.querySelectorAll('[data-act="qty-edit"]').forEach(btn => {
     btn.addEventListener('click', () => openQuantityModal(btn.dataset.id, btn.dataset.name, Number(btn.dataset.qty)));
   });
-  container.querySelectorAll('[data-act="assign"]').forEach(btn => {
-    btn.addEventListener('click', () => openAssignModal(btn.dataset.id, btn.dataset.name));
+  container.querySelectorAll('[data-act="assign-direct"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (btn.disabled) return;
+      const dept = state.dailyData.department;
+      const body = {
+        employeeId: btn.dataset.id,
+        departmentId: dept._id,
+        shift: 1,
+        date: state.dailyDate,
+      };
+      try {
+        btn.disabled = true;
+        await api('/api/daily-report/assign', { method: 'POST', body: JSON.stringify(body) });
+        toast(t('msg.saved'));
+        loadDailyForDept(state.dailySelectedDeptId);
+      } catch (e2) {
+        btn.disabled = false;
+        toast(e2.message, 'error');
+      }
+    });
   });
   container.querySelectorAll('[data-act="unassign"]').forEach(btn => {
     btn.addEventListener('click', async () => {
@@ -751,25 +795,6 @@ function renderDailyContent(data) {
   container.querySelectorAll('[data-act="earning-edit"]').forEach(btn => {
     btn.addEventListener('click', () => openEarningModal(btn.dataset.id));
   });
-}
-
-function openAssignModal(employeeId, name) {
-  document.getElementById('assignEmployeeId').value = employeeId;
-  document.getElementById('assignEmployeeName').textContent = name;
-  const dept = state.dailyData.department;
-  const isOn = dept.allowDirections;
-
-  document.getElementById('assignDirectionWrap').classList.toggle('hidden', !isOn);
-  document.getElementById('assignProductWrap').classList.toggle('hidden', isOn);
-
-  if (isOn) {
-    const sel = document.getElementById('assignDirection');
-    sel.innerHTML = state.dailyData.directions.map(d => `<option value="${d._id}">${escapeHtml(d.name)} — ${formatMoney(d.price)} ${t('common.sum')}</option>`).join('');
-  } else {
-    document.getElementById('assignProductCount').value = 0;
-  }
-  document.querySelector('input[name="shift"][value="1"]').checked = true;
-  openModal('assignModal');
 }
 
 function openQuantityModal(directionId, dirName, currentQty) {
@@ -803,25 +828,6 @@ function setupDailyReportPage() {
   document.getElementById('dailyTodayBtn').addEventListener('click', () => {
     state.dailyDate = todayISO();
     loadDailyReportPage();
-  });
-
-  document.getElementById('assignForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const dept = state.dailyData.department;
-    const body = {
-      employeeId: document.getElementById('assignEmployeeId').value,
-      departmentId: dept._id,
-      shift: document.querySelector('input[name="shift"]:checked').value,
-      date: state.dailyDate,
-    };
-    if (dept.allowDirections) {
-      body.directionId = document.getElementById('assignDirection').value;
-      if (!body.directionId) { toast(t('daily.direction'), 'error'); return; }
-    } else {
-      body.productCount = Number(document.getElementById('assignProductCount').value || 0);
-    }
-    try { await api('/api/daily-report/assign', { method: 'POST', body: JSON.stringify(body) }); toast(t('msg.saved')); closeModal('assignModal'); loadDailyForDept(state.dailySelectedDeptId); }
-    catch (e2) { toast(e2.message, 'error'); }
   });
 
   document.getElementById('quantityForm').addEventListener('submit', async (e) => {
