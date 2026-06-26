@@ -32,6 +32,7 @@ const state = {
 
   selectedDeptId: null,           // Directions sahifasi uchun
   dailySelectedDeptId: null,      // Daily Report uchun
+  dailySelectedDirId: null,       // Daily Report — direction filter
   dailyDate: null,
   dailyData: null,
 
@@ -659,6 +660,7 @@ function renderDailyDeptTabs(departments) {
 
 async function loadDailyForDept(deptId) {
   state.dailySelectedDeptId = deptId;
+  state.dailySelectedDirId = null;
   document.querySelectorAll('#dailyDeptTabs .tab-item').forEach(t => t.classList.toggle('active', t.dataset.id === deptId));
   const container = document.getElementById('dailyContent');
   container.innerHTML = '<div class="skeleton h-32"></div>';
@@ -676,24 +678,26 @@ function renderDailyContent(data) {
   const isOn = dept.allowDirections;
   const container = document.getElementById('dailyContent');
 
-  let directionsHtml = '';
+  // Direction filter tabs (faqat ON bo'limlar uchun)
+  let dirFilterHtml = '';
   if (isOn) {
-    directionsHtml = `<div class="card p-4 mb-6">
-      <h3 class="font-bold mb-3">${t('daily.direction')}</h3>
-      <div class="space-y-2">
-        ${data.directions.map(d => `
-          <div class="flex items-center justify-between gap-3 p-3 rounded-lg bg-purple-500/5">
-            <div class="flex-1 min-w-0">
-              <div class="font-medium text-sm">${escapeHtml(d.name)}</div>
-            </div>
-            <div class="text-right">
-              <div class="mono text-sm font-bold text-purple-300">${formatMoney(d.price)} ${t('common.sum')}</div>
-              <div class="text-[10px] text-zinc-500">/${t('common.day') || 'kun'}</div>
-            </div>
-          </div>`).join('')}
-        ${data.directions.length === 0 ? `<p class="text-sm text-zinc-500 text-center py-3">${t('dir.empty')}</p>` : ''}
-      </div>
+    const selId = state.dailySelectedDirId;
+    dirFilterHtml = `<div class="flex gap-2 mb-5 overflow-x-auto pb-1" id="dailyDirFilter">
+      <button class="tab-item ${!selId ? 'active' : ''}" data-dir-id="">Barchasi</button>
+      ${data.directions.map(d => `
+        <button class="tab-item ${selId === String(d._id) ? 'active' : ''}" data-dir-id="${d._id}">
+          ${escapeHtml(d.name)}<span class="mono text-[10px] ml-1.5 opacity-70">${formatMoney(d.price)}</span>
+        </button>`).join('')}
     </div>`;
+  }
+
+  // Tanlangan yo'nalishga qarab filterlash
+  let filteredAssigned = data.assigned;
+  let filteredUnassigned = data.unassigned;
+  if (isOn && state.dailySelectedDirId) {
+    const did = state.dailySelectedDirId;
+    filteredAssigned = data.assigned.filter(a => String(a.directionId) === did);
+    filteredUnassigned = data.unassigned.filter(e => String(e.directionId?._id) === did);
   }
 
   const statsHtml = `<div class="grid grid-cols-3 gap-3 mb-6">
@@ -702,9 +706,9 @@ function renderDailyContent(data) {
     <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1">${t('daily.stats.earning')}</div><div class="text-2xl font-bold text-emerald-400">${formatMoney(data.stats.totalEarning)}</div></div>
   </div>`;
 
-  const assignedHtml = data.assigned.length === 0
+  const assignedHtml = filteredAssigned.length === 0
     ? `<p class="text-sm text-zinc-500 text-center py-6">${t('daily.empty')}</p>`
-    : data.assigned.map(a => {
+    : filteredAssigned.map(a => {
         const extra = isOn
           ? (a.directionSnapshot?.name || '—')
           : `${a.productCount || 0} ${t('common.sum')}/dona`;
@@ -728,9 +732,9 @@ function renderDailyContent(data) {
         </div>`;
       }).join('');
 
-  const unassignedHtml = data.unassigned.length === 0
+  const unassignedHtml = filteredUnassigned.length === 0
     ? `<p class="text-sm text-zinc-500 text-center py-6">—</p>`
-    : data.unassigned.map(e => {
+    : filteredUnassigned.map(e => {
         const dirName = e.directionId?.name ? ` · ${escapeHtml(e.directionId.name)}` : '';
         const disabled = isOn && !e.directionId ? 'disabled' : '';
         const btnLabel = (isOn && !e.directionId) ? t('daily.noDirection') || "Yo'nalish yo'q" : t('daily.assign');
@@ -743,23 +747,33 @@ function renderDailyContent(data) {
       </div>`;
       }).join('');
 
-  container.innerHTML = statsHtml + directionsHtml + `
+  container.innerHTML = dirFilterHtml + statsHtml + `
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div class="card p-5">
         <h3 class="font-bold mb-3 flex items-center gap-2">
           <div class="w-2 h-2 rounded-full bg-emerald-400"></div>
-          ${t('daily.assigned')} (${data.stats.totalAssigned})
+          ${t('daily.assigned')} (${filteredAssigned.length})
         </h3>
         ${assignedHtml}
       </div>
       <div class="card p-5">
         <h3 class="font-bold mb-3 flex items-center gap-2">
           <div class="w-2 h-2 rounded-full bg-amber-400"></div>
-          ${t('daily.unassigned')} (${data.stats.totalUnassigned})
+          ${t('daily.unassigned')} (${filteredUnassigned.length})
         </h3>
         ${unassignedHtml}
       </div>
     </div>`;
+
+  // Direction filter tugmachalar
+  if (isOn) {
+    container.querySelectorAll('[data-dir-id]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.dailySelectedDirId = btn.dataset.dirId || null;
+        renderDailyContent(data);
+      });
+    });
+  }
 
   // Event handlers
   container.querySelectorAll('[data-act="qty-edit"]').forEach(btn => {
@@ -894,7 +908,6 @@ function renderMonthly(data) {
   container.innerHTML = `<div class="overflow-x-auto"><table class="data-table"><thead><tr>
       <th>${t('emp.fullName')}</th>
       <th>${t('emp.code')}</th>
-      <th class="text-right">${t('month.shifts')}</th>
       <th class="text-right">${t('month.days')}</th>
       <th class="text-right">${t('month.earning')}</th>
       <th class="text-right">${t('month.paid')}</th>
@@ -904,7 +917,6 @@ function renderMonthly(data) {
       <tr>
         <td class="font-medium">${escapeHtml(e.fullName)}</td>
         <td><span class="mono text-xs px-2 py-1 rounded bg-purple-500/10 text-purple-300">${escapeHtml(e.code)}</span></td>
-        <td class="text-right mono">${e.totalShifts}</td>
         <td class="text-right mono text-zinc-400">${e.totalDays}</td>
         <td class="text-right mono font-semibold text-emerald-400">${formatMoney(e.totalEarning)}</td>
         <td class="text-right mono text-emerald-300">${formatMoney(e.totalPaid)}</td>
