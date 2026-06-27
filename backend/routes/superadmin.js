@@ -7,6 +7,8 @@ const Employee = require('../models/Employee');
 const Department = require('../models/Department');
 const Direction = require('../models/Direction');
 const DailyAssignment = require('../models/DailyAssignment');
+const DailyProduction = require('../models/DailyProduction');
+const DailyQuantity = require('../models/DailyQuantity');
 const SalaryPayment = require('../models/SalaryPayment');
 const ReservedCode = require('../models/ReservedCode');
 
@@ -229,6 +231,8 @@ router.delete('/businesses/:id', async (req, res) => {
       Department.deleteMany({ businessId: id }),
       Direction.deleteMany({ businessId: id }),
       DailyAssignment.deleteMany({ businessId: id }),
+      DailyProduction.deleteMany({ businessId: id }),
+      DailyQuantity.deleteMany({ businessId: id }),
       SalaryPayment.deleteMany({ businessId: id }),
       ReservedCode.deleteMany({ businessId: id }),
       Business.findByIdAndDelete(id),

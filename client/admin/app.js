@@ -700,11 +700,34 @@ function renderDailyContent(data) {
     filteredUnassigned = data.unassigned.filter(e => String(e.directionId?._id) === did);
   }
 
-  const statsHtml = `<div class="grid grid-cols-3 gap-3 mb-6">
+  let productionCardHtml = '';
+  if (!isOn) {
+    const prod = data.production || { quantity: 0, productName: '' };
+    const label = prod.productName ? escapeHtml(prod.productName) : 'Mahsulot';
+    const assignedSum = filteredAssigned.reduce((s, a) => s + (Number(a.productCount) || 0), 0);
+    const target = Number(prod.quantity) || 0;
+    const color = target === 0
+      ? 'text-purple-300'
+      : assignedSum > target
+        ? 'text-rose-400'
+        : assignedSum === target
+          ? 'text-emerald-400'
+          : 'text-purple-300';
+    productionCardHtml = `<div class="stat-card cursor-pointer hover:border-purple-500/40 transition" data-act="prod-edit">
+      <div class="mono text-[10px] text-zinc-500 uppercase mb-1 truncate">${label}</div>
+      <div class="text-2xl font-bold ${color}"><span class="mono">${assignedSum}</span><span class="text-zinc-500 text-lg">/${target}</span></div>
+    </div>`;
+  }
+
+  const statsCols = isOn ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4';
+  const statsHtml = `<div class="grid ${statsCols} gap-3 mb-6">
     <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1">${t('daily.stats.assigned')}</div><div class="text-2xl font-bold">${data.stats.totalAssigned}</div></div>
     <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1">${t('daily.stats.unassigned')}</div><div class="text-2xl font-bold text-amber-400">${data.stats.totalUnassigned}</div></div>
     <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1">${t('daily.stats.earning')}</div><div class="text-2xl font-bold text-emerald-400">${formatMoney(data.stats.totalEarning)}</div></div>
+    ${productionCardHtml}
   </div>`;
+
+  const productionHtml = '';
 
   const assignedHtml = filteredAssigned.length === 0
     ? `<p class="text-sm text-zinc-500 text-center py-6">${t('daily.empty')}</p>`
@@ -747,7 +770,7 @@ function renderDailyContent(data) {
       </div>`;
       }).join('');
 
-  container.innerHTML = dirFilterHtml + statsHtml + `
+  container.innerHTML = dirFilterHtml + productionHtml + statsHtml + `
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div class="card p-5">
         <h3 class="font-bold mb-3 flex items-center gap-2">
@@ -809,6 +832,19 @@ function renderDailyContent(data) {
   container.querySelectorAll('[data-act="earning-edit"]').forEach(btn => {
     btn.addEventListener('click', () => openEarningModal(btn.dataset.id));
   });
+  container.querySelectorAll('[data-act="prod-edit"]').forEach(btn => {
+    btn.addEventListener('click', () => openProductionModal());
+  });
+}
+
+function openProductionModal() {
+  const dept = state.dailyData.department;
+  const prod = state.dailyData.production || { quantity: 0, productName: '' };
+  document.getElementById('productionDepartmentId').value = dept._id;
+  document.getElementById('productionDeptName').textContent = dept.name;
+  document.getElementById('productionName').value = prod.productName || '';
+  document.getElementById('productionQuantity').value = prod.quantity || 0;
+  openModal('productionModal');
 }
 
 function openQuantityModal(directionId, dirName, currentQty) {
@@ -852,6 +888,18 @@ function setupDailyReportPage() {
       date: state.dailyDate,
     };
     try { await api('/api/daily-report/quantity', { method: 'POST', body: JSON.stringify(body) }); toast(t('msg.saved')); closeModal('quantityModal'); loadDailyForDept(state.dailySelectedDeptId); }
+    catch (e2) { toast(e2.message, 'error'); }
+  });
+
+  document.getElementById('productionForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const body = {
+      departmentId: document.getElementById('productionDepartmentId').value,
+      productName: document.getElementById('productionName').value.trim(),
+      quantity: Number(document.getElementById('productionQuantity').value || 0),
+      date: state.dailyDate,
+    };
+    try { await api('/api/daily-report/production', { method: 'POST', body: JSON.stringify(body) }); toast(t('msg.saved')); closeModal('productionModal'); loadDailyForDept(state.dailySelectedDeptId); }
     catch (e2) { toast(e2.message, 'error'); }
   });
 
@@ -936,10 +984,25 @@ function setupMonthlyReportPage() {
 async function loadSalaryPage() {
   document.getElementById('salaryListView').classList.remove('hidden');
   document.getElementById('salaryDetailView').classList.add('hidden');
+  const startInput = document.getElementById('salaryStart');
+  const endInput = document.getElementById('salaryEnd');
+  if (!startInput.value) startInput.value = firstDayOfMonth();
+  if (!endInput.value) endInput.value = todayISO();
+  await fetchSalary();
+}
+
+async function fetchSalary() {
   const container = document.getElementById('salaryList');
   container.innerHTML = '<div class="p-6"><div class="skeleton h-24"></div></div>';
+  const startDate = document.getElementById('salaryStart').value;
+  const endDate = document.getElementById('salaryEnd').value;
+  const code = document.getElementById('salaryCode').value.trim();
+  const params = new URLSearchParams();
+  if (startDate) params.set('startDate', startDate);
+  if (endDate) params.set('endDate', endDate);
+  if (code) params.set('code', code);
   try {
-    const data = await api('/api/salary');
+    const data = await api(`/api/salary${params.toString() ? '?' + params : ''}`);
     state.salaryData = data;
     document.getElementById('salStatEarned').textContent = formatMoney(data.stats.totalEarned);
     document.getElementById('salStatPaid').textContent = formatMoney(data.stats.totalPaid);
@@ -1079,6 +1142,15 @@ function openPayModal(employeeId, name) {
 }
 
 function setupSalaryPage() {
+  document.getElementById('salarySearchBtn').addEventListener('click', fetchSalary);
+  document.getElementById('salaryCode').addEventListener('keypress', e => { if (e.key === 'Enter') fetchSalary(); });
+  document.getElementById('salaryResetBtn').addEventListener('click', () => {
+    document.getElementById('salaryStart').value = '';
+    document.getElementById('salaryEnd').value = '';
+    document.getElementById('salaryCode').value = '';
+    fetchSalary();
+  });
+
   document.getElementById('payForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('payEmployeeId').value;

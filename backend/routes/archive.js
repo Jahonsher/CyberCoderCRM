@@ -39,8 +39,10 @@ router.get('/', async (req, res) => {
     let grandAmount = 0;
     for (const [month, pays] of Object.entries(byMonth)) {
       const employeeIds = [...new Set(pays.map(p => String(p.employeeId)))];
+      const [yy, mm] = month.split('-').map(Number);
+      const lastDay = new Date(yy, mm, 0).getDate();
       const startStr = `${month}-01`;
-      const endStr = `${month}-31`;
+      const endStr = `${month}-${String(lastDay).padStart(2, '0')}`;
 
       const earnAgg = await DailyAssignment.aggregate([
         {

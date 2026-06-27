@@ -136,11 +136,32 @@ async function startServer() {
     console.log('========================================');
     console.log('🚀 CyberCoderCRM ishga tushmoqda...');
 
+    if (!process.env.MONGO_URI) {
+      throw new Error('MONGO_URI .env da topilmadi');
+    }
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET .env da topilmadi');
+    }
+
     console.log('📡 MongoDB ga ulanmoqda...');
-    await mongoose.connect(process.env.MONGO_URI, {
-      serverSelectionTimeoutMS: 10000,
-      socketTimeoutMS: 45000,
-    });
+    const maxAttempts = 5;
+    let attempt = 0;
+    while (true) {
+      attempt++;
+      try {
+        await mongoose.connect(process.env.MONGO_URI, {
+          serverSelectionTimeoutMS: 30000,
+          socketTimeoutMS: 45000,
+          family: 4,
+        });
+        break;
+      } catch (err) {
+        const short = (err.message || '').split('\n')[0];
+        console.warn(`⚠️  Urinish ${attempt}/${maxAttempts}: ${short}`);
+        if (attempt >= maxAttempts) throw err;
+        await new Promise((r) => setTimeout(r, 3000));
+      }
+    }
     console.log(`✅ MongoDB ulandi: ${mongoose.connection.host}`);
     console.log(`📦 Database: ${mongoose.connection.name}`);
 
@@ -194,11 +215,13 @@ async function startServer() {
   }
 }
 
-process.on('SIGTERM', () => {
-  console.log('SIGTERM qabul qilindi');
-  mongoose.connection.close();
+async function shutdown(signal) {
+  console.log(`${signal} qabul qilindi — to'xtatilmoqda...`);
+  try { await mongoose.connection.close(); } catch (_) {}
   process.exit(0);
-});
+}
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
 
 process.on('unhandledRejection', (err) => {
   console.error('❌ Unhandled Rejection:', err);

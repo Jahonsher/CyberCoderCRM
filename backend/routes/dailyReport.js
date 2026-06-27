@@ -88,7 +88,10 @@ router.get('/', async (req, res) => {
         departmentId,
         dateString: dateStr,
       }).lean();
-      production = { quantity: pDoc?.quantity || 0 };
+      production = {
+        quantity: pDoc?.quantity || 0,
+        productName: pDoc?.productName || '',
+      };
     }
 
     const assignedIds = new Set(assigned.map(a => String(a.employeeId)));
@@ -231,6 +234,7 @@ router.put('/assign/:id', async (req, res) => {
     }
     if (productCount !== undefined) {
       a.productCount = Math.max(0, Number(productCount) || 0);
+      a.isProductManual = true;
     }
     if (earning !== undefined) {
       const e = Math.max(0, Number(earning) || 0);
@@ -240,6 +244,12 @@ router.put('/assign/:id', async (req, res) => {
     }
 
     await a.save();
+    if (productCount !== undefined) {
+      const dept = await Department.findOne({ _id: a.departmentId, businessId: req.businessId }).lean();
+      if (dept && !dept.allowDirections) {
+        await distributeOff(req.businessId, a.departmentId, a.dateString);
+      }
+    }
     await recalculateForDate(req.businessId, a.dateString);
 
     const fresh = await DailyAssignment.findById(a._id).lean();
@@ -261,6 +271,47 @@ router.delete('/assign/:id', async (req, res) => {
   } catch (err) {
     console.error('Assign DELETE:', err);
     res.status(500).json({ error: 'Server xatosi' });
+  }
+});
+
+/**
+ * POST /api/daily-report/production
+ * Body: { departmentId, date?, quantity }
+ * OFF-bo'lim uchun kunlik umumiy mahsulot soni (upsert).
+ */
+router.post('/production', async (req, res) => {
+  try {
+    const { departmentId, date, quantity, productName } = req.body;
+    if (!departmentId || quantity === undefined) {
+      return res.status(400).json({ error: 'departmentId va quantity majburiy' });
+    }
+
+    const dateStr = parseDateString(date) || todayDateString();
+    if (dateStr > todayDateString()) {
+      return res.status(400).json({ error: 'Kelajakdagi kun mumkin emas' });
+    }
+
+    const dept = await Department.findOne({ _id: departmentId, businessId: req.businessId });
+    if (!dept) return res.status(404).json({ error: "Bo'lim topilmadi" });
+    if (dept.allowDirections) {
+      return res.status(400).json({ error: "ON bo'lim — /quantity dan foydalaning" });
+    }
+
+    const qty = Math.max(0, Number(quantity) || 0);
+    const name = productName ? String(productName).trim().slice(0, 200) : '';
+
+    const doc = await DailyProduction.findOneAndUpdate(
+      { businessId: req.businessId, departmentId, dateString: dateStr },
+      { $set: { quantity: qty, productName: name, date: new Date(dateStr) } },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    await distributeOff(req.businessId, departmentId, dateStr);
+    await recalculateForDate(req.businessId, dateStr);
+    res.json(doc);
+  } catch (err) {
+    console.error('Production POST:', err);
+    res.status(500).json({ error: err.message || 'Server xatosi' });
   }
 });
 

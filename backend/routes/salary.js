@@ -34,23 +34,39 @@ function parseDateStr(s) {
 
 router.get('/', async (req, res) => {
   try {
-    const employees = await Employee.find({
+    const { startDate, endDate, code } = req.query;
+    const startStr = parseDateStr(startDate);
+    const endStr = parseDateStr(endDate);
+
+    const empFilter = {
       businessId: req.businessId,
       status: { $ne: 'deleted' },
-    })
+    };
+    if (code && String(code).trim()) {
+      empFilter.code = String(code).trim();
+    }
+
+    const employees = await Employee.find(empFilter)
       .populate('departmentId', 'name')
       .sort('fullName')
       .lean();
 
     if (employees.length === 0) {
-      return res.json({ employees: [], stats: { totalEarned: 0, totalPaid: 0, totalRemaining: 0 } });
+      return res.json({ employees: [], stats: { totalEarned: 0, totalPaid: 0, totalRemaining: 0, totalEmployees: 0 } });
     }
 
     const ids = employees.map(e => e._id);
 
+    const earnMatch = { businessId: req.businessId, employeeId: { $in: ids } };
+    const paidMatch = { businessId: req.businessId, employeeId: { $in: ids } };
+    if (startStr && endStr) {
+      earnMatch.dateString = { $gte: startStr, $lte: endStr };
+      paidMatch.untilDate = { $gte: startStr, $lte: endStr };
+    }
+
     const [earnAgg, paidAgg] = await Promise.all([
       DailyAssignment.aggregate([
-        { $match: { businessId: req.businessId, employeeId: { $in: ids } } },
+        { $match: earnMatch },
         {
           $group: {
             _id: '$employeeId',
@@ -62,7 +78,7 @@ router.get('/', async (req, res) => {
         },
       ]),
       SalaryPayment.aggregate([
-        { $match: { businessId: req.businessId, employeeId: { $in: ids } } },
+        { $match: paidMatch },
         {
           $group: {
             _id: '$employeeId',

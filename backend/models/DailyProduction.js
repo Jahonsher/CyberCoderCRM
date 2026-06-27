@@ -31,6 +31,12 @@ const dailyProductionSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
+    productName: {
+      type: String,
+      trim: true,
+      maxlength: 200,
+      default: '',
+    },
     quantity: {
       type: Number,
       required: true,

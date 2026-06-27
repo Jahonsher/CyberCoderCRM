@@ -18,7 +18,8 @@ const requireModule = require('../middleware/requireModule');
 router.use(verifyToken, requireAdmin, businessScope, requireModule('monthlyReport'));
 
 function parseDateStr(s) {
-  if (!s) return null;
+  if (!s || typeof s !== 'string') return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
   const d = new Date(s);
   if (isNaN(d.getTime())) return null;
   const y = d.getFullYear();
