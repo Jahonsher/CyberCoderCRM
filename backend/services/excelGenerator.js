@@ -328,10 +328,124 @@ async function buildSalaryWorkbook(lang, { filter = 'all', startDate, endDate, e
   return await wb.xlsx.writeBuffer();
 }
 
+// =============================================================
+// 5) Bitta xodimning maoshi — ishlangan kunlar + to'lov tarixi
+// =============================================================
+async function buildSalaryEmployeeWorkbook(lang, { employee = {}, days = [], payments = [], stats = {} } = {}) {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'CyberCoderCRM';
+  wb.created = new Date();
+
+  // ---------- Sheet 1: Ishlangan kunlar ----------
+  const ws1 = wb.addWorksheet(safeSheetName(tr(lang, 'sheet.workDays')));
+
+  ws1.mergeCells('A1:G1');
+  const title1 = ws1.getCell('A1');
+  const empName = employee.fullName || '-';
+  const empCode = employee.code || '-';
+  const empDept = (employee.departmentId && employee.departmentId.name) || employee.departmentName || '-';
+  title1.value = `${tr(lang, 'sheet.salary')} — ${empName} (${empCode}) — ${empDept}`;
+  title1.font = { bold: true, size: 14, color: { argb: 'FF1F2937' } };
+  title1.alignment = { vertical: 'middle', horizontal: 'left' };
+  ws1.getRow(1).height = 24;
+
+  const headers1 = [
+    tr(lang, 'common.date'),
+    tr(lang, 'common.department'),
+    tr(lang, 'common.direction'),
+    tr(lang, 'common.shift'),
+    tr(lang, 'common.productCount'),
+    tr(lang, 'common.earning'),
+    tr(lang, 'common.status'),
+  ];
+  ws1.getRow(2).values = headers1;
+  ws1.columns = [
+    { key: 'date', width: 14 },
+    { key: 'department', width: 22 },
+    { key: 'direction', width: 22 },
+    { key: 'shift', width: 10 },
+    { key: 'productCount', width: 14 },
+    { key: 'earning', width: 18 },
+    { key: 'status', width: 16 },
+  ];
+
+  const headerRow1 = ws1.getRow(2);
+  headerRow1.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 };
+  headerRow1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F46E5' } };
+  headerRow1.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+  headerRow1.height = 22;
+  ws1.autoFilter = { from: 'A2', to: 'G2' };
+  ws1.views = [{ state: 'frozen', ySplit: 2 }];
+
+  let tShift = 0, tProd = 0, tEarn = 0;
+  for (const d of days) {
+    const shift = Number(d.shift) || 0;
+    const product = Number(d.productCount) || 0;
+    const earning = Number(d.earning) || 0;
+    tShift += shift; tProd += product; tEarn += earning;
+    ws1.addRow({
+      date: d.date || d.dateString || '-',
+      department: d.departmentName || (d.departmentSnapshot && d.departmentSnapshot.name) || '-',
+      direction: d.directionName || (d.directionSnapshot && d.directionSnapshot.name) || '-',
+      shift: shift === 0.5 ? '½' : (shift || '-'),
+      productCount: product || '-',
+      earning,
+      status: d.paid ? tr(lang, 'status.paid') : tr(lang, 'status.unpaid'),
+    });
+  }
+
+  const totalIdx1 = ws1.rowCount + 1;
+  const totalRow1 = ws1.getRow(totalIdx1);
+  totalRow1.values = [tr(lang, 'common.total'), '', '', tShift, tProd, tEarn, ''];
+  applyTotalRowStyle(ws1, totalIdx1);
+
+  // ---------- Sheet 2: To'lovlar tarixi ----------
+  const ws2 = wb.addWorksheet(safeSheetName(tr(lang, 'sheet.payments')));
+
+  const headers2 = [
+    tr(lang, 'common.paidAt'),
+    tr(lang, 'common.daysCount'),
+    tr(lang, 'common.untilDate'),
+    tr(lang, 'common.amount'),
+    tr(lang, 'common.note'),
+  ];
+  ws2.getRow(1).values = headers2;
+  ws2.columns = [
+    { key: 'paidAt', width: 18 },
+    { key: 'daysCount', width: 14 },
+    { key: 'untilDate', width: 14 },
+    { key: 'amount', width: 18 },
+    { key: 'note', width: 30 },
+  ];
+  applyHeaderStyle(ws2, 5);
+
+  let tAmount = 0;
+  for (const p of payments) {
+    const amount = Number(p.amount) || 0;
+    tAmount += amount;
+    const daysCount = Array.isArray(p.paidDates) && p.paidDates.length > 0 ? p.paidDates.length : '-';
+    ws2.addRow({
+      paidAt: p.paidAt ? new Date(p.paidAt).toISOString().slice(0, 10) : '-',
+      daysCount,
+      untilDate: p.untilDate || '-',
+      amount,
+      note: p.note || '',
+    });
+  }
+
+  const totalIdx2 = ws2.rowCount + 1;
+  const totalRow2 = ws2.getRow(totalIdx2);
+  totalRow2.values = [tr(lang, 'common.total'), '', '', tAmount, ''];
+  applyTotalRowStyle(ws2, totalIdx2);
+
+  return await wb.xlsx.writeBuffer();
+}
+
 module.exports = {
   buildEmployeesWorkbook,
   buildDailyReportWorkbook,
   buildMonthlyReportWorkbook,
   buildSalaryWorkbook,
+  buildSalaryEmployeeWorkbook,
   safeSheetName,
 };

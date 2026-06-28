@@ -1200,13 +1200,18 @@ function renderSalaryDetail(data) {
   container.innerHTML = `
     <button class="btn-ghost px-4 py-2 rounded-xl text-sm mb-4" id="salBackBtn">← ${t('common.back')}</button>
     <div class="card p-6 mb-6">
-      <div>
-        <h2 class="text-2xl font-bold mb-2">${escapeHtml(e.fullName)}</h2>
-        <div class="flex flex-wrap gap-3 text-sm text-zinc-400">
-          <span class="mono text-purple-300">${escapeHtml(e.code)}</span>
-          <span>${escapeHtml(deptName)}</span>
-          ${e.phone ? `<span class="mono">${escapeHtml(e.phone)}</span>` : ''}
+      <div class="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h2 class="text-2xl font-bold mb-2">${escapeHtml(e.fullName)}</h2>
+          <div class="flex flex-wrap gap-3 text-sm text-zinc-400">
+            <span class="mono text-purple-300">${escapeHtml(e.code)}</span>
+            <span>${escapeHtml(deptName)}</span>
+            ${e.phone ? `<span class="mono">${escapeHtml(e.phone)}</span>` : ''}
+          </div>
         </div>
+        <button id="salEmpExportBtn" class="btn-ghost px-4 py-2 rounded-xl text-sm" data-id="${escapeHtml(e._id)}" data-code="${escapeHtml(e.code || '')}">
+          ${t('export.excel')}
+        </button>
       </div>
     </div>
 
@@ -1265,6 +1270,19 @@ function renderSalaryDetail(data) {
     </div>`;
 
   document.getElementById('salBackBtn').addEventListener('click', loadSalaryPage);
+
+  const empExportBtn = document.getElementById('salEmpExportBtn');
+  if (empExportBtn) {
+    empExportBtn.addEventListener('click', async () => {
+      const lang = window.getCurrentLang ? window.getCurrentLang() : 'uz-lat';
+      const id = empExportBtn.dataset.id;
+      const code = empExportBtn.dataset.code || 'X';
+      try {
+        await downloadExcel(`/api/salary/${id}/export?lang=${encodeURIComponent(lang)}`, `maosh_${code}.xlsx`);
+        toast(t('export.done'));
+      } catch (er) { toast(er.message, 'error'); }
+    });
+  }
 
   container.querySelectorAll('input[type="checkbox"][data-date]').forEach(cb => {
     cb.addEventListener('change', () => {
@@ -1358,6 +1376,10 @@ async function loadArchivePage() {
     document.getElementById('archStatMonths').textContent = data.stats.monthsCount;
     renderArchiveHistory(data.months || []);
     renderArchiveCategoryTabs(data.filesStats || {});
+    const fs = data.filesStats || {};
+    const totalFiles = (Number(fs.employeesCount)||0) + (Number(fs.dailyCount)||0) + (Number(fs.monthlyCount)||0) + (Number(fs.salaryCount)||0);
+    const badge = document.getElementById('archFilesTabCount');
+    if (badge) badge.textContent = totalFiles > 0 ? `(${totalFiles})` : '';
     if (state.archiveTab === 'files') loadArchiveFiles();
   } catch (e) {
     historyContainer.innerHTML = `<div class="text-center text-red-400 p-6">${escapeHtml(e.message)}</div>`;
@@ -1473,9 +1495,10 @@ async function loadArchiveFiles() {
   if (from) params.set('from', from);
   if (to) params.set('to', to);
   try {
-    const files = await api(`/api/archive/files${params.toString() ? '?' + params : ''}`);
-    state.archiveFiles = Array.isArray(files) ? files : [];
-    renderArchiveFiles(state.archiveFiles);
+    const data = await api(`/api/archive/files${params.toString() ? '?' + params : ''}`);
+    const list = Array.isArray(data) ? data : (Array.isArray(data?.files) ? data.files : []);
+    state.archiveFiles = list;
+    renderArchiveFiles(list);
   } catch (e) {
     container.innerHTML = `<div class="text-center text-red-400 p-6">${escapeHtml(e.message)}</div>`;
   }
@@ -1507,13 +1530,13 @@ function renderArchiveFiles(files) {
       const range = (f.dateFrom || f.dateTo)
         ? `${f.dateFrom ? escapeHtml(formatDate(f.dateFrom)) : ''}${f.dateFrom && f.dateTo ? ' — ' : ''}${f.dateTo ? escapeHtml(formatDate(f.dateTo)) : ''}`
         : '—';
-      const name = escapeHtml(f.fileName || 'export.xlsx');
+      const name = escapeHtml(f.displayName || f.fileName || 'export.xlsx');
       return `
       <tr>
         <td class="mono text-sm">${escapeHtml(formatDate(f.generatedAt) || '—')}</td>
         <td>${escapeHtml(archiveCategoryLabel(f.category))}</td>
         <td class="mono text-xs">${escapeHtml(f.language || '—')}</td>
-        <td class="text-right mono text-xs text-zinc-400">${formatSize(f.size)}</td>
+        <td class="text-right mono text-xs text-zinc-400">${formatSize(f.fileSize)}</td>
         <td class="mono text-xs text-zinc-400">${range}</td>
         <td class="text-right whitespace-nowrap">
           <button class="btn-icon" data-act="arch-download" data-id="${escapeHtml(f._id)}" data-name="${name}" title="${t('archive.download')}">

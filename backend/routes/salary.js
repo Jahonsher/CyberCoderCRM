@@ -23,7 +23,7 @@ const { verifyToken, requireAdmin } = require('../middleware/auth');
 const businessScope = require('../middleware/businessScope');
 const requireModule = require('../middleware/requireModule');
 
-const { buildSalaryWorkbook } = require('../services/excelGenerator');
+const { buildSalaryWorkbook, buildSalaryEmployeeWorkbook } = require('../services/excelGenerator');
 const { saveToArchive } = require('../services/excelArchive');
 const { tr } = require('../services/excelI18n');
 
@@ -133,13 +133,18 @@ router.get('/', async (req, res) => {
       };
     });
 
+    // Faqat ishlagan/biriktirilgan xodimlar: davromdi yoki to'lovi bo'lganlar
+    const visible = result.filter(
+      (e) => (e.totalEarning || 0) > 0 || (e.totalPaid || 0) > 0 || (e.totalDays || 0) > 0
+    );
+
     res.json({
-      employees: result,
+      employees: visible,
       stats: {
         totalEarned,
         totalPaid,
         totalRemaining: Math.max(0, totalEarned - totalPaid),
-        totalEmployees: result.length,
+        totalEmployees: visible.length,
       },
     });
   } catch (err) {
@@ -229,6 +234,11 @@ router.get('/export', async (req, res) => {
           remaining,
         };
       });
+
+      // Faqat ishlagan/biriktirilgan xodimlar — bo'sh qatorlar Excelga tushmasin
+      result = result.filter(
+        (e) => (e.totalEarning || 0) > 0 || (e.totalPaid || 0) > 0 || (e.totalDays || 0) > 0
+      );
 
       stats = {
         totalEarned,
@@ -394,6 +404,100 @@ router.get('/:employeeId', async (req, res) => {
     });
   } catch (err) {
     console.error('Salary detail GET:', err);
+    res.status(500).json({ error: 'Server xatosi' });
+  }
+});
+
+/**
+ * GET /api/salary/:employeeId/export?lang=uz-lat
+ * Bitta xodimning ishlangan kunlari va to'lov tarixini Excelga eksport qiladi.
+ */
+router.get('/:employeeId/export', async (req, res) => {
+  try {
+    const allowedLangs = ['uz-lat', 'uz-cyr', 'ru'];
+    const lang = allowedLangs.includes(String(req.query.lang)) ? String(req.query.lang) : 'uz-lat';
+
+    const emp = await Employee.findOne({
+      _id: req.params.employeeId,
+      businessId: req.businessId,
+    })
+      .populate('departmentId', 'name allowDirections')
+      .lean();
+    if (!emp) return res.status(404).json({ error: 'Xodim topilmadi' });
+
+    const [assignments, payments] = await Promise.all([
+      DailyAssignment.find({ businessId: req.businessId, employeeId: emp._id })
+        .sort('-dateString')
+        .lean(),
+      SalaryPayment.find({ businessId: req.businessId, employeeId: emp._id })
+        .sort('-paidAt')
+        .lean(),
+    ]);
+
+    const days = assignments.map((a) => ({
+      date: a.dateString,
+      shift: a.shift,
+      productCount: a.productCount,
+      earning: a.earning,
+      paid: !!a.paid,
+      departmentName: (a.departmentSnapshot && a.departmentSnapshot.name) || null,
+      directionName: (a.directionSnapshot && a.directionSnapshot.name) || null,
+    }));
+
+    const totalEarning = days.reduce((s, d) => s + (d.earning || 0), 0);
+    const totalShifts = days.reduce((s, d) => s + (d.shift || 0), 0);
+    const totalPaid = payments.reduce((s, p) => s + (p.amount || 0), 0);
+
+    const buffer = await buildSalaryEmployeeWorkbook(lang, {
+      employee: emp,
+      days,
+      payments,
+      stats: { totalEarning, totalShifts, totalDays: days.length, totalPaid },
+    });
+
+    const today = todayDateString();
+    const safeCode = String(emp.code || 'X').replace(/[^A-Za-z0-9_\-]/g, '_');
+    const displayName = `${tr(lang, 'file.salaryEmployee')}_${safeCode}_${today}.xlsx`;
+    const generatedBy = req.user?.fullName || req.user?.login || req.user?.username || '';
+
+    const firstDate = days.length > 0 ? days[days.length - 1].date : null;
+    const lastDate = days.length > 0 ? days[0].date : null;
+
+    try {
+      await saveToArchive({
+        buffer,
+        businessId: req.businessId,
+        category: 'salary',
+        subType: 'employee',
+        language: lang,
+        displayName,
+        dateFrom: firstDate,
+        dateTo: lastDate,
+        rowCount: days.length,
+        generatedBy,
+        meta: {
+          employeeId: String(emp._id),
+          fullName: emp.fullName,
+          code: emp.code,
+          totalEarning,
+          totalPaid,
+        },
+      });
+    } catch (archErr) {
+      console.error('Salary employee export arxiv xatosi:', archErr);
+    }
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${encodeURIComponent(displayName)}"`
+    );
+    return res.send(Buffer.from(buffer));
+  } catch (err) {
+    console.error('Salary employee EXPORT:', err);
     res.status(500).json({ error: 'Server xatosi' });
   }
 });
