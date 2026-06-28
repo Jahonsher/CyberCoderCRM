@@ -1,13 +1,20 @@
 /**
- * CyberCoderCRM - SalaryPayment Model (v2)
+ * CyberCoderCRM - SalaryPayment Model (v3)
  *
- * Yangi mantiq:
- *  - "Sanagacha to'lash" rejimi: admin xodimning ma'lum sanagacha
- *    bo'lgan jami qoldig'ini bitta SalaryPayment yozuvi sifatida saqlaydi.
- *  - assignmentId endi ixtiyoriy (sanagacha to'lov hech qanday alohida assignmentga
- *    bog'lanmaydi).
- *  - untilDate — qaysi sanagacha bo'lgan ish hisobga olingan.
- *  - snapshot — to'lov vaqtidagi holat: earned, paidBefore, amount.
+ * Yangi mantiq (tanlangan kunlar rejimi):
+ *  - Admin checkbox orqali bir nechta KUN tanlaydi va shu kunlar uchun
+ *    bitta SalaryPayment yozuvi yaratiladi.
+ *  - paidDates — to'langan kunlar ro'yxati: ["YYYY-MM-DD", ...]
+ *  - monthKey — eng oxirgi to'langan sananing oyi ("YYYY-MM"). Arxivda
+ *    oyga guruhlash uchun ishlatiladi.
+ *  - amount — tanlangan kunlardagi earning yig'indisi.
+ *
+ * Backward compatibility:
+ *  - Eski yozuvlar (v2) untilDate orqali bitta sanagacha to'lov edi.
+ *    Ularda paidDates = [], monthKey = '' bo'ladi. Arxiv routerida
+ *    monthKey bo'lmasa untilDate.slice(0,7) fallback ishlatiladi.
+ *  - untilDate endi MAJBURIY EMAS — yangi yozuvlarda u max(paidDates)
+ *    sifatida saqlanadi (eski qidiruv/index-larni buzmaslik uchun).
  */
 
 const mongoose = require('mongoose');
@@ -26,9 +33,24 @@ const salaryPaymentSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    // Eski yozuvlar uchun saqlanib qoldi. Yangi yozuvlarda
+    // max(paidDates) qiymati avtomatik beriladi.
     untilDate: {
       type: String,
-      required: true,
+      required: false,
+      default: '',
+      index: true,
+    },
+    // Yangi: tanlangan kunlar ro'yxati ("YYYY-MM-DD" formatda)
+    paidDates: {
+      type: [String],
+      default: [],
+    },
+    // Yangi: arxivda oy bo'yicha guruhlash uchun. Eng oxirgi to'langan
+    // sananing oyi ("YYYY-MM"). Eski yozuvlarda bo'sh — arxivda fallback bor.
+    monthKey: {
+      type: String,
+      default: '',
       index: true,
     },
     amount: {

@@ -166,6 +166,9 @@
     .tab-item.active { background: rgba(139, 92, 246, 0.2); border-color: var(--accent); color: #ffffff; font-weight: 700; }
     [data-theme="light"] .tab-item.active { color: #4c1d95; }
 
+    .tab-active { background: linear-gradient(135deg, #7c3aed, #a855f7) !important; color: #ffffff !important; border-color: transparent !important; box-shadow: 0 4px 14px -4px rgba(139, 92, 246, 0.5); }
+    [data-theme="light"] .tab-active { color: #ffffff !important; }
+
     .stat-card .text-2xl, .stat-card .font-bold { font-weight: 800; }
 
     /* Card backgrounds — biroz qattiqroq */
@@ -268,6 +271,7 @@
           <div class="flex flex-col sm:flex-row gap-3 mb-6">
             <input type="text" id="empSearch" class="input-field flex-1 px-4 py-3 rounded-xl" data-i18n-placeholder="common.search" />
             <select id="empDeptFilter" class="input-field px-4 py-3 rounded-xl text-sm sm:max-w-xs"></select>
+            <button id="empExportBtn" class="btn-ghost px-4 py-3 rounded-xl text-sm whitespace-nowrap" data-i18n="export.excel">Excel yuklab olish</button>
             <button id="empAddBtn" class="btn-primary px-5 py-3 rounded-xl text-sm whitespace-nowrap">+ <span data-i18n="emp.add">Xodim qo'shish</span></button>
           </div>
           <div class="card overflow-hidden" id="empTableContainer"></div>
@@ -301,6 +305,7 @@
             <input type="date" id="dailyDateInput" class="input-field px-4 py-3 rounded-xl text-sm" />
             <button id="dailyTodayBtn" class="btn-ghost px-4 py-3 rounded-xl text-sm" data-i18n="common.today">Bugun</button>
             <div class="text-xs text-zinc-500 self-center" id="dailyDateLabel"></div>
+            <button id="dailyExportBtn" class="btn-ghost px-4 py-3 rounded-xl text-sm lg:ml-auto" data-i18n="export.excel">Excel yuklab olish</button>
           </div>
           <div class="flex gap-2 mb-6 overflow-x-auto pb-2" id="dailyDeptTabs"></div>
           <div id="dailyContent">
@@ -310,6 +315,9 @@
 
         <!-- MONTHLY REPORT PAGE -->
         <div class="page" data-page="monthlyReport">
+          <div class="flex justify-end mb-3">
+            <button id="monthlyExportBtn" class="btn-ghost px-4 py-2 rounded-xl text-sm" data-i18n="export.excel">Excel yuklab olish</button>
+          </div>
           <div class="card p-4 mb-6">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div>
@@ -369,6 +377,23 @@
               <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1" data-i18n="salary.remaining">Qoldiq</div><div class="text-2xl font-bold text-amber-400" id="salStatRemaining">0</div></div>
               <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1" data-i18n="emp.title">Xodimlar</div><div class="text-2xl font-bold" id="salStatEmployees">0</div></div>
             </div>
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+              <div class="flex flex-wrap gap-2 bg-purple-500/5 p-1 rounded-xl" id="salaryTabs">
+                <button class="px-4 py-2 rounded-lg text-sm font-medium tab-active" data-tab="all">
+                  <span data-i18n="salary.tabAll">Hammasi</span>
+                  <span class="ml-1 text-xs opacity-70" data-tab-count="all">(0)</span>
+                </button>
+                <button class="px-4 py-2 rounded-lg text-sm font-medium" data-tab="paid">
+                  <span data-i18n="salary.tabPaid">To'liq to'langan</span>
+                  <span class="ml-1 text-xs opacity-70" data-tab-count="paid">(0)</span>
+                </button>
+                <button class="px-4 py-2 rounded-lg text-sm font-medium" data-tab="unpaid">
+                  <span data-i18n="salary.tabUnpaid">Qoldiq bor</span>
+                  <span class="ml-1 text-xs opacity-70" data-tab-count="unpaid">(0)</span>
+                </button>
+              </div>
+              <button id="salaryExportBtn" class="btn-ghost px-4 py-2 rounded-xl text-sm" data-i18n="export.excel">Excel yuklab olish</button>
+            </div>
             <div class="card overflow-hidden" id="salaryList"></div>
           </div>
           <div id="salaryDetailView" class="hidden"></div>
@@ -376,12 +401,42 @@
 
         <!-- ARCHIVE PAGE -->
         <div class="page" data-page="archive">
-          <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
-            <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1" data-i18n="common.total">Jami</div><div class="text-2xl font-bold text-emerald-400" id="archStatAmount">0</div></div>
-            <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1" data-i18n="archive.payments">To'lov</div><div class="text-2xl font-bold" id="archStatPayments">0</div></div>
-            <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1" data-i18n="archive.month">Oy</div><div class="text-2xl font-bold" id="archStatMonths">0</div></div>
+          <div class="inline-flex flex-wrap gap-2 bg-purple-500/5 p-1 rounded-xl mb-4" id="archiveTabs">
+            <button class="px-4 py-2 rounded-lg text-sm font-medium tab-active" data-tab="history" data-i18n="archive.tabHistory">To'lov tarixi</button>
+            <button class="px-4 py-2 rounded-lg text-sm font-medium" data-tab="files" data-i18n="archive.tabFiles">Excel arxiv</button>
           </div>
-          <div id="archiveList"></div>
+
+          <div id="archHistoryView">
+            <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+              <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1" data-i18n="common.total">Jami</div><div class="text-2xl font-bold text-emerald-400" id="archStatAmount">0</div></div>
+              <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1" data-i18n="archive.payments">To'lov</div><div class="text-2xl font-bold" id="archStatPayments">0</div></div>
+              <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1" data-i18n="archive.month">Oy</div><div class="text-2xl font-bold" id="archStatMonths">0</div></div>
+            </div>
+            <div id="archiveList"></div>
+          </div>
+
+          <div id="archFilesView" class="hidden">
+            <div class="flex flex-wrap gap-2 mb-4" id="archCategoryTabs"></div>
+            <div class="card p-4 mb-4">
+              <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div>
+                  <label class="field-label" data-i18n="month.startDate">Boshlanish</label>
+                  <input type="date" id="archFromDate" class="input-field w-full px-3 py-2.5 rounded-xl text-sm" />
+                </div>
+                <div>
+                  <label class="field-label" data-i18n="month.endDate">Tugash</label>
+                  <input type="date" id="archToDate" class="input-field w-full px-3 py-2.5 rounded-xl text-sm" />
+                </div>
+                <div class="flex items-end">
+                  <button id="archFilterApplyBtn" class="btn-primary w-full py-2.5 rounded-xl text-sm" data-i18n="archive.filterApply">Filtrlash</button>
+                </div>
+                <div class="flex items-end">
+                  <button id="archFilterResetBtn" class="btn-ghost w-full py-2.5 rounded-xl text-sm" data-i18n="archive.filterReset">Tozalash</button>
+                </div>
+              </div>
+            </div>
+            <div id="archFilesList"></div>
+          </div>
         </div>
 
       </div>
@@ -533,26 +588,6 @@
         <div class="flex gap-3 pt-2">
           <button type="button" data-close="productionModal" class="flex-1 btn-ghost py-3 rounded-xl">Bekor</button>
           <button type="submit" class="flex-1 btn-primary py-3 rounded-xl">Saqlash</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- MODAL: PAY -->
-  <div id="payModal" class="modal-backdrop">
-    <div class="modal-content w-full max-w-md p-6">
-      <h2 class="text-xl font-bold mb-2" data-i18n="salary.payUntil">Sanagacha to'lash</h2>
-      <p class="text-sm text-zinc-500 mb-5" id="payEmployeeName">—</p>
-      <form id="payForm" class="space-y-4">
-        <input type="hidden" id="payEmployeeId" />
-        <div>
-          <label class="field-label" data-i18n="common.date">Sana</label>
-          <input type="date" id="payUntilDate" class="input-field w-full px-4 py-3 rounded-xl" required />
-          <p class="text-xs text-zinc-500 mt-1" data-i18n="salary.payUntilHint">Tanlangan sanagacha qoldiq bitta to'lov sifatida</p>
-        </div>
-        <div class="flex gap-3 pt-2">
-          <button type="button" data-close="payModal" class="flex-1 btn-ghost py-3 rounded-xl" data-i18n="common.cancel">Bekor</button>
-          <button type="submit" class="flex-1 btn-primary py-3 rounded-xl" data-i18n="common.save">Saqlash</button>
         </div>
       </form>
     </div>

@@ -100,6 +100,17 @@ const dailyAssignmentSchema = new mongoose.Schema(
       name: String,
       price: Number,
     },
+    // --- Yangi: tanlangan kunlar bo'yicha to'lov mantiqi ---
+    // paid: shu kun uchun ish haqi to'langanmi (admin checkbox orqali tanladi)
+    paid: { type: Boolean, default: false, index: true },
+    // paymentId: qaysi SalaryPayment yozuvi bu kunni "to'lagan"
+    paymentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'SalaryPayment',
+      default: null,
+    },
+    // paidAt: to'lov qachon amalga oshirilgan
+    paidAt: { type: Date, default: null },
   },
   { timestamps: true }
 );
@@ -111,5 +122,7 @@ dailyAssignmentSchema.index(
 dailyAssignmentSchema.index({ businessId: 1, dateString: -1 });
 dailyAssignmentSchema.index({ businessId: 1, departmentId: 1, dateString: 1 });
 dailyAssignmentSchema.index({ businessId: 1, directionId: 1, dateString: 1 });
+// Yangi: to'lanmagan kunlarni tezroq topish uchun compound index
+dailyAssignmentSchema.index({ businessId: 1, employeeId: 1, paid: 1 });
 
 module.exports = mongoose.models.DailyAssignment || mongoose.model('DailyAssignment', dailyAssignmentSchema);

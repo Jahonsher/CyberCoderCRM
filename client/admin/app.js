@@ -39,7 +39,12 @@ const state = {
   monthlyData: null,
   salaryData: null,
   salaryDetail: null,
+  salarySelectedDates: new Set(),
+  salaryFilter: 'all',
   archiveData: null,
+  archiveTab: 'history',
+  archiveCategory: '',
+  archiveFiles: null,
 };
 
 // ============================================
@@ -86,6 +91,31 @@ async function api(endpoint, opts = {}) {
   if (res.status === 401) { logout(); throw new Error(data.error || 'Unauthorized'); }
   if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
   return data;
+}
+
+async function downloadExcel(endpoint, suggestedName) {
+  const token = localStorage.getItem(STORAGE.token);
+  const res = await fetch(apiUrl(endpoint), { headers: { Authorization: `Bearer ${token}` } });
+  if (res.status === 401) { logout(); throw new Error('Unauthorized'); }
+  if (!res.ok) {
+    let msg = t('msg.error') || 'Xato';
+    try { msg = (await res.json()).error || msg; } catch (_) {}
+    throw new Error(msg);
+  }
+  const cd = res.headers.get('Content-Disposition') || '';
+  const m = cd.match(/filename\*?=(?:UTF-8'')?["']?([^"';]+)["']?/i);
+  let name = suggestedName || 'export.xlsx';
+  if (m && m[1]) {
+    try { name = decodeURIComponent(m[1]); } catch (_) { name = m[1]; }
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
 }
 
 // ============================================
@@ -1004,14 +1034,35 @@ async function fetchSalary() {
   try {
     const data = await api(`/api/salary${params.toString() ? '?' + params : ''}`);
     state.salaryData = data;
-    document.getElementById('salStatEarned').textContent = formatMoney(data.stats.totalEarned);
-    document.getElementById('salStatPaid').textContent = formatMoney(data.stats.totalPaid);
-    document.getElementById('salStatRemaining').textContent = formatMoney(data.stats.totalRemaining);
-    document.getElementById('salStatEmployees').textContent = data.stats.totalEmployees;
-    renderSalaryList(data.employees);
+    applySalaryView();
   } catch (e) {
     container.innerHTML = `<div class="p-6 text-center text-red-400">${escapeHtml(e.message)}</div>`;
   }
+}
+
+function applySalaryView() {
+  const data = state.salaryData;
+  if (!data) return;
+  document.getElementById('salStatEarned').textContent = formatMoney(data.stats.totalEarned);
+  document.getElementById('salStatPaid').textContent = formatMoney(data.stats.totalPaid);
+  document.getElementById('salStatRemaining').textContent = formatMoney(data.stats.totalRemaining);
+  document.getElementById('salStatEmployees').textContent = data.stats.totalEmployees;
+  const employees = Array.isArray(data.employees) ? data.employees : [];
+  const paidCount = employees.filter(e => (Number(e.remaining) || 0) <= 0).length;
+  const unpaidCount = employees.filter(e => (Number(e.remaining) || 0) > 0).length;
+  const setCount = (k, n) => {
+    const el = document.querySelector(`#salaryTabs [data-tab-count="${k}"]`);
+    if (el) el.textContent = `(${n})`;
+  };
+  setCount('all', employees.length);
+  setCount('paid', paidCount);
+  setCount('unpaid', unpaidCount);
+  const filtered = state.salaryFilter === 'paid'
+    ? employees.filter(e => (Number(e.remaining) || 0) <= 0)
+    : state.salaryFilter === 'unpaid'
+      ? employees.filter(e => (Number(e.remaining) || 0) > 0)
+      : employees;
+  renderSalaryList(filtered);
 }
 
 function renderSalaryList(employees) {
@@ -1067,78 +1118,205 @@ async function loadSalaryDetail(employeeId) {
   }
 }
 
+function salaryDayRow(day, source) {
+  const paid = !!day.paid;
+  const isPrev = source === 'previous';
+  const shift = day.shift === 0.5 ? '½' : '1';
+  const product = day.productCount ? ` · ${day.productCount}` : '';
+  const dept = escapeHtml(day.departmentName || '—');
+  const dir = day.directionName ? ` · ${escapeHtml(day.directionName)}` : '';
+  const monthBadge = isPrev && day.monthKey
+    ? `<span class="badge badge-off text-[10px] ml-2">${escapeHtml(day.monthKey)}</span>`
+    : '';
+  const paidBadge = paid
+    ? `<span class="badge badge-on text-[10px] mt-1 inline-flex">${t('salary.alreadyPaid')}</span>`
+    : '';
+  return `
+    <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-purple-500/5 cursor-pointer transition ${paid ? 'opacity-60' : ''}">
+      <input type="checkbox" data-date="${escapeHtml(day.date)}" data-earning="${Number(day.earning) || 0}" data-source="${source}" ${paid ? 'disabled' : ''} class="w-4 h-4 accent-purple-500 flex-shrink-0">
+      <div class="flex-1 min-w-0">
+        <div class="font-medium text-sm ${paid ? 'line-through text-zinc-500' : ''}">${formatDate(day.date)}${monthBadge}</div>
+        <div class="text-xs text-zinc-500 truncate">${dept} · ${shift}${dir}${product}</div>
+      </div>
+      <div class="text-right flex-shrink-0">
+        <div class="mono font-semibold ${paid ? 'text-zinc-500' : 'text-emerald-400'}">${formatMoney(day.earning)}</div>
+        ${paidBadge}
+      </div>
+    </label>
+  `;
+}
+
 function renderSalaryDetail(data) {
+  state.salarySelectedDates = new Set();
   const e = data.employee;
-  const s = data.stats;
+  const s = data.stats || {};
+  const cm = data.currentMonth || { monthKey: '', days: [] };
+  const previous = Array.isArray(data.unpaidPrevious) ? data.unpaidPrevious : [];
+  const payments = Array.isArray(data.payments) ? data.payments : [];
+  const cmDays = Array.isArray(cm.days) ? cm.days : [];
   const container = document.getElementById('salaryDetailView');
+
+  const currentMonthHtml = cmDays.length === 0
+    ? `<div class="p-6 text-center text-sm text-zinc-500">${t('salary.noWorkDays')}</div>`
+    : cmDays.map(d => salaryDayRow(d, 'current')).join('');
+
+  const previousHtml = previous.length === 0 ? '' : `
+    <div class="card p-5 mb-4 border-l-4 border-amber-500/40">
+      <div class="flex items-center justify-between mb-3 pb-3 border-t border-b border-amber-500/40 py-3">
+        <h3 class="font-bold text-amber-300">${t('salary.unpaidPrevious')} <span class="text-xs text-zinc-500">(${previous.length})</span></h3>
+        <div class="text-xs mono text-amber-400">${formatMoney(s.unpaidPreviousAmount || 0)}</div>
+      </div>
+      <div class="space-y-1">
+        ${previous.map(d => salaryDayRow(d, 'previous')).join('')}
+      </div>
+    </div>
+  `;
+
+  const paymentsHtml = payments.length === 0
+    ? `<p class="text-sm text-zinc-500 text-center py-4">—</p>`
+    : `
+      <div class="space-y-2 max-h-96 overflow-y-auto">
+        ${payments.map(p => {
+          const hasDates = Array.isArray(p.paidDates) && p.paidDates.length > 0;
+          const badge = hasDates
+            ? `<span class="badge badge-on text-[10px]">${p.paidDates.length} ${t('salary.days')}</span>`
+            : `<span class="badge badge-off text-[10px]">${t('salary.payUntil')}</span>`;
+          const when = p.paidAt ? formatDate(p.paidAt) : (p.untilDate ? formatDate(p.untilDate) : '—');
+          return `
+            <div class="flex justify-between gap-2 p-2 rounded-lg bg-emerald-500/5 text-sm">
+              <div>
+                <div class="font-medium">${when}</div>
+                <div class="mt-1">${badge}</div>
+              </div>
+              <div class="mono font-semibold text-emerald-400">${formatMoney(p.amount)}</div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+
+  const deptName = (e.departmentId && e.departmentId.name) || e.departmentName || '—';
 
   container.innerHTML = `
     <button class="btn-ghost px-4 py-2 rounded-xl text-sm mb-4" id="salBackBtn">← ${t('common.back')}</button>
     <div class="card p-6 mb-6">
-      <div class="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h2 class="text-2xl font-bold mb-2">${escapeHtml(e.fullName)}</h2>
-          <div class="flex flex-wrap gap-3 text-sm text-zinc-400">
-            <span class="mono text-purple-300">${escapeHtml(e.code)}</span>
-            <span>${escapeHtml(e.departmentId?.name || '—')}</span>
-            ${e.phone ? `<span class="mono">${escapeHtml(e.phone)}</span>` : ''}
-          </div>
+      <div>
+        <h2 class="text-2xl font-bold mb-2">${escapeHtml(e.fullName)}</h2>
+        <div class="flex flex-wrap gap-3 text-sm text-zinc-400">
+          <span class="mono text-purple-300">${escapeHtml(e.code)}</span>
+          <span>${escapeHtml(deptName)}</span>
+          ${e.phone ? `<span class="mono">${escapeHtml(e.phone)}</span>` : ''}
         </div>
-        <button class="btn-primary px-5 py-2.5 rounded-xl text-sm" id="salPayBtn" ${s.remaining <= 0 ? 'disabled' : ''}>
-          ${t('salary.payUntil')}
-        </button>
       </div>
     </div>
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-      <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1">${t('salary.assignments')}</div><div class="text-2xl font-bold">${s.totalDays}</div></div>
-      <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1">${t('month.shifts')}</div><div class="text-2xl font-bold">${s.totalShifts}</div></div>
-      <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1">${t('salary.earning')}</div><div class="text-2xl font-bold text-emerald-400">${formatMoney(s.totalEarning)}</div></div>
-      <div class="stat-card"><div class="mono text-[10px] text-zinc-500 uppercase mb-1">${t('salary.remaining')}</div><div class="text-2xl font-bold text-amber-400">${formatMoney(s.remaining)}</div></div>
+      <div class="stat-card">
+        <div class="mono text-[10px] text-zinc-500 uppercase mb-1">${t('salary.currentMonth')} · ${t('salary.days')}</div>
+        <div class="text-2xl font-bold">${cmDays.length}</div>
+      </div>
+      <div class="stat-card">
+        <div class="mono text-[10px] text-zinc-500 uppercase mb-1">${t('salary.currentMonth')} · ${t('salary.earning')}</div>
+        <div class="text-2xl font-bold text-emerald-400">${formatMoney(s.currentMonthEarning || 0)}</div>
+      </div>
+      <div class="stat-card">
+        <div class="mono text-[10px] text-zinc-500 uppercase mb-1">${t('salary.unpaidPrevious')} · ${t('salary.days')}</div>
+        <div class="text-2xl font-bold text-amber-400">${s.unpaidPreviousCount || 0}</div>
+      </div>
+      <div class="stat-card">
+        <div class="mono text-[10px] text-zinc-500 uppercase mb-1">${t('salary.unpaidPrevious')} · ${t('common.sum')}</div>
+        <div class="text-2xl font-bold text-amber-400">${formatMoney(s.unpaidPreviousAmount || 0)}</div>
+      </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <div class="card p-5">
-        <h3 class="font-bold mb-3">${t('salary.assignments')} (${data.assignments.length})</h3>
-        ${data.assignments.length === 0 ? `<p class="text-sm text-zinc-500 text-center py-4">—</p>` : `
-          <div class="space-y-2 max-h-96 overflow-y-auto">
-            ${data.assignments.map(a => `
-              <div class="flex justify-between gap-2 p-2 rounded-lg bg-purple-500/5 text-sm">
-                <div>
-                  <div class="font-medium">${formatDate(a.dateString)}</div>
-                  <div class="text-xs text-zinc-500">${escapeHtml(a.departmentSnapshot?.name || '—')} · ${a.shift === 0.5 ? '½' : '1'}</div>
-                </div>
-                <div class="mono font-semibold text-emerald-400">${formatMoney(a.earning)}</div>
-              </div>`).join('')}
-          </div>`}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div class="lg:col-span-2">
+        ${previousHtml}
+        <div class="card p-5">
+          <div class="flex items-center justify-between mb-3 pb-3 border-b border-purple-500/20">
+            <h3 class="font-bold">${t('salary.currentMonth')} ${cm.monthKey ? `<span class="text-xs text-zinc-500 ml-1">· ${escapeHtml(cm.monthKey)}</span>` : ''}</h3>
+            <div class="text-xs text-zinc-500">${cmDays.length} ${t('salary.days')}</div>
+          </div>
+          <div class="space-y-1" id="salCurrentList">
+            ${currentMonthHtml}
+          </div>
+        </div>
+
+        <div class="sticky bottom-0 mt-4 card p-4 z-10" id="salFooter" style="backdrop-filter: blur(12px);">
+          <div class="flex items-center justify-between gap-3 flex-wrap">
+            <div class="text-sm flex items-center gap-2 flex-wrap">
+              <span class="text-zinc-400">${t('salary.selected')}:</span>
+              <span class="font-bold mono"><span id="salSelCount">0</span> ${t('salary.days')}</span>
+              <span class="text-zinc-600">·</span>
+              <span class="text-zinc-400">${t('common.total')}:</span>
+              <span class="font-bold mono text-emerald-400"><span id="salSelSum">0</span> ${t('common.sum')}</span>
+            </div>
+            <button id="salPayBtn" class="btn-primary px-5 py-2.5 rounded-xl text-sm" disabled>
+              ${t('salary.payDays')}
+            </button>
+          </div>
+        </div>
       </div>
-      <div class="card p-5">
-        <h3 class="font-bold mb-3">${t('salary.history')} (${data.payments.length})</h3>
-        ${data.payments.length === 0 ? `<p class="text-sm text-zinc-500 text-center py-4">—</p>` : `
-          <div class="space-y-2 max-h-96 overflow-y-auto">
-            ${data.payments.map(p => `
-              <div class="flex justify-between gap-2 p-2 rounded-lg bg-emerald-500/5 text-sm">
-                <div>
-                  <div class="font-medium">${formatDate(p.untilDate)} gacha</div>
-                  <div class="text-xs text-zinc-500">${formatDate(p.paidAt)}</div>
-                </div>
-                <div class="mono font-semibold text-emerald-400">${formatMoney(p.amount)}</div>
-              </div>`).join('')}
-          </div>`}
+
+      <div class="card p-5 h-fit">
+        <h3 class="font-bold mb-3">${t('salary.history')} (${payments.length})</h3>
+        ${paymentsHtml}
       </div>
     </div>`;
 
   document.getElementById('salBackBtn').addEventListener('click', loadSalaryPage);
+
+  container.querySelectorAll('input[type="checkbox"][data-date]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const date = cb.dataset.date;
+      if (cb.checked) state.salarySelectedDates.add(date);
+      else state.salarySelectedDates.delete(date);
+      updateSalaryFooter();
+    });
+  });
+
   const payBtn = document.getElementById('salPayBtn');
-  if (payBtn) payBtn.addEventListener('click', () => openPayModal(e._id, e.fullName));
+  if (payBtn) payBtn.addEventListener('click', () => confirmSalaryPayment(e._id));
+
+  updateSalaryFooter();
 }
 
-function openPayModal(employeeId, name) {
-  document.getElementById('payEmployeeId').value = employeeId;
-  document.getElementById('payEmployeeName').textContent = name;
-  document.getElementById('payUntilDate').value = todayISO();
-  document.getElementById('payUntilDate').max = todayISO();
-  openModal('payModal');
+function updateSalaryFooter() {
+  let sum = 0;
+  document.querySelectorAll('input[type="checkbox"][data-date]:checked').forEach(cb => {
+    sum += Number(cb.dataset.earning) || 0;
+  });
+  const countEl = document.getElementById('salSelCount');
+  const sumEl = document.getElementById('salSelSum');
+  const payBtn = document.getElementById('salPayBtn');
+  const count = state.salarySelectedDates.size;
+  if (countEl) countEl.textContent = String(count);
+  if (sumEl) sumEl.textContent = formatMoney(sum);
+  if (payBtn) payBtn.disabled = count === 0;
+}
+
+async function confirmSalaryPayment(employeeId) {
+  const dates = Array.from(state.salarySelectedDates);
+  if (dates.length === 0) return;
+  let sum = 0;
+  document.querySelectorAll('input[type="checkbox"][data-date]:checked').forEach(cb => {
+    sum += Number(cb.dataset.earning) || 0;
+  });
+  const message = t('salary.confirmPay')
+    .replace('{count}', String(dates.length))
+    .replace('{amount}', formatMoney(sum));
+  if (!window.confirm(message)) return;
+  try {
+    await api(`/api/salary/${employeeId}/pay`, {
+      method: 'POST',
+      body: JSON.stringify({ dates })
+    });
+    toast(t('msg.saved'));
+    state.salarySelectedDates = new Set();
+    loadSalaryDetail(employeeId);
+  } catch (e2) {
+    toast(e2.message, 'error');
+  }
 }
 
 function setupSalaryPage() {
@@ -1151,16 +1329,12 @@ function setupSalaryPage() {
     fetchSalary();
   });
 
-  document.getElementById('payForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const id = document.getElementById('payEmployeeId').value;
-    const untilDate = document.getElementById('payUntilDate').value;
-    try {
-      await api(`/api/salary/${id}/pay`, { method: 'POST', body: JSON.stringify({ untilDate }) });
-      toast(t('msg.saved'));
-      closeModal('payModal');
-      loadSalaryDetail(id);
-    } catch (e2) { toast(e2.message, 'error'); }
+  document.querySelectorAll('#salaryTabs button[data-tab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.salaryFilter = btn.dataset.tab;
+      document.querySelectorAll('#salaryTabs button[data-tab]').forEach(b => b.classList.toggle('tab-active', b === btn));
+      applySalaryView();
+    });
   });
 }
 
@@ -1168,21 +1342,39 @@ function setupSalaryPage() {
 // ARCHIVE
 // ============================================
 async function loadArchivePage() {
-  const container = document.getElementById('archiveList');
-  container.innerHTML = '<div class="skeleton h-24"></div>';
+  // Reset to default tab on each page entry
+  state.archiveTab = state.archiveTab || 'history';
+  state.archiveCategory = '';
+  state.archiveFiles = null;
+  applyArchiveTab();
+
+  const historyContainer = document.getElementById('archiveList');
+  historyContainer.innerHTML = '<div class="skeleton h-24"></div>';
   try {
     const data = await api('/api/archive');
     state.archiveData = data;
     document.getElementById('archStatAmount').textContent = formatMoney(data.stats.totalAmount);
     document.getElementById('archStatPayments').textContent = data.stats.totalPayments;
     document.getElementById('archStatMonths').textContent = data.stats.monthsCount;
-    renderArchive(data.months);
+    renderArchiveHistory(data.months || []);
+    renderArchiveCategoryTabs(data.filesStats || {});
+    if (state.archiveTab === 'files') loadArchiveFiles();
   } catch (e) {
-    container.innerHTML = `<div class="text-center text-red-400 p-6">${escapeHtml(e.message)}</div>`;
+    historyContainer.innerHTML = `<div class="text-center text-red-400 p-6">${escapeHtml(e.message)}</div>`;
   }
 }
 
-function renderArchive(months) {
+function applyArchiveTab() {
+  document.querySelectorAll('#archiveTabs button[data-tab]').forEach(b => {
+    b.classList.toggle('tab-active', b.dataset.tab === state.archiveTab);
+  });
+  const history = document.getElementById('archHistoryView');
+  const files = document.getElementById('archFilesView');
+  if (history) history.classList.toggle('hidden', state.archiveTab !== 'history');
+  if (files) files.classList.toggle('hidden', state.archiveTab !== 'files');
+}
+
+function renderArchiveHistory(months) {
   const container = document.getElementById('archiveList');
   if (months.length === 0) {
     container.innerHTML = `<div class="card p-10 text-center text-zinc-500">${t('archive.empty')}</div>`;
@@ -1225,6 +1417,158 @@ function renderArchive(months) {
         </table>
       </div>
     </div>`).join('');
+}
+
+const ARCHIVE_CAT_LABEL = {
+  '': () => t('archive.allCategories'),
+  employees: () => t('archive.catEmployees'),
+  dailyReport: () => t('archive.catDaily'),
+  monthlyReport: () => t('archive.catMonthly'),
+  salary: () => t('archive.catSalary'),
+};
+
+function archiveCategoryLabel(c) {
+  const fn = ARCHIVE_CAT_LABEL[c];
+  return fn ? fn() : c;
+}
+
+function renderArchiveCategoryTabs(stats) {
+  const tabs = document.getElementById('archCategoryTabs');
+  if (!tabs) return;
+  const counts = {
+    employees: Number(stats.employeesCount) || 0,
+    dailyReport: Number(stats.dailyCount) || 0,
+    monthlyReport: Number(stats.monthlyCount) || 0,
+    salary: Number(stats.salaryCount) || 0,
+  };
+  const total = counts.employees + counts.dailyReport + counts.monthlyReport + counts.salary;
+  const items = [
+    { key: '', label: t('archive.allCategories'), count: total },
+    { key: 'employees', label: t('archive.catEmployees'), count: counts.employees },
+    { key: 'dailyReport', label: t('archive.catDaily'), count: counts.dailyReport },
+    { key: 'monthlyReport', label: t('archive.catMonthly'), count: counts.monthlyReport },
+    { key: 'salary', label: t('archive.catSalary'), count: counts.salary },
+  ];
+  tabs.innerHTML = items.map(it => `
+    <button class="tab-item ${state.archiveCategory === it.key ? 'tab-active' : ''}" data-cat="${escapeHtml(it.key)}">
+      ${escapeHtml(it.label)} <span class="ml-1 text-xs opacity-70">(${it.count})</span>
+    </button>`).join('');
+  tabs.querySelectorAll('button[data-cat]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.archiveCategory = btn.dataset.cat || '';
+      tabs.querySelectorAll('button[data-cat]').forEach(b => b.classList.toggle('tab-active', b === btn));
+      loadArchiveFiles();
+    });
+  });
+}
+
+async function loadArchiveFiles() {
+  const container = document.getElementById('archFilesList');
+  if (!container) return;
+  container.innerHTML = '<div class="skeleton h-24"></div>';
+  const params = new URLSearchParams();
+  if (state.archiveCategory) params.set('category', state.archiveCategory);
+  const from = document.getElementById('archFromDate')?.value;
+  const to = document.getElementById('archToDate')?.value;
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  try {
+    const files = await api(`/api/archive/files${params.toString() ? '?' + params : ''}`);
+    state.archiveFiles = Array.isArray(files) ? files : [];
+    renderArchiveFiles(state.archiveFiles);
+  } catch (e) {
+    container.innerHTML = `<div class="text-center text-red-400 p-6">${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function formatSize(n) {
+  if (typeof n !== 'number' || isNaN(n)) return '—';
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / 1024 / 1024).toFixed(2)} MB`;
+}
+
+function renderArchiveFiles(files) {
+  const container = document.getElementById('archFilesList');
+  if (!container) return;
+  if (!files || files.length === 0) {
+    container.innerHTML = `<div class="card p-10 text-center text-zinc-500">${t('archive.empty')}</div>`;
+    return;
+  }
+  container.innerHTML = `<div class="card overflow-hidden"><div class="overflow-x-auto"><table class="data-table"><thead><tr>
+      <th>${t('archive.fileGenerated')}</th>
+      <th>${t('archive.fileCategory')}</th>
+      <th>${t('archive.fileLang')}</th>
+      <th class="text-right">${t('archive.fileSize')}</th>
+      <th>${t('archive.fileRange')}</th>
+      <th class="text-right">${t('common.actions')}</th>
+    </tr></thead><tbody>
+    ${files.map(f => {
+      const range = (f.dateFrom || f.dateTo)
+        ? `${f.dateFrom ? escapeHtml(formatDate(f.dateFrom)) : ''}${f.dateFrom && f.dateTo ? ' — ' : ''}${f.dateTo ? escapeHtml(formatDate(f.dateTo)) : ''}`
+        : '—';
+      const name = escapeHtml(f.fileName || 'export.xlsx');
+      return `
+      <tr>
+        <td class="mono text-sm">${escapeHtml(formatDate(f.generatedAt) || '—')}</td>
+        <td>${escapeHtml(archiveCategoryLabel(f.category))}</td>
+        <td class="mono text-xs">${escapeHtml(f.language || '—')}</td>
+        <td class="text-right mono text-xs text-zinc-400">${formatSize(f.size)}</td>
+        <td class="mono text-xs text-zinc-400">${range}</td>
+        <td class="text-right whitespace-nowrap">
+          <button class="btn-icon" data-act="arch-download" data-id="${escapeHtml(f._id)}" data-name="${name}" title="${t('archive.download')}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </button>
+          <button class="btn-icon danger ml-1" data-act="arch-delete" data-id="${escapeHtml(f._id)}" title="${t('archive.delete')}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
+          </button>
+        </td>
+      </tr>`;
+    }).join('')}
+    </tbody></table></div></div>`;
+
+  container.querySelectorAll('[data-act="arch-download"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      try {
+        await downloadExcel(`/api/archive/files/${btn.dataset.id}/download`, btn.dataset.name);
+        toast(t('export.done'));
+      } catch (e) {
+        toast(e.message, 'error');
+      }
+    });
+  });
+  container.querySelectorAll('[data-act="arch-delete"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      openConfirm(t('archive.delete'), t('archive.confirmDelete'), async () => {
+        try {
+          await api(`/api/archive/files/${id}`, { method: 'DELETE' });
+          toast(t('msg.deleted'));
+          loadArchivePage();
+        } catch (e) {
+          toast(e.message, 'error');
+        }
+      });
+    });
+  });
+}
+
+function setupArchivePage() {
+  document.querySelectorAll('#archiveTabs button[data-tab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.archiveTab = btn.dataset.tab;
+      applyArchiveTab();
+      if (state.archiveTab === 'files' && state.archiveFiles === null) loadArchiveFiles();
+    });
+  });
+  document.getElementById('archFilterApplyBtn')?.addEventListener('click', loadArchiveFiles);
+  document.getElementById('archFilterResetBtn')?.addEventListener('click', () => {
+    const from = document.getElementById('archFromDate');
+    const to = document.getElementById('archToDate');
+    if (from) from.value = '';
+    if (to) to.value = '';
+    loadArchiveFiles();
+  });
 }
 
 // ============================================
@@ -1301,6 +1645,67 @@ function setupSidebar() {
 }
 
 // ============================================
+// EXPORT BUTTONS
+// ============================================
+function setupExportButtons() {
+  const empBtn = document.getElementById('empExportBtn');
+  if (empBtn) {
+    empBtn.addEventListener('click', async () => {
+      const lang = window.getCurrentLang ? window.getCurrentLang() : 'uz-lat';
+      try {
+        await downloadExcel(`/api/employees/export?lang=${encodeURIComponent(lang)}`, 'xodimlar.xlsx');
+        toast(t('export.done'));
+      } catch (e) { toast(e.message, 'error'); }
+    });
+  }
+
+  const dailyBtn = document.getElementById('dailyExportBtn');
+  if (dailyBtn) {
+    dailyBtn.addEventListener('click', async () => {
+      const lang = window.getCurrentLang ? window.getCurrentLang() : 'uz-lat';
+      const date = state.dailyDate || document.getElementById('dailyDateInput')?.value || todayISO();
+      try {
+        await downloadExcel(`/api/daily-report/export?date=${encodeURIComponent(date)}&lang=${encodeURIComponent(lang)}`, `kunlik_${date}.xlsx`);
+        toast(t('export.done'));
+      } catch (e) { toast(e.message, 'error'); }
+    });
+  }
+
+  const monthlyBtn = document.getElementById('monthlyExportBtn');
+  if (monthlyBtn) {
+    monthlyBtn.addEventListener('click', async () => {
+      const lang = window.getCurrentLang ? window.getCurrentLang() : 'uz-lat';
+      const s = document.getElementById('monthStart')?.value || '';
+      const e = document.getElementById('monthEnd')?.value || '';
+      if (!s || !e) { toast(t('msg.error'), 'error'); return; }
+      try {
+        await downloadExcel(`/api/monthly-report/export?startDate=${encodeURIComponent(s)}&endDate=${encodeURIComponent(e)}&lang=${encodeURIComponent(lang)}`, `oylik_${s}_${e}.xlsx`);
+        toast(t('export.done'));
+      } catch (er) { toast(er.message, 'error'); }
+    });
+  }
+
+  const salaryBtn = document.getElementById('salaryExportBtn');
+  if (salaryBtn) {
+    salaryBtn.addEventListener('click', async () => {
+      const lang = window.getCurrentLang ? window.getCurrentLang() : 'uz-lat';
+      const s = document.getElementById('salaryStart')?.value || '';
+      const e = document.getElementById('salaryEnd')?.value || '';
+      const filter = state.salaryFilter || 'all';
+      const params = new URLSearchParams();
+      params.set('filter', filter);
+      params.set('lang', lang);
+      if (s) params.set('startDate', s);
+      if (e) params.set('endDate', e);
+      try {
+        await downloadExcel(`/api/salary/export?${params.toString()}`, `maosh_${filter}.xlsx`);
+        toast(t('export.done'));
+      } catch (er) { toast(er.message, 'error'); }
+    });
+  }
+}
+
+// ============================================
 // INIT
 // ============================================
 async function initApp() {
@@ -1329,6 +1734,8 @@ document.addEventListener('DOMContentLoaded', () => {
   setupDailyReportPage();
   setupMonthlyReportPage();
   setupSalaryPage();
+  setupArchivePage();
+  setupExportButtons();
   setupModals();
   setupConfirm();
   if (window.applyTranslations) window.applyTranslations();

@@ -24,6 +24,10 @@ const requireModule = require('../middleware/requireModule');
 const { recalculateForDate } = require('../services/recalculate');
 const { distributeOff } = require('../services/distributeOff');
 
+const { buildDailyReportWorkbook } = require('../services/excelGenerator');
+const { saveToArchive } = require('../services/excelArchive');
+const { tr } = require('../services/excelI18n');
+
 router.use(verifyToken, requireAdmin, businessScope, requireModule('dailyReport'));
 
 function todayDateString() {
@@ -115,6 +119,65 @@ router.get('/', async (req, res) => {
     });
   } catch (err) {
     console.error('Daily report GET:', err);
+    res.status(500).json({ error: 'Server xatosi' });
+  }
+});
+
+/**
+ * GET /api/daily-report/export?date=YYYY-MM-DD&lang=uz-lat
+ * Tanlangan kun bo'yicha barcha biriktirishlarni Excel'ga eksport qiladi.
+ */
+router.get('/export', async (req, res) => {
+  try {
+    const allowedLangs = ['uz-lat', 'uz-cyr', 'ru'];
+    const lang = allowedLangs.includes(String(req.query.lang)) ? String(req.query.lang) : 'uz-lat';
+
+    const dateStr = parseDateString(req.query.date) || todayDateString();
+    if (dateStr > todayDateString()) {
+      return res.status(400).json({ error: 'Kelajakdagi kun mumkin emas' });
+    }
+
+    const [departments, assignments] = await Promise.all([
+      Department.find({ businessId: req.businessId }).sort('name').lean(),
+      DailyAssignment.find({ businessId: req.businessId, dateString: dateStr })
+        .sort('departmentSnapshot.name')
+        .lean(),
+    ]);
+
+    const buffer = await buildDailyReportWorkbook(lang, { date: dateStr, departments, assignments });
+
+    const displayName = `${tr(lang, 'file.daily')}_${dateStr}.xlsx`;
+    const generatedBy = req.user?.fullName || req.user?.login || req.user?.username || '';
+
+    try {
+      await saveToArchive({
+        buffer,
+        businessId: req.businessId,
+        category: 'dailyReport',
+        subType: '',
+        language: lang,
+        displayName,
+        dateFrom: dateStr,
+        dateTo: dateStr,
+        rowCount: assignments.length,
+        generatedBy,
+        meta: { date: dateStr, count: assignments.length },
+      });
+    } catch (archErr) {
+      console.error('DailyReport export arxiv xatosi:', archErr);
+    }
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${encodeURIComponent(displayName)}"`
+    );
+    return res.send(Buffer.from(buffer));
+  } catch (err) {
+    console.error('DailyReport EXPORT:', err);
     res.status(500).json({ error: 'Server xatosi' });
   }
 });

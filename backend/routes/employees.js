@@ -17,6 +17,10 @@ const { verifyToken, requireAdmin } = require('../middleware/auth');
 const businessScope = require('../middleware/businessScope');
 const requireModule = require('../middleware/requireModule');
 
+const { buildEmployeesWorkbook } = require('../services/excelGenerator');
+const { saveToArchive } = require('../services/excelArchive');
+const { tr } = require('../services/excelI18n');
+
 router.use(verifyToken, requireAdmin, businessScope, requireModule('employees'));
 
 router.get('/', async (req, res) => {
@@ -36,6 +40,64 @@ router.get('/', async (req, res) => {
     res.json(employees);
   } catch (err) {
     console.error('Employees GET:', err);
+    res.status(500).json({ error: 'Server xatosi' });
+  }
+});
+
+/**
+ * GET /api/employees/export?lang=uz-lat
+ * Xodimlar ro'yxatini Excel sifatida yuklab beradi va arxivga saqlaydi.
+ */
+router.get('/export', async (req, res) => {
+  try {
+    const allowedLangs = ['uz-lat', 'uz-cyr', 'ru'];
+    const lang = allowedLangs.includes(String(req.query.lang)) ? String(req.query.lang) : 'uz-lat';
+
+    const employees = await Employee.find({
+      businessId: req.businessId,
+      status: { $ne: 'deleted' },
+    })
+      .populate('departmentId', 'name allowDirections')
+      .populate('directionId', 'name price')
+      .sort('-createdAt')
+      .lean();
+
+    const buffer = await buildEmployeesWorkbook(lang, { employees });
+
+    const today = new Date(new Date().getTime() + 5 * 60 * 60 * 1000)
+      .toISOString().split('T')[0];
+    const displayName = `${tr(lang, 'file.employees')}_${today}.xlsx`;
+    const generatedBy = req.user?.fullName || req.user?.login || req.user?.username || '';
+
+    try {
+      await saveToArchive({
+        buffer,
+        businessId: req.businessId,
+        category: 'employees',
+        subType: '',
+        language: lang,
+        displayName,
+        dateFrom: null,
+        dateTo: null,
+        rowCount: employees.length,
+        generatedBy,
+        meta: { count: employees.length },
+      });
+    } catch (archErr) {
+      console.error('Employees export arxiv xatosi:', archErr);
+    }
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${encodeURIComponent(displayName)}"`
+    );
+    return res.send(Buffer.from(buffer));
+  } catch (err) {
+    console.error('Employees EXPORT:', err);
     res.status(500).json({ error: 'Server xatosi' });
   }
 });
