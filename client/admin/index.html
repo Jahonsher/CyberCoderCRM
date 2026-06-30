@@ -157,6 +157,24 @@
     .switch::after { content: ''; position: absolute; left: 2px; top: 2px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: all 0.2s; }
     .switch.on::after { left: 22px; }
 
+    .assign-edit-box {
+      flex: 0 1 auto;
+      min-width: 110px;
+      padding: 8px 14px;
+      background: var(--card-bg);
+      border: 1.5px solid #000000;
+      border-radius: 0.75rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+      color: #f87171;
+      font-weight: 600;
+    }
+    [data-theme="light"] .assign-edit-box { color: #b91c1c; border-color: #000000; }
+    .assign-edit-box:hover { background: rgba(0, 0, 0, 0.06); border-color: #000000; transform: translateY(-1px); }
+    .assign-edit-label { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; opacity: 0.85; }
+    .assign-edit-value { font-size: 14px; font-weight: 800; margin-top: 2px; color: var(--text-primary); }
+
     .dept-card { background: var(--card-bg); border: 1px solid var(--glass-border); border-radius: 0.875rem; padding: 1rem; position: relative; cursor: pointer; transition: all 0.2s; }
     .dept-card:hover { border-color: var(--accent); transform: translateY(-2px); }
     .dept-card.selected { border-color: var(--accent); background: rgba(139, 92, 246, 0.12); box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.3); }
@@ -530,16 +548,16 @@
   <!-- MODAL: EARNING/PRODUCT EDIT -->
   <div id="earningModal" class="modal-backdrop">
     <div class="modal-content w-full max-w-md p-6">
-      <h2 class="text-xl font-bold mb-2" data-i18n="daily.editEarning">Daromadni tahrirlash</h2>
+      <h2 class="text-xl font-bold mb-2" id="earningModalTitle" data-i18n="daily.editEarning">Daromadni tahrirlash</h2>
       <p class="text-sm text-zinc-500 mb-5" id="earningEmployeeName">—</p>
       <form id="earningForm" class="space-y-4">
         <input type="hidden" id="earningAssignmentId" />
-        <div id="earningProductWrap" class="hidden">
+        <div id="earningProductWrap">
           <label class="field-label" data-i18n="daily.productCount">Mahsulot soni</label>
           <input type="number" id="earningProductCount" class="input-field w-full px-4 py-3 rounded-xl mono" min="0" />
         </div>
         <div>
-          <label class="field-label" data-i18n="daily.earning">Daromad</label>
+          <label class="field-label" data-i18n="daily.summa">Summa</label>
           <input type="number" id="earningAmount" class="input-field w-full px-4 py-3 rounded-xl mono" min="0" required />
         </div>
         <div class="flex gap-3 pt-2">

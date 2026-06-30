@@ -762,24 +762,25 @@ function renderDailyContent(data) {
   const assignedHtml = filteredAssigned.length === 0
     ? `<p class="text-sm text-zinc-500 text-center py-6">${t('daily.empty')}</p>`
     : filteredAssigned.map(a => {
-        const extra = isOn
-          ? (a.directionSnapshot?.name || '—')
-          : `${a.productCount || 0} ${t('common.sum')}/dona`;
-        return `<div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/15 mb-2">
-          <div class="flex-1 min-w-0">
+        const dirName = isOn ? escapeHtml(a.directionSnapshot?.name || '—') : '';
+        const code = escapeHtml(a.employeeSnapshot?.code || '—');
+        const subLine = isOn
+          ? `<span class="text-emerald-300">${code}</span> · ${dirName}`
+          : `<span class="text-emerald-300">${code}</span>`;
+        return `<div class="flex flex-wrap items-center gap-2 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/15 mb-2">
+          <div class="flex-1 min-w-[140px]">
             <div class="font-medium text-sm truncate">${escapeHtml(a.employeeSnapshot?.fullName || '—')}</div>
-            <div class="mono text-xs text-zinc-500 mt-0.5 truncate">
-              <span class="text-emerald-300">${escapeHtml(a.employeeSnapshot?.code || '—')}</span>
-              · ${extra}
-            </div>
+            <div class="mono text-xs text-zinc-500 mt-0.5 truncate">${subLine}</div>
           </div>
-          <div class="text-right shrink-0">
-            <div class="mono text-sm font-semibold text-emerald-400">${formatMoney(a.earning)}</div>
-          </div>
-          <button class="btn-icon" data-act="earning-edit" data-id="${a._id}">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          <button type="button" class="assign-edit-box" data-act="qtyfield-edit" data-id="${a._id}">
+            <div class="assign-edit-label">${t('daily.productCount')}</div>
+            <div class="assign-edit-value mono">${Number(a.productCount) || 0}</div>
           </button>
-          <button class="btn-icon danger" data-act="unassign" data-id="${a._id}">
+          <button type="button" class="assign-edit-box" data-act="summa-edit" data-id="${a._id}">
+            <div class="assign-edit-label">${t('daily.summa')}</div>
+            <div class="assign-edit-value mono">${formatMoney(a.earning)}</div>
+          </button>
+          <button class="btn-icon danger shrink-0" data-act="unassign" data-id="${a._id}">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>`;
@@ -862,6 +863,12 @@ function renderDailyContent(data) {
   container.querySelectorAll('[data-act="earning-edit"]').forEach(btn => {
     btn.addEventListener('click', () => openEarningModal(btn.dataset.id));
   });
+  container.querySelectorAll('[data-act="qtyfield-edit"]').forEach(btn => {
+    btn.addEventListener('click', () => openEarningModal(btn.dataset.id, 'product'));
+  });
+  container.querySelectorAll('[data-act="summa-edit"]').forEach(btn => {
+    btn.addEventListener('click', () => openEarningModal(btn.dataset.id, 'earning'));
+  });
   container.querySelectorAll('[data-act="prod-edit"]').forEach(btn => {
     btn.addEventListener('click', () => openProductionModal());
   });
@@ -884,16 +891,28 @@ function openQuantityModal(directionId, dirName, currentQty) {
   openModal('quantityModal');
 }
 
-function openEarningModal(assignmentId) {
+function openEarningModal(assignmentId, focus) {
   const a = state.dailyData.assigned.find(x => x._id === assignmentId);
   if (!a) return;
-  const isOn = state.dailyData.department.allowDirections;
   document.getElementById('earningAssignmentId').value = assignmentId;
   document.getElementById('earningEmployeeName').textContent = a.employeeSnapshot?.fullName || '—';
-  document.getElementById('earningProductWrap').classList.toggle('hidden', isOn);
-  document.getElementById('earningProductCount').value = a.productCount || 0;
-  document.getElementById('earningAmount').value = a.earning || 0;
+  document.getElementById('earningProductWrap').classList.remove('hidden');
+  const qtyInput = document.getElementById('earningProductCount');
+  const amtInput = document.getElementById('earningAmount');
+  qtyInput.value = a.productCount || 0;
+  amtInput.value = a.earning || 0;
+  const titleEl = document.getElementById('earningModalTitle');
+  if (titleEl) {
+    const key = focus === 'product' ? 'daily.editProductCount'
+              : focus === 'earning' ? 'daily.editSumma'
+              : 'daily.editEarning';
+    titleEl.textContent = t(key);
+  }
   openModal('earningModal');
+  setTimeout(() => {
+    const target = focus === 'product' ? qtyInput : amtInput;
+    try { target.focus(); target.select(); } catch (_) {}
+  }, 50);
 }
 
 function setupDailyReportPage() {
@@ -936,9 +955,10 @@ function setupDailyReportPage() {
   document.getElementById('earningForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('earningAssignmentId').value;
-    const isOn = state.dailyData.department.allowDirections;
-    const body = { earning: Number(document.getElementById('earningAmount').value || 0) };
-    if (!isOn) body.productCount = Number(document.getElementById('earningProductCount').value || 0);
+    const body = {
+      productCount: Number(document.getElementById('earningProductCount').value || 0),
+      earning: Number(document.getElementById('earningAmount').value || 0),
+    };
     try { await api(`/api/daily-report/assign/${id}`, { method: 'PUT', body: JSON.stringify(body) }); toast(t('msg.saved')); closeModal('earningModal'); loadDailyForDept(state.dailySelectedDeptId); }
     catch (e2) { toast(e2.message, 'error'); }
   });
