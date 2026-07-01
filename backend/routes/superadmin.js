@@ -1,14 +1,16 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const fs = require('fs');
+const path = require('path');
 const router = express.Router();
 
 const Business = require('../models/Business');
+const ArchiveFile = require('../models/ArchiveFile');
 const Employee = require('../models/Employee');
 const Department = require('../models/Department');
 const Direction = require('../models/Direction');
 const DailyAssignment = require('../models/DailyAssignment');
 const DailyProduction = require('../models/DailyProduction');
-const DailyQuantity = require('../models/DailyQuantity');
 const SalaryPayment = require('../models/SalaryPayment');
 const ReservedCode = require('../models/ReservedCode');
 
@@ -232,11 +234,22 @@ router.delete('/businesses/:id', async (req, res) => {
       Direction.deleteMany({ businessId: id }),
       DailyAssignment.deleteMany({ businessId: id }),
       DailyProduction.deleteMany({ businessId: id }),
-      DailyQuantity.deleteMany({ businessId: id }),
       SalaryPayment.deleteMany({ businessId: id }),
       ReservedCode.deleteMany({ businessId: id }),
+      ArchiveFile.deleteMany({ businessId: id }),
       Business.findByIdAndDelete(id),
     ]);
+
+    // Diskdagi arxiv fayllarni (Excel eksportlar) tozalash
+    try {
+      const bizArchiveDir = path.join(process.cwd(), 'uploads', 'archives', String(id));
+      if (fs.existsSync(bizArchiveDir)) {
+        fs.rmSync(bizArchiveDir, { recursive: true, force: true });
+      }
+    } catch (fsErr) {
+      console.error("Arxiv papkasini o'chirishda xato:", fsErr.message);
+    }
+
     console.log(`🗑️ Biznes o'chirildi: ${id}`);
     res.json({ success: true });
   } catch (err) {

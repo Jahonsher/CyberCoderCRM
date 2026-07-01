@@ -3,8 +3,6 @@
  *
  * Bo'lim CRUD. Har bo'limda:
  *  - allowDirections: true/false
- *  - budget: jami berilishi mumkin summa
- *  - pricePerUnit: OFF bo'lim uchun 1 birlik narxi
  *
  * Bo'lim turi o'zgartirilmaydi — o'chirib qayta yaratish kerak.
  */
@@ -56,7 +54,7 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { name, description, allowDirections, budget, pricePerUnit } = req.body;
+    const { name, description, allowDirections } = req.body;
     if (!name) return res.status(400).json({ error: "Bo'lim nomi majburiy" });
 
     const dept = await Department.create({
@@ -64,8 +62,6 @@ router.post('/', async (req, res) => {
       name: String(name).trim(),
       description: description ? String(description).trim() : '',
       allowDirections: allowDirections !== false,
-      budget: Math.max(0, Number(budget) || 0),
-      pricePerUnit: Math.max(0, Number(pricePerUnit) || 0),
     });
 
     const obj = dept.toObject();
@@ -83,11 +79,9 @@ router.put('/:id', async (req, res) => {
     const dept = await Department.findOne({ _id: req.params.id, businessId: req.businessId });
     if (!dept) return res.status(404).json({ error: "Bo'lim topilmadi" });
 
-    const { name, description, budget, pricePerUnit, allowDirections } = req.body;
+    const { name, description, allowDirections } = req.body;
     if (name !== undefined) dept.name = String(name).trim();
     if (description !== undefined) dept.description = String(description).trim();
-    if (budget !== undefined) dept.budget = Math.max(0, Number(budget) || 0);
-    if (pricePerUnit !== undefined) dept.pricePerUnit = Math.max(0, Number(pricePerUnit) || 0);
 
     // allowDirections o'zgartirilsa, ON->OFF da yo'nalishlar arxivlanadi
     if (allowDirections !== undefined && allowDirections !== dept.allowDirections) {

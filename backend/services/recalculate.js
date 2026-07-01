@@ -5,9 +5,9 @@
  *  - ON  bo'lim: direction.price = bir kunlik narx.
  *      fairShare = direction.price * shift
  *      earning   = isManual ? manualAmount : fairShare
- *  - OFF bo'lim: department.pricePerUnit (mahsulot uchun).
- *      fairShare = pricePerUnit * productCount
- *      earning   = isManual ? manualAmount : fairShare
+ *  - OFF bo'lim: daromad faqat qo'lda kiritiladi (isManual).
+ *      fairShare = 0
+ *      earning   = isManual ? manualAmount : 0
  */
 
 const DailyAssignment = require('../models/DailyAssignment');
@@ -44,8 +44,9 @@ async function recalculateForDate(businessId, dateStr) {
       price = dir ? (dir.price || 0) : 0;
       fair = price * (a.shift || 0);
     } else {
-      price = dept.pricePerUnit || 0;
-      fair = price * (a.productCount || 0);
+      // OFF bo'lim: avtomatik narx yo'q — daromad qo'lda kiritiladi
+      price = 0;
+      fair = 0;
     }
 
     let earning = fair;

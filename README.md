@@ -11,7 +11,6 @@ Multi-tenant CRM system for small and medium businesses. Built with Node.js, Exp
 - **Daily reports** — full/half shift tracking (1 or 0.5)
 - **Monthly reports** — search by employee code, calculate total earnings
 - **Archive system** — snapshot daily/weekly/monthly data
-- **Auto-reset** — daily cron at 03:00 resets assignments
 - **Multi-language** — Uzbek (Latin), Uzbek (Cyrillic), Russian
 - **Security hardening** — helmet, rate limit, XSS clean, mongo sanitize
 
@@ -27,11 +26,10 @@ Multi-tenant CRM system for small and medium businesses. Built with Node.js, Exp
 # 1. Install dependencies
 npm install
 
-# 2. Copy env file
-cp .env.example .env
+# 2. Create a .env file in the project root and fill in your values
+#    (MONGO_URI, JWT_SECRET, SUPER_USERNAME, SUPER_PASSWORD, PORT, ...)
 
-# 3. Fill in .env with your values
-# 4. Run the server
+# 3. Run the server
 npm start
 ```
 
@@ -89,7 +87,10 @@ CyberCoderCRM/
 
 ## Deployment
 
-See `DEPLOY.md` for Railway + MongoDB Atlas setup.
+Deployed on Railway with MongoDB Atlas. Set the environment variables
+(`MONGO_URI`, `JWT_SECRET`, `SUPER_USERNAME`, `SUPER_PASSWORD`, ...) in the
+Railway project settings. Build uses Nixpacks (`nixpacks.toml`); start command
+is `node backend/server.js`.
 
 ## License
 

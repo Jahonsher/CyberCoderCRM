@@ -94,7 +94,6 @@ const dailyAssignmentSchema = new mongoose.Schema(
     departmentSnapshot: {
       name: String,
       allowDirections: Boolean,
-      pricePerUnit: Number,
     },
     directionSnapshot: {
       name: String,

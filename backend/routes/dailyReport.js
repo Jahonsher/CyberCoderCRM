@@ -2,8 +2,9 @@
  * CyberCoderCRM - Daily Report (v2)
  *
  * Bo'lim bo'yicha kunlik biriktirish. ON va OFF bo'lim:
- *  - ON  bo'lim: directionId majburiy. POST /quantity bilan umumiy mahsulot soni kiritiladi.
- *  - OFF bo'lim: directionId yo'q. productCount per-xodim kiritiladi (assign yoki PUT).
+ *  - ON  bo'lim: directionId majburiy. Daromad = yo'nalish narxi × smena (avtomatik).
+ *  - OFF bo'lim: directionId yo'q. productCount per-xodim kiritiladi (assign yoki PUT),
+ *               daromad summasi qo'lda kiritiladi.
  *
  * Kelajak sana mumkin emas. Tashkent UTC+5 timezone.
  */
@@ -12,7 +13,6 @@ const express = require('express');
 const router = express.Router();
 
 const DailyAssignment = require('../models/DailyAssignment');
-const DailyQuantity = require('../models/DailyQuantity');
 const DailyProduction = require('../models/DailyProduction');
 const Department = require('../models/Department');
 const Direction = require('../models/Direction');
@@ -58,7 +58,7 @@ router.get('/', async (req, res) => {
 
     if (!departmentId) {
       const departments = await Department.find({ businessId: req.businessId }).sort('name').lean();
-      return res.json({ dateStr, departments, department: null, directions: [], assigned: [], unassigned: [], quantities: {}, stats: {} });
+      return res.json({ dateStr, departments, department: null, directions: [], assigned: [], unassigned: [], production: null, stats: {} });
     }
 
     const dept = await Department.findOne({ _id: departmentId, businessId: req.businessId }).lean();
@@ -74,16 +74,6 @@ router.get('/', async (req, res) => {
         .lean(),
       DailyAssignment.find({ businessId: req.businessId, departmentId, dateString: dateStr }).sort('-createdAt').lean(),
     ]);
-
-    let quantityMap = {};
-    if (dept.allowDirections && directions.length > 0) {
-      const qDocs = await DailyQuantity.find({
-        businessId: req.businessId,
-        dateString: dateStr,
-        directionId: { $in: directions.map(d => d._id) },
-      }).lean();
-      quantityMap = Object.fromEntries(qDocs.map(q => [String(q.directionId), q.quantity]));
-    }
 
     let production = null;
     if (!dept.allowDirections) {
@@ -109,7 +99,6 @@ router.get('/', async (req, res) => {
       directions,
       assigned,
       unassigned,
-      quantities: quantityMap,
       production,
       stats: {
         totalAssigned: assigned.length,
@@ -124,8 +113,10 @@ router.get('/', async (req, res) => {
 });
 
 /**
- * GET /api/daily-report/export?date=YYYY-MM-DD&lang=uz-lat
- * Tanlangan kun bo'yicha barcha biriktirishlarni Excel'ga eksport qiladi.
+ * GET /api/daily-report/export?date=YYYY-MM-DD&departmentId=<id>&directionId=<id>&lang=uz-lat
+ * Faqat tanlangan bo'limning shu kundagi biriktirishlarini Excel'ga eksport qiladi.
+ *  - ON bo'lim: yo'nalish bo'yicha; directionId berilsa faqat shu yo'nalish.
+ *  - OFF bo'lim: mahsulot nomi + umumiy son bilan.
  */
 router.get('/export', async (req, res) => {
   try {
@@ -137,16 +128,49 @@ router.get('/export', async (req, res) => {
       return res.status(400).json({ error: 'Kelajakdagi kun mumkin emas' });
     }
 
-    const [departments, assignments] = await Promise.all([
-      Department.find({ businessId: req.businessId }).sort('name').lean(),
-      DailyAssignment.find({ businessId: req.businessId, dateString: dateStr })
-        .sort('departmentSnapshot.name')
-        .lean(),
-    ]);
+    const { departmentId, directionId } = req.query;
+    if (!departmentId) {
+      return res.status(400).json({ error: "Bo'lim tanlanishi kerak" });
+    }
 
-    const buffer = await buildDailyReportWorkbook(lang, { date: dateStr, departments, assignments });
+    const dept = await Department.findOne({ _id: departmentId, businessId: req.businessId }).lean();
+    if (!dept) return res.status(404).json({ error: "Bo'lim topilmadi" });
 
-    const displayName = `${tr(lang, 'file.daily')}_${dateStr}.xlsx`;
+    // Faqat shu bo'lim biriktirishlari. ON bo'lim + aniq yo'nalish tanlansa — filtr.
+    const filter = { businessId: req.businessId, departmentId, dateString: dateStr };
+    let selectedDirectionName = null;
+    if (dept.allowDirections && directionId) {
+      filter.directionId = directionId;
+      const dir = await Direction.findOne({ _id: directionId, businessId: req.businessId }).lean();
+      selectedDirectionName = dir?.name || null;
+    }
+
+    const assignments = await DailyAssignment.find(filter).lean();
+
+    // OFF bo'lim: kunlik ishlab chiqarish (mahsulot nomi + umumiy son)
+    let production = null;
+    if (!dept.allowDirections) {
+      const pDoc = await DailyProduction.findOne({
+        businessId: req.businessId,
+        departmentId,
+        dateString: dateStr,
+      }).lean();
+      production = {
+        productName: pDoc?.productName || '',
+        quantity: pDoc?.quantity || 0,
+      };
+    }
+
+    const buffer = await buildDailyReportWorkbook(lang, {
+      date: dateStr,
+      department: dept,
+      assignments,
+      production,
+      selectedDirectionName,
+    });
+
+    const dirSuffix = selectedDirectionName ? `_${selectedDirectionName}` : '';
+    const displayName = `${tr(lang, 'file.daily')}_${dept.name}${dirSuffix}_${dateStr}.xlsx`;
     const generatedBy = req.user?.fullName || req.user?.login || req.user?.username || '';
 
     try {
@@ -154,14 +178,20 @@ router.get('/export', async (req, res) => {
         buffer,
         businessId: req.businessId,
         category: 'dailyReport',
-        subType: '',
+        subType: dept.allowDirections ? 'on' : 'off',
         language: lang,
         displayName,
         dateFrom: dateStr,
         dateTo: dateStr,
         rowCount: assignments.length,
         generatedBy,
-        meta: { date: dateStr, count: assignments.length },
+        meta: {
+          date: dateStr,
+          departmentId: String(departmentId),
+          departmentName: dept.name,
+          directionName: selectedDirectionName,
+          count: assignments.length,
+        },
       });
     } catch (archErr) {
       console.error('DailyReport export arxiv xatosi:', archErr);
@@ -236,7 +266,8 @@ router.post('/assign', async (req, res) => {
       if (!direction) return res.status(404).json({ error: "Yo'nalish topilmadi" });
       priceSnapshot = direction.price || 0;
     } else {
-      priceSnapshot = dept.pricePerUnit || 0;
+      // OFF bo'lim: avtomatik narx yo'q — daromad qo'lda kiritiladi
+      priceSnapshot = 0;
     }
 
     const pc = Math.max(0, Number(productCount) || 0);
@@ -260,7 +291,6 @@ router.post('/assign', async (req, res) => {
       departmentSnapshot: {
         name: dept.name,
         allowDirections: dept.allowDirections,
-        pricePerUnit: dept.pricePerUnit,
       },
       directionSnapshot: direction ? { name: direction.name, price: direction.price } : undefined,
     });
@@ -357,7 +387,7 @@ router.post('/production', async (req, res) => {
     const dept = await Department.findOne({ _id: departmentId, businessId: req.businessId });
     if (!dept) return res.status(404).json({ error: "Bo'lim topilmadi" });
     if (dept.allowDirections) {
-      return res.status(400).json({ error: "ON bo'lim — /quantity dan foydalaning" });
+      return res.status(400).json({ error: "ON bo'lim uchun mahsulot soni kiritilmaydi" });
     }
 
     const qty = Math.max(0, Number(quantity) || 0);
@@ -374,46 +404,6 @@ router.post('/production', async (req, res) => {
     res.json(doc);
   } catch (err) {
     console.error('Production POST:', err);
-    res.status(500).json({ error: err.message || 'Server xatosi' });
-  }
-});
-
-/**
- * POST /api/daily-report/quantity
- * Body: { directionId, date?, quantity }
- * ON-yo'nalish uchun kunlik umumiy mahsulot soni (upsert).
- */
-router.post('/quantity', async (req, res) => {
-  try {
-    const { directionId, date, quantity } = req.body;
-    if (!directionId || quantity === undefined) {
-      return res.status(400).json({ error: 'directionId va quantity majburiy' });
-    }
-
-    const dateStr = parseDateString(date) || todayDateString();
-    if (dateStr > todayDateString()) {
-      return res.status(400).json({ error: 'Kelajakdagi kun mumkin emas' });
-    }
-
-    const direction = await Direction.findOne({
-      _id: directionId,
-      businessId: req.businessId,
-      isArchived: { $ne: true },
-    });
-    if (!direction) return res.status(404).json({ error: "Yo'nalish topilmadi" });
-
-    const qty = Math.max(0, Number(quantity) || 0);
-
-    const doc = await DailyQuantity.findOneAndUpdate(
-      { businessId: req.businessId, directionId, dateString: dateStr },
-      { $set: { quantity: qty, date: new Date(dateStr) } },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    );
-
-    await recalculateForDate(req.businessId, dateStr);
-    res.json(doc);
-  } catch (err) {
-    console.error('Quantity POST:', err);
     res.status(500).json({ error: err.message || 'Server xatosi' });
   }
 });

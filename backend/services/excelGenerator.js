@@ -53,6 +53,17 @@ function applyTotalRowStyle(ws, rowNum) {
   row.alignment = { vertical: 'middle' };
 }
 
+// Ixtiyoriy qatordagi header'ni indigo uslubda bezaydi + autofilter + frozen
+function styleHeaderRow(ws, rowNum, cols) {
+  const row = ws.getRow(rowNum);
+  row.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 };
+  row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F46E5' } };
+  row.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+  row.height = 22;
+  ws.autoFilter = { from: `A${rowNum}`, to: `${colLetter(cols)}${rowNum}` };
+  ws.views = [{ state: 'frozen', ySplit: rowNum }];
+}
+
 // =============================================================
 // 1) Xodimlar
 // =============================================================
@@ -94,79 +105,125 @@ async function buildEmployeesWorkbook(lang, { employees = [] } = {}) {
 }
 
 // =============================================================
-// 2) Kunlik hisobot
+// 2) Kunlik hisobot — bitta bo'lim (ON yoki OFF)
 // =============================================================
-async function buildDailyReportWorkbook(lang, { date, departments = [], assignments = [] } = {}) {
+// ON  bo'lim: yo'nalish bo'yicha saralangan (Yo'nalish, Kod, F.I.SH, Smena, Daromad).
+//             selectedDirectionName berilsa sarlavhada ko'rsatiladi.
+// OFF bo'lim: mahsulot nomi + umumiy son info qatori, so'ng (Kod, F.I.SH, Mahsulot, Daromad).
+async function buildDailyReportWorkbook(lang, {
+  date,
+  department = {},
+  assignments = [],
+  production = null,
+  selectedDirectionName = null,
+} = {}) {
   const wb = new ExcelJS.Workbook();
   wb.creator = 'CyberCoderCRM';
   wb.created = new Date();
-  const ws = wb.addWorksheet(safeSheetName(tr(lang, 'sheet.daily')));
 
-  // Sarlavha (info row)
-  ws.mergeCells('A1:G1');
-  const titleCell = ws.getCell('A1');
-  titleCell.value = `${tr(lang, 'sheet.daily')} — ${date || '-'}`;
-  titleCell.font = { bold: true, size: 14, color: { argb: 'FF1F2937' } };
-  titleCell.alignment = { vertical: 'middle', horizontal: 'left' };
-  ws.getRow(1).height = 24;
+  const isOn = !!department.allowDirections;
+  const deptName = department.name || '-';
+  const ws = wb.addWorksheet(safeSheetName(deptName));
 
-  // Ustun headerlari (2-qatorda)
-  const headers = [
-    tr(lang, 'common.department'),
-    tr(lang, 'common.code'),
-    tr(lang, 'common.fullName'),
-    tr(lang, 'common.direction'),
-    tr(lang, 'common.shift'),
-    tr(lang, 'common.productCount'),
-    tr(lang, 'common.earning'),
-  ];
-  ws.getRow(2).values = headers;
-  ws.columns = [
-    { key: 'department', width: 22 },
-    { key: 'code', width: 14 },
-    { key: 'fullName', width: 30 },
-    { key: 'direction', width: 22 },
-    { key: 'shift', width: 10 },
-    { key: 'productCount', width: 14 },
-    { key: 'earning', width: 18 },
-  ];
-
-  const headerRow = ws.getRow(2);
-  headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 };
-  headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F46E5' } };
-  headerRow.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-  headerRow.height = 22;
-  ws.autoFilter = { from: 'A2', to: 'G2' };
-  ws.views = [{ state: 'frozen', ySplit: 2 }];
-
-  const deptName = (id) => {
-    const d = departments.find((x) => String(x._id) === String(id));
-    return d ? d.name : '-';
+  const titleCol = (n) => {
+    ws.mergeCells(`A1:${colLetter(n)}1`);
+    const c = ws.getCell('A1');
+    c.font = { bold: true, size: 14, color: { argb: 'FF1F2937' } };
+    c.alignment = { vertical: 'middle', horizontal: 'left' };
+    ws.getRow(1).height = 24;
+    return c;
   };
 
-  let totalProduct = 0;
-  let totalEarning = 0;
-  for (const a of assignments) {
-    const earning = a.earning || 0;
-    const pc = a.productCount || 0;
-    totalEarning += earning;
-    totalProduct += pc;
-    ws.addRow({
-      department: a.departmentSnapshot?.name || deptName(a.departmentId),
-      code: a.employeeSnapshot?.code || '-',
-      fullName: a.employeeSnapshot?.fullName || '-',
-      direction: a.directionSnapshot?.name || '-',
-      shift: a.shift || 0,
-      productCount: pc,
-      earning,
-    });
-  }
+  if (isOn) {
+    const cols = 5;
+    const dirSuffix = selectedDirectionName ? ` — ${selectedDirectionName}` : '';
+    titleCol(cols).value = `${tr(lang, 'sheet.daily')} — ${deptName}${dirSuffix} — ${date || '-'}`;
 
-  // Jami qatori
-  const totalRowIdx = ws.rowCount + 1;
-  const totalRow = ws.getRow(totalRowIdx);
-  totalRow.values = ['', '', '', '', tr(lang, 'common.total'), totalProduct, totalEarning];
-  applyTotalRowStyle(ws, totalRowIdx);
+    ws.getRow(2).values = [
+      tr(lang, 'common.direction'),
+      tr(lang, 'common.code'),
+      tr(lang, 'common.fullName'),
+      tr(lang, 'common.shift'),
+      tr(lang, 'common.earning'),
+    ];
+    ws.columns = [
+      { key: 'direction', width: 24 },
+      { key: 'code', width: 14 },
+      { key: 'fullName', width: 30 },
+      { key: 'shift', width: 10 },
+      { key: 'earning', width: 18 },
+    ];
+    styleHeaderRow(ws, 2, cols);
+
+    const rows = [...assignments].sort((a, b) => {
+      const da = String(a.directionSnapshot?.name || '').localeCompare(String(b.directionSnapshot?.name || ''));
+      if (da !== 0) return da;
+      return String(a.employeeSnapshot?.fullName || '').localeCompare(String(b.employeeSnapshot?.fullName || ''));
+    });
+
+    let totalEarning = 0;
+    for (const a of rows) {
+      totalEarning += a.earning || 0;
+      ws.addRow({
+        direction: a.directionSnapshot?.name || '—',
+        code: a.employeeSnapshot?.code || '-',
+        fullName: a.employeeSnapshot?.fullName || '-',
+        shift: a.shift || 0,
+        earning: a.earning || 0,
+      });
+    }
+
+    const totalRowIdx = ws.rowCount + 1;
+    ws.getRow(totalRowIdx).values = ['', '', '', tr(lang, 'common.total'), totalEarning];
+    applyTotalRowStyle(ws, totalRowIdx);
+  } else {
+    const cols = 4;
+    titleCol(cols).value = `${tr(lang, 'sheet.daily')} — ${deptName} — ${date || '-'}`;
+
+    // Info qatori: mahsulot nomi + umumiy son
+    ws.mergeCells(`A2:${colLetter(cols)}2`);
+    const info = ws.getCell('A2');
+    const pName = (production && production.productName) || '—';
+    const pQty = (production && production.quantity) || 0;
+    info.value = `${tr(lang, 'common.productName')}: ${pName}    ·    ${tr(lang, 'common.totalProduct')}: ${pQty}`;
+    info.font = { bold: true, size: 11, color: { argb: 'FF4F46E5' } };
+    info.alignment = { vertical: 'middle', horizontal: 'left' };
+    ws.getRow(2).height = 20;
+
+    ws.getRow(3).values = [
+      tr(lang, 'common.code'),
+      tr(lang, 'common.fullName'),
+      tr(lang, 'common.productCount'),
+      tr(lang, 'common.earning'),
+    ];
+    ws.columns = [
+      { key: 'code', width: 14 },
+      { key: 'fullName', width: 30 },
+      { key: 'productCount', width: 16 },
+      { key: 'earning', width: 18 },
+    ];
+    styleHeaderRow(ws, 3, cols);
+
+    const rows = [...assignments].sort((a, b) =>
+      String(a.employeeSnapshot?.fullName || '').localeCompare(String(b.employeeSnapshot?.fullName || '')));
+
+    let totalProduct = 0;
+    let totalEarning = 0;
+    for (const a of rows) {
+      totalProduct += a.productCount || 0;
+      totalEarning += a.earning || 0;
+      ws.addRow({
+        code: a.employeeSnapshot?.code || '-',
+        fullName: a.employeeSnapshot?.fullName || '-',
+        productCount: a.productCount || 0,
+        earning: a.earning || 0,
+      });
+    }
+
+    const totalRowIdx = ws.rowCount + 1;
+    ws.getRow(totalRowIdx).values = ['', tr(lang, 'common.total'), totalProduct, totalEarning];
+    applyTotalRowStyle(ws, totalRowIdx);
+  }
 
   return await wb.xlsx.writeBuffer();
 }

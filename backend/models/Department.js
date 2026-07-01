@@ -5,9 +5,8 @@
  *  - allowDirections: true  → ON  bo'lim, ichida yo'nalishlar bo'ladi (filter).
  *                              Kunlik hisobotda admin umumiy mahsulot sonini kiritadi,
  *                              har yo'nalish narxi bo'yicha xodimlarga taqsimlanadi.
- *  - allowDirections: false → OFF bo'lim, yo'nalish yo'q. Bo'limning o'zida narx bor.
- *                              Har xodim qo'lda kiritilgan productCount × pricePerUnit oladi.
- *  - budget: bo'lim doirasida xodimlarga jami berilishi mumkin bo'lgan summa (cheklov).
+ *  - allowDirections: false → OFF bo'lim, yo'nalish yo'q. Xodim daromadi kunlik
+ *                              hisobotda qo'lda (summa) kiritiladi.
  */
 
 const mongoose = require('mongoose');
@@ -36,16 +35,6 @@ const departmentSchema = new mongoose.Schema(
       required: true,
       default: true,
       index: true,
-    },
-    budget: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    pricePerUnit: {
-      type: Number,
-      default: 0,
-      min: 0,
     },
   },
   { timestamps: true }

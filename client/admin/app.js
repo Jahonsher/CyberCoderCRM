@@ -467,8 +467,6 @@ function renderDepartments() {
         <div class="mono text-xs text-zinc-500 mb-3">
           ${d.allowDirections ? `${d.directionCount || 0} ${t('dept.directionCount')} · ` : ''}${d.employeeCount || 0} ${t('dept.employeeCount')}
         </div>
-        ${d.budget > 0 ? `<div class="text-xs text-zinc-400 mb-2">${t('dept.budget')}: <span class="mono text-emerald-400">${formatMoney(d.budget)}</span></div>` : ''}
-        ${!d.allowDirections && d.pricePerUnit > 0 ? `<div class="text-xs text-zinc-400 mb-2">${t('dept.pricePerUnit')}: <span class="mono text-purple-300">${formatMoney(d.pricePerUnit)}</span></div>` : ''}
         <div class="flex gap-1 pt-2 border-t border-purple-500/10">
           <button class="btn-icon flex-1" data-act="dept-edit" data-id="${d._id}" onclick="event.stopPropagation()" title="${t('common.edit')}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -757,8 +755,6 @@ function renderDailyContent(data) {
     ${productionCardHtml}
   </div>`;
 
-  const productionHtml = '';
-
   const assignedHtml = filteredAssigned.length === 0
     ? `<p class="text-sm text-zinc-500 text-center py-6">${t('daily.empty')}</p>`
     : filteredAssigned.map(a => {
@@ -772,10 +768,11 @@ function renderDailyContent(data) {
             <div class="font-medium text-sm truncate">${escapeHtml(a.employeeSnapshot?.fullName || '—')}</div>
             <div class="mono text-xs text-zinc-500 mt-0.5 truncate">${subLine}</div>
           </div>
+          ${isOn ? '' : `
           <button type="button" class="assign-edit-box" data-act="qtyfield-edit" data-id="${a._id}">
             <div class="assign-edit-label">${t('daily.productCount')}</div>
             <div class="assign-edit-value mono">${Number(a.productCount) || 0}</div>
-          </button>
+          </button>`}
           <button type="button" class="assign-edit-box" data-act="summa-edit" data-id="${a._id}">
             <div class="assign-edit-label">${t('daily.summa')}</div>
             <div class="assign-edit-value mono">${formatMoney(a.earning)}</div>
@@ -801,7 +798,7 @@ function renderDailyContent(data) {
       </div>`;
       }).join('');
 
-  container.innerHTML = dirFilterHtml + productionHtml + statsHtml + `
+  container.innerHTML = dirFilterHtml + statsHtml + `
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div class="card p-5">
         <h3 class="font-bold mb-3 flex items-center gap-2">
@@ -830,9 +827,6 @@ function renderDailyContent(data) {
   }
 
   // Event handlers
-  container.querySelectorAll('[data-act="qty-edit"]').forEach(btn => {
-    btn.addEventListener('click', () => openQuantityModal(btn.dataset.id, btn.dataset.name, Number(btn.dataset.qty)));
-  });
   container.querySelectorAll('[data-act="assign-direct"]').forEach(btn => {
     btn.addEventListener('click', async () => {
       if (btn.disabled) return;
@@ -860,9 +854,6 @@ function renderDailyContent(data) {
       catch (e) { toast(e.message, 'error'); }
     });
   });
-  container.querySelectorAll('[data-act="earning-edit"]').forEach(btn => {
-    btn.addEventListener('click', () => openEarningModal(btn.dataset.id));
-  });
   container.querySelectorAll('[data-act="qtyfield-edit"]').forEach(btn => {
     btn.addEventListener('click', () => openEarningModal(btn.dataset.id, 'product'));
   });
@@ -884,19 +875,14 @@ function openProductionModal() {
   openModal('productionModal');
 }
 
-function openQuantityModal(directionId, dirName, currentQty) {
-  document.getElementById('quantityDirectionId').value = directionId;
-  document.getElementById('quantityDirName').textContent = dirName;
-  document.getElementById('quantityValue').value = currentQty;
-  openModal('quantityModal');
-}
-
 function openEarningModal(assignmentId, focus) {
   const a = state.dailyData.assigned.find(x => x._id === assignmentId);
   if (!a) return;
   document.getElementById('earningAssignmentId').value = assignmentId;
   document.getElementById('earningEmployeeName').textContent = a.employeeSnapshot?.fullName || '—';
-  document.getElementById('earningProductWrap').classList.remove('hidden');
+  // Mahsulot soni faqat OFF bo'lim uchun; ON bo'limda daromad narx×smena
+  const isOn = !!(state.dailyData.department && state.dailyData.department.allowDirections);
+  document.getElementById('earningProductWrap').classList.toggle('hidden', isOn);
   const qtyInput = document.getElementById('earningProductCount');
   const amtInput = document.getElementById('earningAmount');
   qtyInput.value = a.productCount || 0;
@@ -927,17 +913,6 @@ function setupDailyReportPage() {
   document.getElementById('dailyTodayBtn').addEventListener('click', () => {
     state.dailyDate = todayISO();
     loadDailyReportPage();
-  });
-
-  document.getElementById('quantityForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const body = {
-      directionId: document.getElementById('quantityDirectionId').value,
-      quantity: Number(document.getElementById('quantityValue').value || 0),
-      date: state.dailyDate,
-    };
-    try { await api('/api/daily-report/quantity', { method: 'POST', body: JSON.stringify(body) }); toast(t('msg.saved')); closeModal('quantityModal'); loadDailyForDept(state.dailySelectedDeptId); }
-    catch (e2) { toast(e2.message, 'error'); }
   });
 
   document.getElementById('productionForm').addEventListener('submit', async (e) => {
@@ -1707,8 +1682,16 @@ function setupExportButtons() {
     dailyBtn.addEventListener('click', async () => {
       const lang = window.getCurrentLang ? window.getCurrentLang() : 'uz-lat';
       const date = state.dailyDate || document.getElementById('dailyDateInput')?.value || todayISO();
+      const deptId = state.dailySelectedDeptId;
+      if (!deptId) { toast(t('daily.selectDept'), 'error'); return; }
+      const params = new URLSearchParams();
+      params.set('date', date);
+      params.set('lang', lang);
+      params.set('departmentId', deptId);
+      // ON bo'limda aniq yo'nalish tanlangan bo'lsa — faqat shu yo'nalish
+      if (state.dailySelectedDirId) params.set('directionId', state.dailySelectedDirId);
       try {
-        await downloadExcel(`/api/daily-report/export?date=${encodeURIComponent(date)}&lang=${encodeURIComponent(lang)}`, `kunlik_${date}.xlsx`);
+        await downloadExcel(`/api/daily-report/export?${params.toString()}`, `kunlik_${date}.xlsx`);
         toast(t('export.done'));
       } catch (e) { toast(e.message, 'error'); }
     });
