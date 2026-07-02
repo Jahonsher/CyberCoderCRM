@@ -206,7 +206,7 @@ function renderBusinesses(businesses) {
 function renderCard(b) {
   const firstLetter = (b.name || '?').charAt(0).toUpperCase();
   const logoHtml = b.logo
-    ? `<img src="${apiUrl('/uploads/' + escapeHtml(b.logo))}" alt="${escapeHtml(b.name)}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<div class=\\'logo-placeholder w-full h-full\\'>${firstLetter}</div>'" />`
+    ? `<img src="${escapeHtml(apiUrl(b.logo.charAt(0) === '/' ? b.logo : '/uploads/' + b.logo))}" alt="${escapeHtml(b.name)}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<div class=\\'logo-placeholder w-full h-full\\'>${firstLetter}</div>'" />`
     : `<div class="logo-placeholder w-full h-full">${firstLetter}</div>`;
   const statusBadge = b.status === 'active'
     ? '<span class="badge badge-active"><span class="dot"></span>ACTIVE</span>'
@@ -345,7 +345,8 @@ function openEditModal(id) {
 
   const preview = document.getElementById('logoPreview');
   if (biz.logo) {
-    preview.innerHTML = `<img src="${apiUrl('/uploads/' + escapeHtml(biz.logo))}" alt="logo" class="w-full h-full object-cover" />`;
+    const src = apiUrl(biz.logo.charAt(0) === '/' ? biz.logo : '/uploads/' + biz.logo);
+    preview.innerHTML = `<img src="${escapeHtml(src)}" alt="logo" class="w-full h-full object-cover" />`;
   } else {
     resetLogoPreview();
   }

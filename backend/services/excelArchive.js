@@ -65,20 +65,12 @@ async function saveToArchive({
   if (!category) throw new Error('category kerak');
   if (!language) throw new Error('language kerak');
 
-  const bizDirName = String(businessId);
-  const absDir = path.join(ARCHIVES_ROOT, bizDirName, category);
-  ensureDir(absDir);
-
   const ts = Date.now();
   const slug = slugify(displayName || category);
   const fileName = `${ts}_${slug}.xlsx`;
-  const absPath = path.join(absDir, fileName);
-  const relPath = path.posix.join('archives', bizDirName, category, fileName);
+  const buf = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
 
-  // Diskka yozish
-  fs.writeFileSync(absPath, buffer);
-  const stat = fs.statSync(absPath);
-
+  // Fayl binary'sini bevosita DB'ga yozamiz (diskka emas) — deploy'da yo'qolmaydi.
   let doc;
   try {
     doc = await ArchiveFile.create({
@@ -88,8 +80,9 @@ async function saveToArchive({
       language,
       fileName,
       displayName,
-      filePath: relPath,
-      fileSize: stat.size,
+      filePath: null,
+      data: buf,
+      fileSize: buf.length,
       rowCount,
       dateFrom,
       dateTo,
@@ -98,8 +91,6 @@ async function saveToArchive({
       meta,
     });
   } catch (err) {
-    // DB yozish xato — diskdagi faylni tozalaymiz
-    try { fs.unlinkSync(absPath); } catch (_) {}
     console.error('saveToArchive DB xato:', err);
     throw err;
   }

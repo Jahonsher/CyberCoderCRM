@@ -13,6 +13,7 @@ const SuperAdmin = require('../models/SuperAdmin');
 const Business = require('../models/Business');
 const { verifyToken } = require('../middleware/auth');
 const { getAllModules } = require('../config/modules');
+const { logoUrl } = require('../utils/logo');
 
 router.post('/login', async (req, res) => {
   try {
@@ -96,7 +97,7 @@ router.post('/login', async (req, res) => {
         id: business._id,
         login: business.login,
         name: business.name,
-        logo: business.logo,
+        logo: logoUrl(business),
         role: 'admin',
         enabledModules: business.enabledModules || [],
         defaultLanguage: business.defaultLanguage || 'uz-lat',
@@ -136,7 +137,7 @@ router.get('/me', verifyToken, async (req, res) => {
         id: business._id,
         login: business.login,
         name: business.name,
-        logo: business.logo,
+        logo: logoUrl(business),
         phone: business.phone,
         role: 'admin',
         enabledModules: business.enabledModules || [],

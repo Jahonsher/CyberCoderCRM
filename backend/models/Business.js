@@ -35,7 +35,18 @@ const businessSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    // Legacy: eski diskdagi logo fayl nomi (backward-compat uchun saqlanadi)
     logo: {
+      type: String,
+      default: null,
+    },
+    // Yangi: logo binary sifatida bevosita DB'da (deploy'da yo'qolmaydi)
+    logoData: {
+      type: Buffer,
+      default: null,
+      select: false, // og'ir maydon — faqat aniq so'ralganda yuklanadi
+    },
+    logoType: {
       type: String,
       default: null,
     },

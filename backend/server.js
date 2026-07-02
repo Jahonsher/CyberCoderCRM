@@ -112,6 +112,27 @@ app.use('/uploads', express.static(uploadsDir, {
   },
 }));
 
+// ========== BIZNES LOGOSI (public, DB'dan) ==========
+// Logo binary MongoDB'da saqlanadi; <img src> token yubormagani uchun public.
+const Business = require('./models/Business');
+app.get('/logo/:id', async (req, res) => {
+  try {
+    const biz = await Business.findById(req.params.id)
+      .select('+logoData logoType')
+      .lean();
+    if (!biz || !biz.logoData) return res.status(404).end();
+    const buf = Buffer.isBuffer(biz.logoData)
+      ? biz.logoData
+      : Buffer.from(biz.logoData.buffer || biz.logoData);
+    res.setHeader('Content-Type', biz.logoType || 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    return res.send(buf);
+  } catch (err) {
+    return res.status(500).end();
+  }
+});
+
 app.use('/superadmin', express.static(path.join(__dirname, '..', 'client', 'superadmin')));
 app.use('/admin', express.static(path.join(__dirname, '..', 'client', 'admin')));
 app.use('/shared', express.static(path.join(__dirname, '..', 'client', 'shared')));

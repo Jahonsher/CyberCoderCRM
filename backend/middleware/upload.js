@@ -4,28 +4,10 @@
  */
 
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-const crypto = require('crypto');
 
-// Uploads papka yaratish (agar yo'q bo'lsa)
-const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-// Storage konfiguratsiya
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    // Noyob fayl nom: timestamp + random + ext
-    const uniqueSuffix = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}`;
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `${uniqueSuffix}${ext}`);
-  },
-});
+// Storage: xotira (memory) — fayl diskka yozilmaydi, req.file.buffer orqali
+// bevosita MongoDB'ga saqlanadi. Shu bois deploy'da yo'qolmaydi.
+const storage = multer.memoryStorage();
 
 // Fayl filtri
 const fileFilter = (req, file, cb) => {

@@ -197,13 +197,8 @@ router.get('/files/:id/download', async (req, res) => {
     const doc = await ArchiveFile.findOne({
       _id: req.params.id,
       businessId: req.businessId,
-    }).lean();
+    }).select('+data').lean();
     if (!doc) return res.status(404).json({ error: 'Fayl topilmadi' });
-
-    const abs = getAbsolutePath(doc.filePath);
-    if (!fs.existsSync(abs)) {
-      return res.status(404).json({ error: 'Disk faylda topilmadi' });
-    }
 
     res.setHeader(
       'Content-Type',
@@ -213,12 +208,26 @@ router.get('/files/:id/download', async (req, res) => {
       'Content-Disposition',
       `attachment; filename="${encodeURIComponent(doc.displayName || doc.fileName)}"`
     );
-    const stream = fs.createReadStream(abs);
-    stream.on('error', (err) => {
-      console.error('Archive download stream xato:', err);
-      if (!res.headersSent) res.status(500).end();
-    });
-    stream.pipe(res);
+
+    // Yangi yozuvlar: binary DB'da
+    if (doc.data && doc.data.length) {
+      return res.send(Buffer.isBuffer(doc.data) ? doc.data : Buffer.from(doc.data.buffer || doc.data));
+    }
+
+    // Legacy: eski diskdagi fayl (deploy'dan keyin mavjud bo'lmasligi mumkin)
+    if (doc.filePath) {
+      const abs = getAbsolutePath(doc.filePath);
+      if (fs.existsSync(abs)) {
+        const stream = fs.createReadStream(abs);
+        stream.on('error', (err) => {
+          console.error('Archive download stream xato:', err);
+          if (!res.headersSent) res.status(500).end();
+        });
+        return stream.pipe(res);
+      }
+    }
+
+    return res.status(404).json({ error: 'Fayl maʼlumoti topilmadi' });
   } catch (err) {
     console.error('Archive download GET:', err);
     res.status(500).json({ error: 'Server xatosi' });

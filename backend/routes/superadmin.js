@@ -17,6 +17,17 @@ const ReservedCode = require('../models/ReservedCode');
 const { verifyToken, requireSuperAdmin } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 const { getAllModules } = require('../config/modules');
+const { logoUrl } = require('../utils/logo');
+
+// Javobdan og'ir/maxfiy maydonlarni olib tashlab, logo URL qo'shadi
+function sanitizeBusiness(bizObj) {
+  if (!bizObj) return bizObj;
+  const out = { ...bizObj };
+  delete out.password;
+  delete out.logoData;
+  out.logo = logoUrl(bizObj);
+  return out;
+}
 
 router.use(verifyToken, requireSuperAdmin);
 
@@ -58,7 +69,7 @@ router.get('/businesses', async (req, res) => {
     empCounts.forEach(c => { countMap[String(c._id)] = c.count; });
 
     const result = businesses.map(biz => ({
-      ...biz,
+      ...sanitizeBusiness(biz),
       stats: { employees: countMap[String(biz._id)] || 0 },
     }));
     res.json(result);
@@ -116,16 +127,16 @@ router.post('/businesses', upload.single('logo'), async (req, res) => {
       defaultLanguage: defaultLanguage || 'uz-lat',
       note: note ? String(note).trim() : '',
       enabledModules: modules,
-      logo: req.file ? req.file.filename : null,
+      logoData: req.file ? req.file.buffer : null,
+      logoType: req.file ? req.file.mimetype : null,
+      logo: null,
       status: 'active',
     });
 
     await business.save();
     console.log(`✅ Biznes yaratildi: ${business.name} (${loginLower})`);
 
-    const result = business.toObject();
-    delete result.password;
-    res.status(201).json(result);
+    res.status(201).json(sanitizeBusiness(business.toObject()));
   } catch (err) {
     console.error('❌ Business yaratishda xato:', err);
     res.status(500).json({ error: err.message || 'Server xatosi' });
@@ -171,16 +182,15 @@ router.put('/businesses/:id', upload.single('logo'), async (req, res) => {
     }
 
     if (req.file) {
-      business.logo = req.file.filename;
+      business.logoData = req.file.buffer;
+      business.logoType = req.file.mimetype;
+      business.logo = null; // eski disk fayliga bog'liqlikni uzamiz
     }
 
     await business.save();
 
-    const result = business.toObject();
-    delete result.password;
-
     console.log(`✅ Biznes yangilandi: ${business.name}`);
-    res.json(result);
+    res.json(sanitizeBusiness(business.toObject()));
   } catch (err) {
     console.error('❌ Business yangilashda xato:', err);
     res.status(500).json({ error: err.message || 'Server xatosi' });
@@ -218,7 +228,7 @@ router.put('/businesses/:id/modules', async (req, res) => {
       { new: true }
     ).select('-password');
     if (!business) return res.status(404).json({ error: 'Biznes topilmadi' });
-    res.json(business);
+    res.json(sanitizeBusiness(business.toObject()));
   } catch (err) {
     console.error('Modules xato:', err);
     res.status(500).json({ error: 'Server xatosi' });

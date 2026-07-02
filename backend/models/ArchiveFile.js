@@ -39,9 +39,16 @@ const archiveFileSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    // Legacy: eski diskdagi fayl yo'li (backward-compat)
     filePath: {
       type: String,
-      required: true,
+      default: null,
+    },
+    // Yangi: Excel binary bevosita DB'da (deploy'da yo'qolmaydi)
+    data: {
+      type: Buffer,
+      default: null,
+      select: false, // og'ir maydon — faqat yuklab olishda so'raladi
     },
     fileSize: {
       type: Number,

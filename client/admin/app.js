@@ -211,7 +211,9 @@ function applyBranding(b) {
   const logoEl = document.getElementById('businessLogo');
   const firstLetter = (b.name || '?').charAt(0).toUpperCase();
   if (b.logo) {
-    logoEl.innerHTML = `<img src="${apiUrl('/uploads/' + b.logo)}" alt="logo" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<div class=\\'w-full h-full flex items-center justify-center text-white font-bold\\'>${firstLetter}</div>'" />`;
+    // b.logo endi tayyor URL yo'li ("/logo/<id>?v=..." yoki legacy "/uploads/<fayl>")
+    const logoSrc = apiUrl(b.logo.charAt(0) === '/' ? b.logo : '/uploads/' + b.logo);
+    logoEl.innerHTML = `<img src="${logoSrc}" alt="logo" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<div class=\\'w-full h-full flex items-center justify-center text-white font-bold\\'>${firstLetter}</div>'" />`;
   } else {
     logoEl.innerHTML = `<div class="w-full h-full flex items-center justify-center text-white font-bold">${firstLetter}</div>`;
   }
