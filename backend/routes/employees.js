@@ -20,6 +20,7 @@ const requireModule = require('../middleware/requireModule');
 const { buildEmployeesWorkbook } = require('../services/excelGenerator');
 const { saveToArchive } = require('../services/excelArchive');
 const { tr } = require('../services/excelI18n');
+const { sortByCode } = require('../utils/codeSort');
 
 router.use(verifyToken, requireAdmin, businessScope, requireModule('employees'));
 
@@ -35,8 +36,8 @@ router.get('/', async (req, res) => {
     const employees = await Employee.find(filter)
       .populate('departmentId', 'name allowDirections')
       .populate('directionId', 'name price')
-      .sort('-createdAt')
       .lean();
+    sortByCode(employees);
     res.json(employees);
   } catch (err) {
     console.error('Employees GET:', err);
@@ -59,8 +60,8 @@ router.get('/export', async (req, res) => {
     })
       .populate('departmentId', 'name allowDirections')
       .populate('directionId', 'name price')
-      .sort('-createdAt')
       .lean();
+    sortByCode(employees);
 
     const buffer = await buildEmployeesWorkbook(lang, { employees });
 

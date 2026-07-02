@@ -27,6 +27,7 @@ const { distributeOff } = require('../services/distributeOff');
 const { buildDailyReportWorkbook } = require('../services/excelGenerator');
 const { saveToArchive } = require('../services/excelArchive');
 const { tr } = require('../services/excelI18n');
+const { sortByCode } = require('../utils/codeSort');
 
 router.use(verifyToken, requireAdmin, businessScope, requireModule('dailyReport'));
 
@@ -90,6 +91,10 @@ router.get('/', async (req, res) => {
 
     const assignedIds = new Set(assigned.map(a => String(a.employeeId)));
     const unassigned = employees.filter(e => !assignedIds.has(String(e._id)));
+
+    // Kod bo'yicha tartiblash (assigned kodi snapshotda)
+    sortByCode(assigned, a => a.employeeSnapshot?.code || '');
+    sortByCode(unassigned);
 
     const totalEarning = assigned.reduce((s, a) => s + (a.earning || 0), 0);
 

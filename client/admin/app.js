@@ -733,6 +733,8 @@ function renderDailyContent(data) {
     const prod = data.production || { quantity: 0, productName: '' };
     const label = prod.productName ? escapeHtml(prod.productName) : 'Mahsulot';
     const assignedSum = filteredAssigned.reduce((s, a) => s + (Number(a.productCount) || 0), 0);
+    // Yuqoridagi boxda xodimlarga biriktirilgan jami sonning 1/3 qismi ko'rsatiladi
+    const displaySum = Math.round(assignedSum / 3);
     const target = Number(prod.quantity) || 0;
     const color = target === 0
       ? 'text-purple-300'
@@ -743,7 +745,7 @@ function renderDailyContent(data) {
           : 'text-purple-300';
     productionCardHtml = `<div class="stat-card cursor-pointer hover:border-purple-500/40 transition" data-act="prod-edit">
       <div class="mono text-[10px] text-zinc-500 uppercase mb-1 truncate">${label}</div>
-      <div class="text-2xl font-bold ${color}"><span class="mono">${assignedSum}</span><span class="text-zinc-500 text-lg">/${target}</span></div>
+      <div class="text-2xl font-bold ${color}"><span class="mono">${displaySum}</span><span class="text-zinc-500 text-lg">/${target}</span></div>
     </div>`;
   }
 
@@ -763,8 +765,8 @@ function renderDailyContent(data) {
         const subLine = isOn
           ? `<span class="text-emerald-300">${code}</span> · ${dirName}`
           : `<span class="text-emerald-300">${code}</span>`;
-        return `<div class="flex flex-wrap items-center gap-2 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/15 mb-2">
-          <div class="flex-1 min-w-[140px]">
+        return `<div class="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/15 mb-2">
+          <div class="flex-1 min-w-0">
             <div class="font-medium text-sm truncate">${escapeHtml(a.employeeSnapshot?.fullName || '—')}</div>
             <div class="mono text-xs text-zinc-500 mt-0.5 truncate">${subLine}</div>
           </div>
@@ -880,23 +882,36 @@ function openEarningModal(assignmentId, focus) {
   if (!a) return;
   document.getElementById('earningAssignmentId').value = assignmentId;
   document.getElementById('earningEmployeeName').textContent = a.employeeSnapshot?.fullName || '—';
-  // Mahsulot soni faqat OFF bo'lim uchun; ON bo'limda daromad narx×smena
+
+  // ON bo'limda faqat summa tahrirlanadi (daromad narx×smena, mahsulot soni yo'q).
+  // OFF bo'limda qaysi box bosilgan bo'lsa — faqat shu input ko'rsatiladi.
   const isOn = !!(state.dailyData.department && state.dailyData.department.allowDirections);
-  document.getElementById('earningProductWrap').classList.toggle('hidden', isOn);
+  const mode = isOn ? 'earning' : (focus === 'product' ? 'product' : 'earning');
+
+  const productWrap = document.getElementById('earningProductWrap');
+  const amountWrap = document.getElementById('earningAmountWrap');
   const qtyInput = document.getElementById('earningProductCount');
   const amtInput = document.getElementById('earningAmount');
+
   qtyInput.value = a.productCount || 0;
   amtInput.value = a.earning || 0;
+
+  productWrap.classList.toggle('hidden', mode !== 'product');
+  amountWrap.classList.toggle('hidden', mode !== 'earning');
+  // required faqat ko'rinadigan inputda bo'lsin (yashirin required submitni bloklaydi)
+  qtyInput.required = (mode === 'product');
+  amtInput.required = (mode === 'earning');
+
+  // Submit uchun qaysi maydon tahrirlanayotganini saqlaymiz
+  document.getElementById('earningForm').dataset.mode = mode;
+
   const titleEl = document.getElementById('earningModalTitle');
   if (titleEl) {
-    const key = focus === 'product' ? 'daily.editProductCount'
-              : focus === 'earning' ? 'daily.editSumma'
-              : 'daily.editEarning';
-    titleEl.textContent = t(key);
+    titleEl.textContent = t(mode === 'product' ? 'daily.editProductCount' : 'daily.editSumma');
   }
   openModal('earningModal');
   setTimeout(() => {
-    const target = focus === 'product' ? qtyInput : amtInput;
+    const target = mode === 'product' ? qtyInput : amtInput;
     try { target.focus(); target.select(); } catch (_) {}
   }, 50);
 }
@@ -930,13 +945,44 @@ function setupDailyReportPage() {
   document.getElementById('earningForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('earningAssignmentId').value;
-    const body = {
-      productCount: Number(document.getElementById('earningProductCount').value || 0),
-      earning: Number(document.getElementById('earningAmount').value || 0),
-    };
+    const mode = document.getElementById('earningForm').dataset.mode || 'earning';
+    // Faqat tahrirlanayotgan maydon yuboriladi (ikkinchisiga tegilmaydi)
+    const body = mode === 'product'
+      ? { productCount: Number(document.getElementById('earningProductCount').value || 0) }
+      : { earning: Number(document.getElementById('earningAmount').value || 0) };
     try { await api(`/api/daily-report/assign/${id}`, { method: 'PUT', body: JSON.stringify(body) }); toast(t('msg.saved')); closeModal('earningModal'); loadDailyForDept(state.dailySelectedDeptId); }
     catch (e2) { toast(e2.message, 'error'); }
   });
+}
+
+// ============================================
+// REPORT FILTERS (bo'lim + yo'nalish) — oylik hisobot & maosh uchun umumiy
+// ============================================
+async function fillReportDeptFilter(selectEl, selectedId) {
+  if (!selectEl) return;
+  await loadDepartmentsIntoState();
+  selectEl.innerHTML = `<option value="">${t('emp.department')} — ${t('common.total')}</option>` +
+    state.departments.map(d => `<option value="${d._id}" ${selectedId === d._id ? 'selected' : ''}>${escapeHtml(d.name)}</option>`).join('');
+}
+
+async function fillReportDirFilter(deptId, dirSelectEl, selectedDirId) {
+  if (!dirSelectEl) return;
+  const dept = state.departments.find(d => d._id === deptId);
+  const emptyOpt = `<option value="">${t('dir.title')} — ${t('common.total')}</option>`;
+  if (!deptId || !dept || !dept.allowDirections) {
+    dirSelectEl.innerHTML = emptyOpt;
+    dirSelectEl.disabled = true;
+    return;
+  }
+  dirSelectEl.disabled = false;
+  dirSelectEl.innerHTML = emptyOpt;
+  try {
+    const dirs = await api(`/api/directions?departmentId=${deptId}`);
+    dirSelectEl.innerHTML = emptyOpt +
+      dirs.map(d => `<option value="${d._id}" ${String(selectedDirId) === String(d._id) ? 'selected' : ''}>${escapeHtml(d.name)}</option>`).join('');
+  } catch (e) {
+    dirSelectEl.innerHTML = emptyOpt;
+  }
 }
 
 // ============================================
@@ -947,6 +993,8 @@ async function loadMonthlyReportPage() {
   const endInput = document.getElementById('monthEnd');
   if (!startInput.value) startInput.value = firstDayOfMonth();
   if (!endInput.value) endInput.value = todayISO();
+  await fillReportDeptFilter(document.getElementById('monthDept'), null);
+  await fillReportDirFilter('', document.getElementById('monthDir'), null);
   await fetchMonthly();
 }
 
@@ -954,9 +1002,14 @@ async function fetchMonthly() {
   const startDate = document.getElementById('monthStart').value;
   const endDate = document.getElementById('monthEnd').value;
   const code = document.getElementById('monthCode').value.trim();
+  const deptId = document.getElementById('monthDept')?.value || '';
+  const dirId = document.getElementById('monthDir')?.value || '';
   if (!startDate || !endDate) return toast(t('msg.error'), 'error');
 
-  const url = `/api/monthly-report?startDate=${startDate}&endDate=${endDate}` + (code ? `&code=${encodeURIComponent(code)}` : '');
+  const url = `/api/monthly-report?startDate=${startDate}&endDate=${endDate}`
+    + (code ? `&code=${encodeURIComponent(code)}` : '')
+    + (deptId ? `&departmentId=${deptId}` : '')
+    + (dirId ? `&directionId=${dirId}` : '');
   const container = document.getElementById('monthResults');
   container.innerHTML = '<div class="p-6"><div class="skeleton h-24"></div></div>';
   try {
@@ -1001,6 +1054,9 @@ function renderMonthly(data) {
 function setupMonthlyReportPage() {
   document.getElementById('monthSearchBtn').addEventListener('click', fetchMonthly);
   document.getElementById('monthCode').addEventListener('keypress', e => { if (e.key === 'Enter') fetchMonthly(); });
+  document.getElementById('monthDept').addEventListener('change', (e) => {
+    fillReportDirFilter(e.target.value, document.getElementById('monthDir'), null);
+  });
 }
 
 // ============================================
@@ -1013,6 +1069,8 @@ async function loadSalaryPage() {
   const endInput = document.getElementById('salaryEnd');
   if (!startInput.value) startInput.value = firstDayOfMonth();
   if (!endInput.value) endInput.value = todayISO();
+  await fillReportDeptFilter(document.getElementById('salaryDept'), null);
+  await fillReportDirFilter('', document.getElementById('salaryDir'), null);
   await fetchSalary();
 }
 
@@ -1022,10 +1080,14 @@ async function fetchSalary() {
   const startDate = document.getElementById('salaryStart').value;
   const endDate = document.getElementById('salaryEnd').value;
   const code = document.getElementById('salaryCode').value.trim();
+  const deptId = document.getElementById('salaryDept')?.value || '';
+  const dirId = document.getElementById('salaryDir')?.value || '';
   const params = new URLSearchParams();
   if (startDate) params.set('startDate', startDate);
   if (endDate) params.set('endDate', endDate);
   if (code) params.set('code', code);
+  if (deptId) params.set('departmentId', deptId);
+  if (dirId) params.set('directionId', dirId);
   try {
     const data = await api(`/api/salary${params.toString() ? '?' + params : ''}`);
     state.salaryData = data;
@@ -1335,10 +1397,16 @@ async function confirmSalaryPayment(employeeId) {
 function setupSalaryPage() {
   document.getElementById('salarySearchBtn').addEventListener('click', fetchSalary);
   document.getElementById('salaryCode').addEventListener('keypress', e => { if (e.key === 'Enter') fetchSalary(); });
-  document.getElementById('salaryResetBtn').addEventListener('click', () => {
+  document.getElementById('salaryDept').addEventListener('change', (e) => {
+    fillReportDirFilter(e.target.value, document.getElementById('salaryDir'), null);
+  });
+  document.getElementById('salaryResetBtn').addEventListener('click', async () => {
     document.getElementById('salaryStart').value = '';
     document.getElementById('salaryEnd').value = '';
     document.getElementById('salaryCode').value = '';
+    const deptSel = document.getElementById('salaryDept');
+    if (deptSel) deptSel.value = '';
+    await fillReportDirFilter('', document.getElementById('salaryDir'), null);
     fetchSalary();
   });
 
@@ -1703,9 +1771,17 @@ function setupExportButtons() {
       const lang = window.getCurrentLang ? window.getCurrentLang() : 'uz-lat';
       const s = document.getElementById('monthStart')?.value || '';
       const e = document.getElementById('monthEnd')?.value || '';
+      const deptId = document.getElementById('monthDept')?.value || '';
+      const dirId = document.getElementById('monthDir')?.value || '';
       if (!s || !e) { toast(t('msg.error'), 'error'); return; }
+      const params = new URLSearchParams();
+      params.set('startDate', s);
+      params.set('endDate', e);
+      params.set('lang', lang);
+      if (deptId) params.set('departmentId', deptId);
+      if (dirId) params.set('directionId', dirId);
       try {
-        await downloadExcel(`/api/monthly-report/export?startDate=${encodeURIComponent(s)}&endDate=${encodeURIComponent(e)}&lang=${encodeURIComponent(lang)}`, `oylik_${s}_${e}.xlsx`);
+        await downloadExcel(`/api/monthly-report/export?${params.toString()}`, `oylik_${s}_${e}.xlsx`);
         toast(t('export.done'));
       } catch (er) { toast(er.message, 'error'); }
     });
@@ -1717,12 +1793,16 @@ function setupExportButtons() {
       const lang = window.getCurrentLang ? window.getCurrentLang() : 'uz-lat';
       const s = document.getElementById('salaryStart')?.value || '';
       const e = document.getElementById('salaryEnd')?.value || '';
+      const deptId = document.getElementById('salaryDept')?.value || '';
+      const dirId = document.getElementById('salaryDir')?.value || '';
       const filter = state.salaryFilter || 'all';
       const params = new URLSearchParams();
       params.set('filter', filter);
       params.set('lang', lang);
       if (s) params.set('startDate', s);
       if (e) params.set('endDate', e);
+      if (deptId) params.set('departmentId', deptId);
+      if (dirId) params.set('directionId', dirId);
       try {
         await downloadExcel(`/api/salary/export?${params.toString()}`, `maosh_${filter}.xlsx`);
         toast(t('export.done'));
@@ -1743,7 +1823,9 @@ async function initApp() {
     applyBranding(me);
     buildSidebar(me.enabledModules || []);
     showApp();
-    const first = (state.business.effectiveModules || [])[0];
+    // Kirilganda birinchi bo'lib Kunlik hisobot ochilib tursin (yoqilgan bo'lsa)
+    const modules = state.business.effectiveModules || [];
+    const first = modules.includes('dailyReport') ? 'dailyReport' : modules[0];
     if (first) navigateTo(first);
   } catch (e) {
     logout();

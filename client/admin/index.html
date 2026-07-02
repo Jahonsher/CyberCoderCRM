@@ -97,9 +97,12 @@
     .card { background: var(--card-bg); border: 1px solid var(--glass-border); border-radius: 1rem; }
     .stat-card { background: var(--card-bg); border: 1px solid var(--glass-border); border-radius: 1rem; padding: 1.25rem; }
 
-    .input-field { background: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-primary); font-family: 'Space Grotesk', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s; }
+    .input-field { background: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-primary); font-family: 'Space Grotesk', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s; max-width: 100%; min-width: 0; }
     .input-field:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18); }
     .input-field::placeholder { color: var(--text-muted); opacity: 0.7; }
+    /* Mobil: date inputlar o'zining tabiiy kengligiga cho'zilib ketmasin */
+    input[type="date"].input-field { -webkit-appearance: none; appearance: none; min-width: 0; max-width: 100%; width: 100%; }
+    input[type="date"].input-field::-webkit-date-and-time-value { text-align: left; }
     .field-label { display: block; font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.06em; }
 
     .btn-primary { background: linear-gradient(135deg, var(--accent), #a78bfa); color: white; font-weight: 700; border: none; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; letter-spacing: 0.01em; }
@@ -159,7 +162,7 @@
 
     .assign-edit-box {
       flex: 0 1 auto;
-      min-width: 110px;
+      min-width: 92px;
       padding: 8px 14px;
       background: var(--card-bg);
       border: 1.5px solid #000000;
@@ -174,6 +177,13 @@
     .assign-edit-box:hover { background: rgba(0, 0, 0, 0.06); border-color: #000000; transform: translateY(-1px); }
     .assign-edit-label { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; opacity: 0.85; }
     .assign-edit-value { font-size: 14px; font-weight: 800; margin-top: 2px; color: var(--text-primary); }
+
+    /* Mobil: summa + mahsulot soni boxlari bitta qatorga sig'ishi uchun kichrayadi */
+    @media (max-width: 640px) {
+      .assign-edit-box { min-width: 68px; padding: 5px 8px; border-radius: 0.6rem; }
+      .assign-edit-label { font-size: 9px; letter-spacing: 0; }
+      .assign-edit-value { font-size: 12px; margin-top: 1px; }
+    }
 
     .dept-card { background: var(--card-bg); border: 1px solid var(--glass-border); border-radius: 0.875rem; padding: 1rem; position: relative; cursor: pointer; transition: all 0.2s; }
     .dept-card:hover { border-color: var(--accent); transform: translateY(-2px); }
@@ -337,7 +347,7 @@
             <button id="monthlyExportBtn" class="btn-ghost px-4 py-2 rounded-xl text-sm" data-i18n="export.excel">Excel yuklab olish</button>
           </div>
           <div class="card p-4 mb-6">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
               <div>
                 <label class="field-label" data-i18n="month.startDate">Boshlanish</label>
                 <input type="date" id="monthStart" class="input-field w-full px-4 py-2.5 rounded-xl text-sm" />
@@ -345,6 +355,14 @@
               <div>
                 <label class="field-label" data-i18n="month.endDate">Tugash</label>
                 <input type="date" id="monthEnd" class="input-field w-full px-4 py-2.5 rounded-xl text-sm" />
+              </div>
+              <div>
+                <label class="field-label" data-i18n="emp.department">Bo'lim</label>
+                <select id="monthDept" class="input-field w-full px-4 py-2.5 rounded-xl text-sm"></select>
+              </div>
+              <div>
+                <label class="field-label" data-i18n="dir.title">Yo'nalish</label>
+                <select id="monthDir" class="input-field w-full px-4 py-2.5 rounded-xl text-sm" disabled></select>
               </div>
               <div>
                 <label class="field-label" data-i18n="month.code">Kod</label>
@@ -368,7 +386,7 @@
         <div class="page" data-page="salary">
           <div id="salaryListView">
             <div class="card p-4 mb-6">
-              <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div>
                   <label class="field-label" data-i18n="month.startDate">Boshlanish</label>
                   <input type="date" id="salaryStart" class="input-field w-full px-4 py-2.5 rounded-xl text-sm" />
@@ -376,6 +394,14 @@
                 <div>
                   <label class="field-label" data-i18n="month.endDate">Tugash</label>
                   <input type="date" id="salaryEnd" class="input-field w-full px-4 py-2.5 rounded-xl text-sm" />
+                </div>
+                <div>
+                  <label class="field-label" data-i18n="emp.department">Bo'lim</label>
+                  <select id="salaryDept" class="input-field w-full px-4 py-2.5 rounded-xl text-sm"></select>
+                </div>
+                <div>
+                  <label class="field-label" data-i18n="dir.title">Yo'nalish</label>
+                  <select id="salaryDir" class="input-field w-full px-4 py-2.5 rounded-xl text-sm" disabled></select>
                 </div>
                 <div>
                   <label class="field-label" data-i18n="month.code">Kod</label>
@@ -556,7 +582,7 @@
           <label class="field-label" data-i18n="daily.productCount">Mahsulot soni</label>
           <input type="number" id="earningProductCount" class="input-field w-full px-4 py-3 rounded-xl mono" min="0" />
         </div>
-        <div>
+        <div id="earningAmountWrap">
           <label class="field-label" data-i18n="daily.summa">Summa</label>
           <input type="number" id="earningAmount" class="input-field w-full px-4 py-3 rounded-xl mono" min="0" required />
         </div>

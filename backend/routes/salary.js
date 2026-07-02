@@ -26,6 +26,7 @@ const requireModule = require('../middleware/requireModule');
 const { buildSalaryWorkbook, buildSalaryEmployeeWorkbook } = require('../services/excelGenerator');
 const { saveToArchive } = require('../services/excelArchive');
 const { tr } = require('../services/excelI18n');
+const { sortByCode } = require('../utils/codeSort');
 
 router.use(verifyToken, requireAdmin, businessScope, requireModule('salary'));
 
@@ -49,7 +50,7 @@ function monthKeyFromDates(dates) {
 
 router.get('/', async (req, res) => {
   try {
-    const { startDate, endDate, code } = req.query;
+    const { startDate, endDate, code, departmentId, directionId } = req.query;
     const startStr = parseDateStr(startDate);
     const endStr = parseDateStr(endDate);
 
@@ -60,11 +61,13 @@ router.get('/', async (req, res) => {
     if (code && String(code).trim()) {
       empFilter.code = String(code).trim();
     }
+    if (departmentId) empFilter.departmentId = departmentId;
+    if (directionId) empFilter.directionId = directionId;
 
     const employees = await Employee.find(empFilter)
       .populate('departmentId', 'name')
-      .sort('fullName')
       .lean();
+    sortByCode(employees);
 
     if (employees.length === 0) {
       return res.json({ employees: [], stats: { totalEarned: 0, totalPaid: 0, totalRemaining: 0, totalEmployees: 0 } });
@@ -169,16 +172,19 @@ router.get('/export', async (req, res) => {
 
     const startStr = parseDateStr(req.query.startDate);
     const endStr = parseDateStr(req.query.endDate);
+    const { departmentId, directionId } = req.query;
 
     const empFilter = {
       businessId: req.businessId,
       status: { $ne: 'deleted' },
     };
+    if (departmentId) empFilter.departmentId = departmentId;
+    if (directionId) empFilter.directionId = directionId;
 
     const employees = await Employee.find(empFilter)
       .populate('departmentId', 'name')
-      .sort('fullName')
       .lean();
+    sortByCode(employees);
 
     let result = [];
     let stats = { totalEarned: 0, totalPaid: 0, totalRemaining: 0, totalEmployees: 0 };

@@ -18,6 +18,7 @@ const requireModule = require('../middleware/requireModule');
 const { buildMonthlyReportWorkbook } = require('../services/excelGenerator');
 const { saveToArchive } = require('../services/excelArchive');
 const { tr } = require('../services/excelI18n');
+const { sortByCode } = require('../utils/codeSort');
 
 router.use(verifyToken, requireAdmin, businessScope, requireModule('monthlyReport'));
 
@@ -58,10 +59,13 @@ router.get('/export', async (req, res) => {
       endStr = endStr || today;
     }
 
+    const { departmentId, directionId } = req.query;
     const filter = {
       businessId: req.businessId,
       dateString: { $gte: startStr, $lte: endStr },
     };
+    if (departmentId) filter.departmentId = departmentId;
+    if (directionId) filter.directionId = directionId;
 
     const assignments = await DailyAssignment.find(filter).lean();
 
@@ -86,9 +90,7 @@ router.get('/export', async (req, res) => {
       grouped[id].totalEarning += a.earning || 0;
     }
 
-    const rows = Object.values(grouped).sort((a, b) =>
-      String(a.fullName).localeCompare(String(b.fullName))
-    );
+    const rows = sortByCode(Object.values(grouped));
 
     const buffer = await buildMonthlyReportWorkbook(lang, {
       startDate: startStr,
@@ -134,7 +136,7 @@ router.get('/export', async (req, res) => {
 
 router.get('/', async (req, res) => {
   try {
-    const { startDate, endDate, code, departmentId } = req.query;
+    const { startDate, endDate, code, departmentId, directionId } = req.query;
     const startStr = parseDateStr(startDate);
     const endStr = parseDateStr(endDate);
     if (!startStr || !endStr) return res.status(400).json({ error: "Sana oralig'i kerak" });
@@ -144,15 +146,23 @@ router.get('/', async (req, res) => {
       dateString: { $gte: startStr, $lte: endStr },
     };
     if (departmentId) filter.departmentId = departmentId;
+    if (directionId) filter.directionId = directionId;
     if (code && String(code).trim()) filter['employeeSnapshot.code'] = String(code).trim();
 
     const assignments = await DailyAssignment.find(filter).lean();
 
-    const payments = await SalaryPayment.find({
+    const paymentFilter = {
       businessId: req.businessId,
       untilDate: { $gte: startStr, $lte: endStr },
       ...(code && String(code).trim() ? { 'employeeSnapshot.code': String(code).trim() } : {}),
-    }).lean();
+    };
+    // Bo'lim/yo'nalish bo'yicha filtrlaganda to'lovlar ham shu xodimlarga cheklanadi
+    // (SalaryPayment'da bo'lim/yo'nalish saqlanmaydi, shuning uchun employeeId orqali).
+    if (departmentId || directionId) {
+      const empIds = [...new Set(assignments.map(a => String(a.employeeId)))];
+      paymentFilter.employeeId = { $in: empIds };
+    }
+    const payments = await SalaryPayment.find(paymentFilter).lean();
 
     const grouped = {};
     for (const a of assignments) {
@@ -191,6 +201,7 @@ router.get('/', async (req, res) => {
       e.remaining = Math.max(0, e.totalEarning - e.totalPaid);
       return e;
     });
+    sortByCode(employees);
 
     res.json({
       period: { startStr, endStr },
